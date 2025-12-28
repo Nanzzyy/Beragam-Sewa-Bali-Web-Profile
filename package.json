@@ -1,0 +1,27 @@
+{
+  "name": "beragam-sewa-bali-web-profile",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nanzzyy/Beragam-Sewa-Bali-Web-Profile.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Nanzzyy/Beragam-Sewa-Bali-Web-Profile/issues"
+  },
+  "homepage": "https://github.com/Nanzzyy/Beragam-Sewa-Bali-Web-Profile#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "mysql2": "^3.16.0"
+  }
+}

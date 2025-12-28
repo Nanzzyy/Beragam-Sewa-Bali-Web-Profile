@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>Beragam Sewa Bali</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <!-- 👇 css code file 👇 -->
+    <link rel="stylesheet" href="./src/style/global.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+</head>
+
+<body>
+
+    <!-- ======= 👇 Navbar Section 👇 ======= -->
+    <nav class="navbar navbar-light navbar-expand-lg fixed-top p-3 w-100 bg-light shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand mb-0 h1" href="#">
+                <img src="./src/assets/images/logos.png" alt="Logo" width="30" height="30"
+                    class="d-inline-block align-text-top">
+                Beragam Sewa Bali
+            </a>
+
+            <button class="navbar-toggler " type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
+                aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar"
+                aria-labelledby="offcanvasNavbarLabel">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Beragam Sewa Bali</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-3 ">
+                        <li class="nav-item">
+                            <a class="nav-link active" ariia-current="page" href="#home">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#about">About</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">Service & Package</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#service">Service</a></li>
+                                <li><a class="dropdown-item" href="#package">Package</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#gallery">Gallery</a>
+                        </li>
+                        <li class="nav-item">
+                            <a type="button" class="btn btn-outline-dark" href="#">
+                                <img class="icon" src="https://img.icons8.com/?size=100&id=78382&format=png&color=000000" alt=""
+                                    width="20" height="20">
+                                Contact
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+    </nav>
+
+    <!-- ======= 👇 Home Section 👇 ======= -->
+    <section id="home" class="hero-swiper">
+        <!-- Container Swiper dinamis -->
+        <div class="swiper heroSwiper" id="home-swiper-container">
+            <div class="swiper-wrapper" id="home-swiper-wrapper">
+                <!-- Slides akan diisi oleh JavaScript -->
+            </div>
+        </div>
+        <div class="hero-content row justify-content-left align-items-center mx-5">
+            <div class="col-lg-5 d-flex flex-column p-5 justify-content-center align-items-left container-content">
+                <h1 class="fs-1 underline-accent" id="home_title"></h1>
+                <p class="fs-5 py-4" id="home_subtitle"></p>
+                <div class="btn-group text-start p-2 gap-2" role="group" aria-label="basic-example">
+                    <button type="button" class="btn btn btn-outline-light fs-5">About Our Company</button>
+                    <button type="button" class="btn btn btn-danger fs-5">Explore now
+                        <img class="icon-white" src="https://img.icons8.com/?size=100&id=100038&format=png&color=000000" alt="" width="20"
+                            height="20">
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======= 👇 About Section 👇 ======= -->
+    <section id="about" class="container-fluid container-position-relative text-bg-light p-5" >
+        <h1 class="fs-2 d-flex flex-column my-5 justify-content-center align-items-center" id="about_title"></h1>
+        <div class="row justify-content-evenly mx-5">
+            <div class="col-lg-5 d-flex flex-column justify-content-center align-items-center container-content">
+                <!-- Container Carousel dinamis -->
+                <div id="about-carousel-container" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3500">
+                    <div class="carousel-inner" id="about-carousel-inner">
+                        <!-- Carousel items akan diisi oleh JavaScript -->
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-7 d-flex flex-column justify-content-center align-items-left container-content">
+                <p class="fs-5 py-4" id="about_text"></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======= 👇 Service And Package Section 👇 ======= -->
+    <section id="menu" class="menu px-5 mb-5">
+        <div id="service" class="container text-bg-light py-5 my-5 rounded-4 shadow-lg">
+            <h2 class="mb-6 text-center" id="services_title">Services</h2>
+            <!-- Container Swiper dinamis -->
+            <div class="swiper mySwiper">
+                <div class="swiper-wrapper" id="services-swiper-wrapper">
+                    <!-- Service cards akan diisi oleh JavaScript -->
+                </div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+        <div id="package" class="container text-bg-light py-5 my-5 rounded-4 shadow-lg">
+            <h2 class="mb-4 text-center" id="packages_title">Packages</h2>
+            <!-- Container Swiper dinamis -->
+            <div class="swiper mySwiper">
+                <div class="swiper-wrapper" id="packages-swiper-wrapper">
+                    <!-- Package cards akan diisi oleh JavaScript -->
+                </div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======= 👇 Gallery Section 👇 ======= -->
+    <section class="container-fluid container-position-relative text-bg-light p-5">
+            <h2 class="mb-4 text-left underline-accent mb-5">Gallery</h2>
+            <!-- Container Swiper dinamis -->
+            <div class="swiper GallerySwiper">
+                <div class="swiper-wrapper" id="main-gallery-swiper-wrapper">
+                    <!-- Gallery slides akan diisi oleh JavaScript -->
+                </div>
+            </div>
+    </section>
+
+    <!-- ======= 👇 Footer Section 👇 ======= -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+    
+    <!-- Script utama kita, pastikan di paling bawah -->
+    <script src="./src/js/index.js"></script>
+
+</body>
+
+</html>

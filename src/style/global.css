@@ -1,0 +1,204 @@
+:root {
+  --primary-bg: #121212;
+  --secondary-bg: #1c1c1c;
+  --primary-text-elegant: #f8f5f2;
+  --secondary-text-elegant: #a0a0a0;
+  --accent-color-primary: #d4af37;
+  --accent-color-secondary: #007aff;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--primary-bg);
+  padding-top: 72px; /* space for fixed navbar */
+}
+.section-premium {
+  background-color: var(--secondary-bg);
+}
+
+.text-elegant {
+  color: var(--primary-text-elegant);
+}
+
+.container-content {
+  min-height: 50vh;
+  height: auto;
+}
+.underline-accent {
+  position: relative;
+  display: inline-block;
+}
+.underline-accent::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 50%;
+  height: 4px;
+  background: #d9534f; /* ganti warna */
+  border-radius: 2px;
+}
+
+/* ======= Menu carousel styles ======= */
+.menu {
+  background-color: var(--primary-bg);
+}
+.menu .swiper {
+  padding: 1rem 0 3rem; /* extra bottom padding so pagination doesn't overlap */
+}
+.menu .swiper-wrapper {
+  align-items: stretch;
+}
+.menu .swiper-slide {
+  display: flex;
+  justify-content: center;
+}
+.menu .card {
+  width: 320px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+.menu .card img {
+  height: 200px;
+  object-fit: cover;
+  transition: filter 0.35s ease, transform 0.35s ease;
+}
+.menu .card:hover img,
+.menu .card:focus-within img {
+  filter: grayscale(0) contrast(1);
+  transform: scale(1.02);
+}
+@media (max-width: 768px) {
+  .menu .card {
+    width: 260px;
+  }
+}
+.menu h2 {
+  color: #222;
+  margin-bottom: 1.5rem;
+}
+/* Position pagination a bit lower for spacing */
+.menu .swiper-pagination {
+  bottom: 10px !important;
+}
+.swiper-button-next,
+.swiper-button-prev {
+  color: #000;
+}
+
+/* improve focus outline for accessibility */
+.swiper-button-next:focus,
+.swiper-button-prev:focus {
+  outline: 2px solid rgba(0, 0, 0, 0.15);
+  outline-offset: 2px;
+}
+.hero-swiper {
+  position: relative;
+  overflow: hidden;
+  --hero-overlay: rgba(0, 0, 0, 0.65); /* increased for readability */
+  --hero-gradient: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.55),
+    rgba(20, 6, 0, 0.35)
+  );
+}
+.hero-swiper .swiper {
+  height: 100%;
+}
+.hero-swiper .swiper-slide {
+  min-height: 70vh;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  background-blend-mode: multiply;
+  transition: background-color 0.35s ease;
+}
+/* slightly reduce blur on hover (improves perceived depth) */
+.hero-swiper:hover .swiper-slide {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+/* gunakan variable */
+.hero-swiper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--hero-overlay);
+  z-index: 1;
+  pointer-events: none;
+}
+.hero-content h1,
+.hero-content p {
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+.hero-content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+}
+/* ensure interactive elements remain clickable */
+.hero-content .container-content,
+.hero-content .btn-group,
+.hero-content a,
+.hero-content button {
+  position: relative;
+  z-index: 3;
+}
+
+/* ===== Icon hover: turn image to white (works for black PNG/SVG) ===== */
+.icon {
+  transition: filter 0.18s ease, transform 0.12s ease, opacity 0.12s ease;
+  filter: none; /* default, assume original color */
+  opacity: 0.95;
+}
+.icon:hover,
+.icon:focus {
+  filter: invert(100%) grayscale(1) brightness(1);
+  transform: translateY(-1px);
+  opacity: 1;
+}
+.icon-white {
+  filter: invert(100%) grayscale(1) brightness(1);
+}
+
+/* Make icon white when its parent outline button is hovered/focused/active */
+.btn.btn-outline-dark:hover .icon,
+.btn-outline-dark:focus .icon,
+.btn-outline-dark:active .icon {
+  filter: invert(100%) grayscale(1) brightness(1);
+  transform: translateY(-1px);
+  opacity: 1;
+}
+
+/* If you use inline SVGs, target paths to change fill on hover */
+.icon-svg path {
+  transition: fill 0.18s ease;
+}
+.icon-svg:hover path {
+  fill: #fff;
+}
+#carouselImg .carousel-inner .carousel-item {
+  height: 400px;
+  background-color: #f8f8f8;
+  overflow: hidden;
+}
+#carouselImg .carousel-inner .carousel-item img {
+  max-height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto; /* center image horizontally */
+}
+@media (max-width: 768px) {
+  #carouselImg .carousel-inner .carousel-item {
+    height: 260px;
+  }
+}

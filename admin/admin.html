@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        fieldset { margin-bottom: 2em; border: 1px solid #ccc; padding: 1em; border-radius: 8px; }
+        legend { font-weight: bold; }
+        input[type="text"], textarea { width: 90%; max-width: 500px; padding: 8px; margin-bottom: 1em; border: 1px solid #ccc; border-radius: 4px; }
+        textarea { height: 100px; }
+        button { padding: 10px 15px; border: none; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        ul { list-style: none; padding: 0; }
+        li { background: #f4f4f4; padding: 8px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        li button { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+    
+    <fieldset>
+        <legend>Konten Teks Umum</legend>
+        <label for="admin-home-title">Home Title:</label><br>
+        <input type="text" id="admin-home-title"><br>
+        <label for="admin-home-subtitle">Home Subtitle:</label><br>
+        <textarea id="admin-home-subtitle"></textarea><br>
+        <label for="admin-about-title">About Title:</label><br>
+        <input type="text" id="admin-about-title"><br>
+        <label for="admin-about-text">About Text:</label><br>
+        <textarea id="admin-about-text"></textarea><br>
+        <button id="save-text-btn">Simpan Semua Perubahan Teks</button>
+    </fieldset>
+
+    <fieldset>
+        <legend>Manajemen Home Slider</legend>
+        <p>Gambar saat ini:</p>
+        <ul id="home-slider-list"></ul>
+        <hr>
+        <p>Tambah Gambar Baru:</p>
+        <input type="file" id="home-slider-file-input" accept="image/*">
+        <button id="add-home-slider-btn">Upload</button>
+    </fieldset>
+
+    <!-- Anda bisa menambahkan fieldset lain di sini untuk galeri utama, dll. -->
+
+    <script src="admin.js"></script>
+</body>
+</html>
