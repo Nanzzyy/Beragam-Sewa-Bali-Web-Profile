@@ -133,6 +133,7 @@ body {
 .hero-content h1,
 .hero-content p {
   text-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  word-wrap: break-word;
 }
 .hero-content {
   position: absolute;

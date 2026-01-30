@@ -4,10 +4,10 @@ const mysql = require('mysql2/promise');
 // Ganti placeholder di bawah ini dengan kredensial database MySQL Anda.
 const pool = mysql.createPool({
   host: 'localhost',      // Alamat server database Anda, biasanya 'localhost'
-  user: 'root',           // Nama pengguna database Anda
+  user: 'beragam_user',           // Nama pengguna database Anda
   password: '',           // Kata sandi database Anda
   database: 'beragam_sewa_bali', // Nama database yang Anda buat
-  port: 3307,          // Port database MySQL, biasanya 3307
+  port: 3306,          // Port database MySQL, biasanya 3307
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

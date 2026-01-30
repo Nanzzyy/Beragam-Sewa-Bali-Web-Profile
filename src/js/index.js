@@ -110,28 +110,38 @@ async function initializePage() {
 
         // 6. Mengisi Main Gallery Swiper
         const mainGallerySwiperWrapper = document.getElementById('main-gallery-swiper-wrapper');
-        if (mainGallerySwiperWrapper && data.main_gallery) {
-            mainGallerySwiperWrapper.innerHTML = '';
-            data.main_gallery.forEach(img => {
-                const slideEl = document.createElement('div');
-                slideEl.className = 'swiper-slide';
-                slideEl.innerHTML = `
-                    <div class="card shadow-sm">
-                        <img src="${img.image_url}" class="card-img-top" alt="${img.caption || ''}">
-                    </div>
-                `;
-                mainGallerySwiperWrapper.appendChild(slideEl);
-            });
-             // Inisialisasi Swiper setelah DOM diisi
-            new Swiper('.GallerySwiper', {
-                slidesPerView: 5,
-                spaceBetween: 20,
-                loop: true,
-                autoplay: { delay: 2000, disableOnInteraction: false },
-                navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
-                pagination: { el: '.swiper-pagination', clickable: true },
-                breakpoints: { 0: { slidesPerView: 2 }, 640: { slidesPerView: 4 }, 992: { slidesPerView: 5 } }
-            });
+        try {
+            const galleryResponse = await fetch('http://localhost:3000/api/gallery');
+            if (!galleryResponse.ok) {
+                throw new Error(`Failed to fetch gallery: ${galleryResponse.statusText}`);
+            }
+            const galleryData = await galleryResponse.json();
+
+            if (mainGallerySwiperWrapper && galleryData) {
+                mainGallerySwiperWrapper.innerHTML = '';
+                galleryData.forEach(img => {
+                    const slideEl = document.createElement('div');
+                    slideEl.className = 'swiper-slide';
+                    slideEl.innerHTML = `
+                        <div class="card shadow-sm">
+                            <img src="${img.image_url}" class="card-img-top" alt="${img.caption || ''}" style="height: 200px; object-fit: cover;">
+                        </div>
+                    `;
+                    mainGallerySwiperWrapper.appendChild(slideEl);
+                });
+                 // Inisialisasi Swiper setelah DOM diisi
+                new Swiper('.GallerySwiper', {
+                    slidesPerView: 5,
+                    spaceBetween: 20,
+                    loop: true,
+                    autoplay: { delay: 2000, disableOnInteraction: false },
+                    navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+                    pagination: { el: '.swiper-pagination', clickable: true },
+                    breakpoints: { 0: { slidesPerView: 2 }, 640: { slidesPerView: 4 }, 992: { slidesPerView: 5 } }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load gallery', error);
         }
 
     } catch (error) {
