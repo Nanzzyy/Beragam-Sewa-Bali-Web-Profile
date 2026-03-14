@@ -10,6 +10,21 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
+// ─── Safe upsert untuk site_content ─────────────────────────────────────────
+// Bekerja dengan atau tanpa UNIQUE constraint di content_key
+async function upsertContent(key, value) {
+    const upd = await db.query(
+        'UPDATE site_content SET content_value=$1 WHERE content_key=$2',
+        [value, key]
+    );
+    if (upd.rowCount === 0) {
+        await db.query(
+            'INSERT INTO site_content(content_key, content_value) VALUES($1, $2)',
+            [key, value]
+        );
+    }
+}
+
 // Supabase client untuk image storage
 const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -122,7 +137,8 @@ app.post('/api/admin/logout', (req, res) => {
 // GET /api/content — data gabungan untuk halaman utama
 app.get('/api/content', async (req, res) => {
     try {
-        const texts = await db.query('SELECT * FROM site_content');
+        // ORDER BY id DESC agar nilai terbaru selalu menang jika ada duplikat
+        const texts = await db.query('SELECT DISTINCT ON (content_key) * FROM site_content ORDER BY content_key, id DESC');
         const images = await db.query('SELECT * FROM section_images ORDER BY id DESC');
 
         const siteContent = texts.rows.reduce((a, r) => ({ ...a, [r.content_key]: r.content_value }), {});
@@ -166,8 +182,8 @@ app.get('/api/hero', requireAdmin, async (req, res) => {
 app.post('/api/hero/text', requireAdmin, async (req, res) => {
     try {
         const { title, subtitle } = req.body;
-        await db.query("INSERT INTO site_content(content_key,content_value) VALUES('home_title',$1) ON CONFLICT(content_key) DO UPDATE SET content_value=$1", [title]);
-        await db.query("INSERT INTO site_content(content_key,content_value) VALUES('home_subtitle',$1) ON CONFLICT(content_key) DO UPDATE SET content_value=$1", [subtitle]);
+        await upsertContent('home_title', title);
+        await upsertContent('home_subtitle', subtitle);
         res.json({ message: 'Updated' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -206,8 +222,8 @@ app.get('/api/about', requireAdmin, async (req, res) => {
 app.post('/api/about/text', requireAdmin, async (req, res) => {
     try {
         const { title, text } = req.body;
-        await db.query("INSERT INTO site_content(content_key,content_value) VALUES('about_title',$1) ON CONFLICT(content_key) DO UPDATE SET content_value=$1", [title]);
-        await db.query("INSERT INTO site_content(content_key,content_value) VALUES('about_text',$1) ON CONFLICT(content_key) DO UPDATE SET content_value=$1", [text]);
+        await upsertContent('about_title', title);
+        await upsertContent('about_text', text);
         res.json({ message: 'Updated' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -375,7 +391,7 @@ app.post('/api/site/logo', requireAdmin, async (req, res) => {
         const file = files.find(f => f.fieldname === 'image');
         if (!file) return res.status(400).json({ error: 'No image' });
         const url = await uploadToSupabase(file.buffer, file.mimetype, 'logos');
-        await db.query("INSERT INTO site_content(content_key,content_value) VALUES('site_logo',$1) ON CONFLICT(content_key) DO UPDATE SET content_value=$1", [url]);
+        await upsertContent('site_logo', url);
         res.json({ message: 'Updated', url });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
