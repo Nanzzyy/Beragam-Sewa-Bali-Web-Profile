@@ -6,6 +6,8 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const db = require('../db');
 const { createClient } = require('@supabase/supabase-js');
+const { IncomingForm } = require('formidable');
+const fs = require('fs');
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
@@ -46,51 +48,39 @@ async function uploadToSupabase(fileBuffer, mimetype, folder = 'uploads') {
     const ext = mimetype.split('/')[1] || 'jpg';
     const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage
-        .from('images')
+        .from('beragam-sewa-bali-images')
         .upload(filename, fileBuffer, { contentType: mimetype, upsert: false });
     if (error) throw new Error(error.message);
-    const { data } = supabase.storage.from('images').getPublicUrl(filename);
+    const { data } = supabase.storage.from('beragam-sewa-bali-images').getPublicUrl(filename);
     return data.publicUrl;
 }
 
-// ─── Helper: Parse multipart/form-data tanpa multer (native) ─────────────────
+// ─── Helper: Parse multipart/form-data dengan formidable ─────────────────────
 function parseMultipart(req) {
     return new Promise((resolve, reject) => {
-        const chunks = [];
-        req.on('data', chunk => chunks.push(chunk));
-        req.on('end', () => {
-            const body = Buffer.concat(chunks);
-            const boundary = req.headers['content-type']?.split('boundary=')[1];
-            if (!boundary) return resolve({ fields: {}, files: [] });
-
-            const parts = body.toString('binary').split(`--${boundary}`);
-            const fields = {};
-            const files = [];
-
-            parts.forEach(part => {
-                if (!part || part === '--\r\n' || part.trim() === '--') return;
-                const [headerStr, ...bodyParts] = part.split('\r\n\r\n');
-                const bodyStr = bodyParts.join('\r\n\r\n').replace(/\r\n$/, '');
-                const nameMatch = headerStr.match(/name="([^"]+)"/);
-                const filenameMatch = headerStr.match(/filename="([^"]+)"/);
-                const contentTypeMatch = headerStr.match(/Content-Type: ([^\r\n]+)/i);
-
-                if (!nameMatch) return;
-                const name = nameMatch[1];
-                if (filenameMatch) {
-                    files.push({
-                        fieldname: name,
-                        originalname: filenameMatch[1],
-                        mimetype: contentTypeMatch?.[1]?.trim() || 'application/octet-stream',
-                        buffer: Buffer.from(bodyStr, 'binary')
+        const form = new IncomingForm({ keepExtensions: true, maxFileSize: 10 * 1024 * 1024 });
+        form.parse(req, (err, fields, files) => {
+            if (err) return reject(err);
+            // Normalisasi: setiap field/file ke format flat { fieldname, buffer, mimetype, originalname }
+            const flatFiles = [];
+            for (const [fieldname, fileArr] of Object.entries(files)) {
+                const arr = Array.isArray(fileArr) ? fileArr : [fileArr];
+                for (const f of arr) {
+                    flatFiles.push({
+                        fieldname,
+                        originalname: f.originalFilename || f.newFilename,
+                        mimetype: f.mimetype || 'application/octet-stream',
+                        buffer: fs.readFileSync(f.filepath)
                     });
-                } else {
-                    fields[name] = bodyStr;
                 }
-            });
-            resolve({ fields, files });
+            }
+            // Normalisasi fields ke string
+            const flatFields = {};
+            for (const [k, v] of Object.entries(fields)) {
+                flatFields[k] = Array.isArray(v) ? v[0] : v;
+            }
+            resolve({ fields: flatFields, files: flatFiles });
         });
-        req.on('error', reject);
     });
 }
 
