@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
+    "build": "tailwindcss -i ./src/style/input.css -o ./src/style/output.css",
     "build:css": "tailwindcss -i ./src/style/input.css -o ./src/style/output.css",
     "watch:css": "tailwindcss -i ./src/style/input.css -o ./src/style/output.css --watch"
   },
