@@ -46,6 +46,10 @@ app.use(session({
 }));
 
 app.use(express.json());
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.use(express.static(path.join(__dirname)));
 
 // =====================================================
@@ -296,7 +300,7 @@ app.get('/api/content', async (req, res) => {
             return acc;
         }, {});
         
-        res.json({ ...siteContent, ...groupedImages });
+        res.json({ ...siteContent, ...groupedImages, site_logo: siteContent.site_logo || null });
     } catch (e) {
         console.error('/api/content error:', e);
         res.status(500).json({ message: 'Terjadi kesalahan saat mengambil konten.' });
@@ -464,6 +468,16 @@ app.post('/api/content', requireAdmin, async (req, res) => {
             await upsertContent(key, changes[key]);
         }
         res.json({ message: 'Konten berhasil diperbarui' });
+    } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// -- Logo Management --
+app.post('/api/site/logo', requireAdmin, upload.single('image'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: 'Logo required' });
+    try {
+        const image_url = await uploadToSupabase(req.file);
+        await upsertContent('site_logo', image_url);
+        res.status(200).json({ message: 'Logo updated', image_url });
     } catch (e) { res.status(500).json({ message: e.message }); }
 });
 

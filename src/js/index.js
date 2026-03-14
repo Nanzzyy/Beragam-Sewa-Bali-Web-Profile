@@ -22,6 +22,14 @@ async function initializePage() {
         document.getElementById('home_subtitle').innerHTML = data.home_subtitle ? protectBrand(data.home_subtitle).replace(/\n/g, '<br>') : '';
         document.getElementById('about_title').innerHTML = protectBrand(data.about_title) || '';
         document.getElementById('about_text').innerHTML = data.about_text ? protectBrand(data.about_text).replace(/\n/g, '<br>') : '';
+        
+        // Site Logo
+        if (data.site_logo) {
+            const navLogo = document.getElementById('nav-logo');
+            const footerLogo = document.getElementById('footer-logo');
+            if (navLogo) navLogo.src = data.site_logo;
+            if (footerLogo) footerLogo.src = data.site_logo;
+        }
 
         const servicesTitle = document.getElementById('services_title');
         if (servicesTitle && data.services_title) {

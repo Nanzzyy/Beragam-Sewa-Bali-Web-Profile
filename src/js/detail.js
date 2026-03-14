@@ -27,6 +27,18 @@ async function loadDetail() {
         if (!res.ok) throw new Error('Not found');
         const data = await res.json();
 
+        // Load Global Content for Logo
+        try {
+            const contentRes = await fetch(`${API_BASE}/content`);
+            if (contentRes.ok) {
+                const contentData = await contentRes.json();
+                if (contentData.site_logo) {
+                    const navLogo = document.getElementById('nav-logo');
+                    if (navLogo) navLogo.src = contentData.site_logo;
+                }
+            }
+        } catch (e) { console.warn('Global content fetch failed'); }
+
         renderData(data, type);
     } catch (err) {
         console.error(err);

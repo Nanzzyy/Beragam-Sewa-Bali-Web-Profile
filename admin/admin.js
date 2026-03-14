@@ -3,7 +3,9 @@
  * Optimized image previews with uniform box sizes.
  */
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3000/api' 
+    : '/api';
 const FETCH_OPTS = { credentials: 'include' };
 
 const el = (id) => document.getElementById(id);
@@ -151,6 +153,7 @@ document.addEventListener('click', async (e) => {
 
     if (t.id === 'btn-upload-hero') return handleUpload('hero-image-upload', `${API_URL}/hero/image`, t);
     if (t.id === 'btn-upload-about') return handleUpload('about-image-upload', `${API_URL}/about/image`, t);
+    if (t.id === 'btn-upload-logo') return handleUpload('logo-upload', `${API_URL}/site/logo`, t);
     
     if (t.id === 'btn-upload-gallery') {
         const files = el('gallery-image-upload').files;
