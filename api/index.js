@@ -11,14 +11,13 @@ const https = require('https');
 const sharp = require('sharp');
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false
 }));
 
-// CORS Sederhana & Stabil untuk Express 5
+// Perbaikan untuk Express 5: Gunakan CORS tanpa rute '*' yang bermasalah
 app.use(cors());
 
 app.use(session({
@@ -27,8 +26,8 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: true, // Wajib true di Vercel (HTTPS)
+        sameSite: 'none', // Penting untuk cross-domain session
         maxAge: 2 * 60 * 60 * 1000
     }
 }));
@@ -36,108 +35,70 @@ app.use(session({
 app.use(express.json());
 
 // =====================================================
-// MIDDLEWARE AUTENTIKASI ADMIN
+// MIDDLEWARE & HELPERS
 // =====================================================
 function requireAdmin(req, res, next) {
     if (req.session && req.session.isAdmin) return next();
-    return res.status(401).json({ message: 'Akses ditolak. Silakan login terlebih dahulu.' });
+    return res.status(401).json({ message: 'Akses ditolak.' });
 }
 
-// =====================================================
-// KONFIGURASI MULTER (Upload File)
-// =====================================================
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }
-});
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
-// =====================================================
-// HELPER: Upload ke Supabase Storage
-// =====================================================
 const uploadToSupabase = async (file) => {
     if (!file) return null;
     const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
     const SUPABASE_KEY = (process.env.SUPABASE_KEY || '').trim();
     const BUCKET = 'beragam-sewa-bali-images';
-
     try {
-        const optimizedBuffer = await sharp(file.buffer)
-            .resize(1200, null, { withoutEnlargement: true })
-            .webp({ quality: 80 })
-            .toBuffer();
-
-        const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const uniqueFilename = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeName}.webp`;
-        const urlPath = `/storage/v1/object/${BUCKET}/${uniqueFilename}`;
-
+        const optimizedBuffer = await sharp(file.buffer).resize(1200, null, { withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+        const uniqueFilename = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${file.originalname.replace(/[^a-zA-Z0-9]/g, '_')}.webp`;
         return new Promise((resolve, reject) => {
             const req = https.request({
                 hostname: new URL(SUPABASE_URL).hostname,
                 port: 443,
-                path: urlPath,
+                path: `/storage/v1/object/${BUCKET}/${uniqueFilename}`,
                 method: 'POST',
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Content-Type': 'image/webp',
-                    'Content-Length': optimizedBuffer.length
-                }
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'image/webp', 'Content-Length': optimizedBuffer.length }
             }, (res) => {
-                let data = '';
-                res.on('data', c => data += c);
-                res.on('end', () => {
-                    if (res.statusCode >= 400) return reject(new Error(`Gagal upload: ${data}`));
-                    resolve(`${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${uniqueFilename}`);
-                });
+                if (res.statusCode >= 400) return reject(new Error('Upload failed'));
+                resolve(`${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${uniqueFilename}`);
             });
             req.on('error', reject);
             req.write(optimizedBuffer);
             req.end();
         });
-    } catch (error) { throw new Error('Gagal memproses gambar'); }
+    } catch (e) { throw new Error('Processing failed'); }
 };
 
-// =====================================================
-// API ENDPOINTS
-// =====================================
 const query = (sql, params) => db.query(sql, params).then(r => r.rows);
 const queryOne = (sql, params) => db.query(sql, params).then(r => r.rows[0] || null);
-const upsertContent = (key, value) => db.query(`INSERT INTO site_content (content_key, content_value) VALUES ($1, $2) ON CONFLICT (content_key) DO UPDATE SET content_value = EXCLUDED.content_value, updated_at = NOW()`, [key, value]);
+const upsertContent = (k, v) => db.query(`INSERT INTO site_content (content_key, content_value) VALUES ($1, $2) ON CONFLICT (content_key) DO UPDATE SET content_value = EXCLUDED.content_value, updated_at = NOW()`, [k, v]);
 
+// =====================================================
+// API ROUTES
+// =====================================================
 app.get('/api/admin/status', (req, res) => res.json({ loggedIn: !!(req.session && req.session.isAdmin) }));
 
 app.post('/api/admin/login', async (req, res) => {
     const { password } = req.body;
-    const truePassword = (process.env.ADMIN_PASSWORD || 'admin123').trim();
-    if (password && password.trim() === truePassword) {
+    if (password && password.trim() === (process.env.ADMIN_PASSWORD || 'admin123').trim()) {
         req.session.isAdmin = true;
-        return res.json({ message: 'Login berhasil.' });
+        return res.json({ message: 'OK' });
     }
-    res.status(401).json({ message: 'Password salah.' });
-});
-
-app.post('/api/admin/logout', (req, res) => {
-    req.session.destroy(() => {
-        res.clearCookie('connect.sid');
-        res.json({ message: 'Logout berhasil.' });
-    });
+    res.status(401).json({ message: 'Wrong password' });
 });
 
 app.get('/api/content', async (req, res) => {
     try {
-        const [contentRows, imageRows] = await Promise.all([
-            query(`SELECT content_key, content_value FROM site_content`),
-            query(`SELECT * FROM section_images ORDER BY section_key, sort_order ASC, id DESC`)
-        ]);
-        const siteContent = contentRows.reduce((a, r) => ({ ...a, [r.content_key]: r.content_value }), {});
-        const groupedImages = imageRows.reduce((acc, img) => {
-            let key = img.section_key;
-            if (key === 'service' || key === 'package') key = `${key}s`;
-            if (!acc[key]) acc[key] = [];
-            acc[key].push(key.endsWith('s') ? { id: img.id, image_url: img.image_url, name: img.title, description: img.text, long_text: img.long_text, caption: img.caption } : img);
-            return acc;
+        const [c, i] = await Promise.all([query(`SELECT * FROM site_content`), query(`SELECT * FROM section_images ORDER BY id DESC`)]);
+        const siteContent = c.reduce((a, r) => ({ ...a, [r.content_key]: r.content_value }), {});
+        const grouped = i.reduce((a, img) => {
+            let k = img.section_key; if (k === 'service' || k === 'package') k += 's';
+            if (!a[k]) a[k] = [];
+            a[k].push(k.endsWith('s') ? { id: img.id, image_url: img.image_url, name: img.title, description: img.text, long_text: img.long_text } : img);
+            return a;
         }, {});
-        res.json({ ...siteContent, ...groupedImages });
+        res.json({ ...siteContent, ...grouped });
     } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -156,19 +117,10 @@ app.get('/api/packages/:id', async (req, res) => {
     catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// Admin Protected
-app.post('/api/hero/text', requireAdmin, async (req, res) => {
-    try { await upsertContent('home_title', req.body.title); await upsertContent('home_subtitle', req.body.subtitle); res.json({ message: 'OK' }); }
-    catch (e) { res.status(500).json({ message: e.message }); }
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
 });
-
-app.post('/api/about/text', requireAdmin, async (req, res) => {
-    try { await upsertContent('about_title', req.body.title); await upsertContent('about_text', req.body.text); res.json({ message: 'OK' }); }
-    catch (e) { res.status(500).json({ message: e.message }); }
-});
-
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(port, () => console.log(`✅ Server berjalan di http://localhost:${port}`));
-}
 
 module.exports = app;
