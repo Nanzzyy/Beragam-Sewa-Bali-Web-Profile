@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const { Pool } = require('pg');
 
 // Gunakan pooling yang lebih efisien
@@ -7,10 +7,9 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false
   },
-  // Tambahkan parameter berikut untuk stabilitas
-  max: 10,                 // Maksimal 10 koneksi simultan
-  idleTimeoutMillis: 30000, // Tutup koneksi idle setelah 30 detik
-  connectionTimeoutMillis: 20000, // Tunggu hingga 20 detik untuk koneksi baru (penting untuk Supabase free tier)
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 30000, // Tingkatkan ke 30 detik untuk stabilitas
 });
 
 // Listener untuk memantau status pool
