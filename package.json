@@ -2,9 +2,9 @@
   "name": "beragam-sewa-bali-web-profile",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node api/index.js",
     "build": "tailwindcss -i ./public/src/style/input.css -o ./public/src/style/output.css",
     "build:css": "tailwindcss -i ./public/src/style/input.css -o ./public/src/style/output.css",
     "watch:css": "tailwindcss -i ./public/src/style/input.css -o ./public/src/style/output.css --watch"
