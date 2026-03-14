@@ -22,16 +22,8 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 
-const allowedOrigins = (process.env.ALLOWED_ORIGIN || 'http://localhost:3000').split(',').map(o => o.trim());
-app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || origin === 'null' || origin.startsWith('http://127.0.0.1') || origin.startsWith('http://localhost') || allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-        callback(new Error('CORS: Origin tidak diizinkan'));
-    },
-    credentials: true
-}));
+app.use(cors()); // Mengizinkan semua akses tanpa syarat untuk menghindari error CORS di produksi
+app.options('*', cors()); // Mendukung pre-flight requests untuk semua rute
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'changeme_set_in_dotenv',
