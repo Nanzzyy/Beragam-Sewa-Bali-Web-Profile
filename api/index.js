@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -6,12 +7,17 @@ const helmet = require('helmet');
 const db = require('../db');
 
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(cookieParser(process.env.SESSION_SECRET || 'bsb_secret_key'));
 app.use(express.json());
+
+// Serve static files (HTML, CSS, JS, gambar) — hanya efektif saat local dev
+// Di Vercel, static files ditangani langsung oleh vercel.json
+app.use(express.static(path.join(__dirname, '..')));
 
 // --- API Endpoints ---
 
@@ -27,9 +33,9 @@ app.post('/api/admin/login', (req, res) => {
     if (password === (process.env.ADMIN_PASSWORD || 'admin123')) {
         res.cookie('isAdmin', 'true', {
             httpOnly: true,
-            secure: true,
+            secure: isProduction,   // false di localhost, true di Vercel/HTTPS
             signed: true,
-            sameSite: 'none',
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 3600000
         });
         return res.json({ message: 'OK' });
@@ -64,3 +70,12 @@ app.get('/api/gallery', async (req, res) => {
 
 // Vercel export
 module.exports = app;
+
+// Local dev server
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`✅ Server berjalan di http://localhost:${PORT}`);
+    });
+}
+
