@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment variables — JANGAN pernah commit ini!
+.env
+
+# Upload files (data user, bukan part of source code)
+uploads/*
+!uploads/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

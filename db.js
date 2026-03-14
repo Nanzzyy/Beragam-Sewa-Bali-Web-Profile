@@ -1,16 +1,40 @@
-const mysql = require('mysql2/promise');
+require('dotenv').config();
+const { Pool } = require('pg');
 
-// Buat koneksi pool ke database Anda.
-// Ganti placeholder di bawah ini dengan kredensial database MySQL Anda.
-const pool = mysql.createPool({
-  host: 'localhost',      // Alamat server database Anda, biasanya 'localhost'
-  user: 'beragam_user',           // Nama pengguna database Anda
-  password: '',           // Kata sandi database Anda
-  database: 'beragam_sewa_bali', // Nama database yang Anda buat
-  port: 3306,          // Port database MySQL, biasanya 3307
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+// Gunakan pooling yang lebih efisien
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  },
+  // Tambahkan parameter berikut untuk stabilitas
+  max: 10,                 // Maksimal 10 koneksi simultan
+  idleTimeoutMillis: 30000, // Tutup koneksi idle setelah 30 detik
+  connectionTimeoutMillis: 20000, // Tunggu hingga 20 detik untuk koneksi baru (penting untuk Supabase free tier)
 });
+
+// Listener untuk memantau status pool
+pool.on('connect', (client) => {
+  // Hanya log jika benar-benar diperlukan untuk debug
+  // console.log('✅ Client terhubung ke pool');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Unexpected error on idle client:', err.message);
+});
+
+// Verifikasi koneksi sekali saja saat startup dengan cara yang lebih aman
+const verifyConnection = async () => {
+  try {
+    const client = await pool.connect();
+    console.log('✅ PostgreSQL terhubung ke Supabase!');
+    client.release(); // Kembalikan ke pool
+  } catch (err) {
+    console.error('❌ Koneksi database gagal pada awal startup:', err.message);
+    console.log('⚠️  Server tetap berjalan, akan mencoba menghubungkan kembali saat ada request...');
+  }
+};
+
+verifyConnection();
 
 module.exports = pool;

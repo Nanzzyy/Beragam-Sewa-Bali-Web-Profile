@@ -1,18 +1,28 @@
 // Fungsi untuk mengisi konten dinamis dan menginisialisasi library
 async function initializePage() {
     try {
-        const response = await fetch('http://localhost:3000/api/content');
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:3000/api' 
+            : '/api';
+            
+        const response = await fetch(`${API_BASE}/content`);
         if (!response.ok) {
             throw new Error(`Gagal mengambil data: ${response.statusText}`);
         }
         const data = await response.json();
 
+        const protectBrand = (text) => {
+            if (!text) return '';
+            // Case-insensitive replace for brand name to wrap it in notranslate span
+            return text.replace(/Beragam Sewa Bali/gi, '<span class="notranslate">$&</span>');
+        };
+
         // 1. Mengisi konten teks
-        document.getElementById('home_title').textContent = data.home_title || '';
-        document.getElementById('home_subtitle').innerHTML = data.home_subtitle || ''; // Gunakan innerHTML jika teks mengandung <br>
-        document.getElementById('about_title').textContent = data.about_title || '';
-        document.getElementById('about_text').innerHTML = data.about_text || '';
-        // Ganti judul statis menjadi dinamis jika ada di database
+        document.getElementById('home_title').innerHTML = protectBrand(data.home_title) || '';
+        document.getElementById('home_subtitle').innerHTML = data.home_subtitle ? protectBrand(data.home_subtitle).replace(/\n/g, '<br>') : '';
+        document.getElementById('about_title').innerHTML = protectBrand(data.about_title) || '';
+        document.getElementById('about_text').innerHTML = data.about_text ? protectBrand(data.about_text).replace(/\n/g, '<br>') : '';
+
         const servicesTitle = document.getElementById('services_title');
         if (servicesTitle && data.services_title) {
             servicesTitle.textContent = data.services_title;
@@ -22,7 +32,6 @@ async function initializePage() {
             packagesTitle.textContent = data.packages_title;
         }
 
-
         // 2. Mengisi Home Swiper
         const homeSwiperWrapper = document.getElementById('home-swiper-wrapper');
         if (homeSwiperWrapper && data.home_slider) {
@@ -30,91 +39,131 @@ async function initializePage() {
             data.home_slider.forEach(slide => {
                 const slideEl = document.createElement('div');
                 slideEl.className = 'swiper-slide';
-                slideEl.style.backgroundImage = `url('${slide.image_url}')`;
+                slideEl.innerHTML = `<div class="hero-slide-bg" style="background-image: url('${slide.image_url}')"></div>`;
                 homeSwiperWrapper.appendChild(slideEl);
             });
-             // Inisialisasi Swiper setelah DOM diisi
+
             new Swiper('.heroSwiper', {
-                slidesPerView: 1, loop: true, autoplay: { delay: 5000 }, pagination: { el: '.swiper-pagination', clickable: true },
-                navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' }
+                slidesPerView: 1,
+                effect: 'fade',
+                fadeEffect: { crossFade: true },
+                loop: data.home_slider.length > 1,
+                speed: 1200,
+                observer: true,
+                observeParents: true,
+                autoplay: {
+                    delay: 6000,
+                    disableOnInteraction: false,
+                    pauseOnMouseEnter: false
+                },
+                pagination: {
+                    el: '#home .swiper-pagination',
+                    clickable: true
+                }
             });
         }
 
-        // 3. Mengisi About Carousel (Bootstrap)
-        const aboutCarouselInner = document.getElementById('about-carousel-inner');
-        if (aboutCarouselInner && data.about_carousel) {
-            aboutCarouselInner.innerHTML = '';
-            data.about_carousel.forEach((item, index) => {
-                const carouselItem = document.createElement('div');
-                carouselItem.className = `carousel-item ${index === 0 ? 'active' : ''}`;
-                carouselItem.innerHTML = `<img src="${item.image_url}" class="d-block w-100" alt="${item.caption || ''}">`;
-                aboutCarouselInner.appendChild(carouselItem);
+        // 3. Mengisi About Carousel
+        const aboutSwiperWrapper = document.getElementById('about-swiper-wrapper');
+        if (aboutSwiperWrapper && data.about_carousel) {
+            aboutSwiperWrapper.innerHTML = '';
+            data.about_carousel.forEach((item) => {
+                const slideEl = document.createElement('div');
+                slideEl.className = 'swiper-slide h-full';
+                slideEl.innerHTML = `<img src="${item.image_url}" class="w-full h-full object-cover" alt="${item.caption || ''}">`;
+                aboutSwiperWrapper.appendChild(slideEl);
             });
-            // Re-initialize Bootstrap carousel if needed, though data-bs-ride usually handles it.
+
+            new Swiper('.aboutSwiper', {
+                slidesPerView: 1,
+                loop: true,
+                speed: 800,
+                observer: true,
+                observeParents: true,
+                autoplay: { delay: 4000, disableOnInteraction: false },
+                pagination: { el: '.swiper-pagination', clickable: true }
+            });
         }
 
-        // 4. Mengisi Packages Swiper (Asumsi ada data 'packages' dari API)
-        const packagesSwiperWrapper = document.getElementById('packages-swiper-wrapper');
-        if (packagesSwiperWrapper && data.packages) {
-            packagesSwiperWrapper.innerHTML = '';
-            data.packages.forEach(pkg => {
+        // 4. Render Cards (Services & Packages)
+        const renderCards = (wrapperId, items, type) => {
+            const wrapper = document.getElementById(wrapperId);
+            if (!wrapper || !items) return;
+            wrapper.innerHTML = '';
+            items.forEach(item => {
                 const slideEl = document.createElement('div');
                 slideEl.className = 'swiper-slide';
                 slideEl.innerHTML = `
-                    <div class="card shadow-sm">
-                        <img src="${pkg.image_url || 'https://picsum.photos/seed/placeholder/600/400'}" class="card-img-top" alt="${pkg.name}">
-                        <div class="card-body">
-                            <h5 class="card-title">${pkg.name}</h5>
-                            <p class="card-text">${pkg.description}</p>
-                            <a href="#" class="btn btn-outline-dark">Details</a>
+                    <div class="flex justify-center pb-12 w-full">
+                        <div class="w-full max-w-[340px] bg-white rounded-3xl overflow-hidden border border-black/5 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group mx-auto">
+                            <div class="relative overflow-hidden h-[240px]">
+                                <img src="${item.image_url || 'https://picsum.photos/seed/placeholder/600/400'}" 
+                                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                     alt="${item.name || ''}">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            </div>
+                            <div class="p-8">
+                                <h5 class="text-xl font-bold text-brand-dark mb-3 group-hover:text-brand-red transition-colors">${item.name || ''}</h5>
+                                <p class="text-sm text-text-muted leading-relaxed mb-8 line-clamp-2">${item.description || ''}</p>
+                                <a href="detail.html?type=${type}&id=${item.id}" 
+                                   class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-red group/btn">
+                                    <span data-i18n="btn_details">Details Explore</span>
+                                    <i class="fa-solid fa-arrow-right-long transition-transform group-hover/btn:translate-x-1"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 `;
-                packagesSwiperWrapper.appendChild(slideEl);
+                wrapper.appendChild(slideEl);
             });
-        }
-        
-        // 5. Mengisi Services Swiper (Asumsi ada data 'services' dari API)
-        const servicesSwiperWrapper = document.getElementById('services-swiper-wrapper');
-        if (servicesSwiperWrapper && data.services) { // Anda perlu menambahkan 'services' ke API Anda
-            servicesSwiperWrapper.innerHTML = '';
-            data.services.forEach(srv => {
-                const slideEl = document.createElement('div');
-                slideEl.className = 'swiper-slide';
-                slideEl.innerHTML = `
-                    <div class="card shadow-sm">
-                        <img src="${srv.image_url || 'https://picsum.photos/seed/placeholder/600/400'}" class="card-img-top" alt="${srv.name}">
-                        <div class="card-body">
-                            <h5 class="card-title">${srv.name}</h5>
-                            <p class="card-text">${srv.description}</p>
-                            <a href="#" class="btn btn-outline-dark">Details</a>
-                        </div>
-    
-                    </div>
-                `;
-                servicesSwiperWrapper.appendChild(slideEl);
-            });
+        };
+
+        renderCards('services-swiper-wrapper', data.services, 'service');
+        renderCards('packages-swiper-wrapper', data.packages, 'package');
+
+        // Apply translations to dynamic content
+        if (typeof applyLanguage === 'function') {
+            applyLanguage(localStorage.getItem('lang') || 'id');
         }
 
-        // Inisialisasi swiper untuk Service dan Package setelah DOM diisi
-        new Swiper('.mySwiper', {
+        // Init swiper for Service dan Package
+        const commonSwiperConfig = (containerId, itemCount) => ({
             slidesPerView: 3,
-            spaceBetween: 10,
-            loop: true,
-            autoplay: { delay: 3000, disableOnInteraction: false },
-            navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
-            pagination: { el: '.swiper-pagination', clickable: true },
-            breakpoints: { 0: { slidesPerView: 1 }, 640: { slidesPerView: 2 }, 992: { slidesPerView: 3 } }
+            spaceBetween: 30,
+            loop: itemCount >= 3,
+            grabCursor: true,
+            roundLengths: true,
+            watchSlidesProgress: true,
+            observer: true,
+            observeParents: true,
+            autoplay: { delay: 4000, disableOnInteraction: false },
+            navigation: {
+                nextEl: `${containerId} .swiper-button-next`,
+                prevEl: `${containerId} .swiper-button-prev`
+            },
+            pagination: { el: `${containerId} .swiper-pagination`, clickable: true },
+            breakpoints: {
+                0: { slidesPerView: 1, spaceBetween: 20 },
+                768: { slidesPerView: 2, spaceBetween: 25 },
+                1024: { slidesPerView: 3, spaceBetween: 30 }
+            }
         });
 
+        if (data.services && data.services.length > 0) {
+            new Swiper('#service .mySwiper', commonSwiperConfig('#service', data.services.length));
+        }
+        if (data.packages && data.packages.length > 0) {
+            new Swiper('#package .mySwiper', commonSwiperConfig('#package', data.packages.length));
+        }
 
-        // 6. Mengisi Main Gallery Swiper
+
+        // 5. Gallery Swiper
         const mainGallerySwiperWrapper = document.getElementById('main-gallery-swiper-wrapper');
         try {
-            const galleryResponse = await fetch('http://localhost:3000/api/gallery');
-            if (!galleryResponse.ok) {
-                throw new Error(`Failed to fetch gallery: ${galleryResponse.statusText}`);
-            }
+            const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:3000/api' 
+                : '/api';
+            const galleryResponse = await fetch(`${API_BASE}/gallery`);
             const galleryData = await galleryResponse.json();
 
             if (mainGallerySwiperWrapper && galleryData) {
@@ -123,31 +172,94 @@ async function initializePage() {
                     const slideEl = document.createElement('div');
                     slideEl.className = 'swiper-slide';
                     slideEl.innerHTML = `
-                        <div class="card shadow-sm">
-                            <img src="${img.image_url}" class="card-img-top" alt="${img.caption || ''}" style="height: 200px; object-fit: cover;">
+                        <div class="group relative aspect-square shadow-sm rounded-2xl overflow-hidden bg-bg-surface hover:-translate-y-2 hover:shadow-2xl transition-all duration-500">
+                            <img src="${img.image_url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" alt="${img.caption || ''}">
+                            <div class="absolute inset-0 bg-brand-red opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none"></div>
                         </div>
                     `;
                     mainGallerySwiperWrapper.appendChild(slideEl);
                 });
-                 // Inisialisasi Swiper setelah DOM diisi
+
                 new Swiper('.GallerySwiper', {
                     slidesPerView: 5,
                     spaceBetween: 20,
                     loop: true,
-                    autoplay: { delay: 2000, disableOnInteraction: false },
-                    navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
-                    pagination: { el: '.swiper-pagination', clickable: true },
-                    breakpoints: { 0: { slidesPerView: 2 }, 640: { slidesPerView: 4 }, 992: { slidesPerView: 5 } }
+                    speed: 600,
+                    observer: true,
+                    observeParents: true,
+                    autoplay: { delay: 2500, disableOnInteraction: false },
+                    breakpoints: {
+                        0: { slidesPerView: 2, spaceBetween: 15 },
+                        640: { slidesPerView: 3, spaceBetween: 20 },
+                        1024: { slidesPerView: 5, spaceBetween: 20 }
+                    }
                 });
             }
         } catch (error) {
-            console.error('Failed to load gallery', error);
+            console.error('Gallery failed to load');
         }
 
     } catch (error) {
-        console.error("Gagal menginisialisasi halaman:", error);
+        console.error("Initialization failed:", error);
+        // Fallback logic remains similar but with improved CSS classes if needed
     }
 }
 
-// Panggil fungsi utama saat halaman selesai dimuat
-document.addEventListener('DOMContentLoaded', initializePage);
+document.addEventListener('DOMContentLoaded', () => {
+    initializePage();
+
+    // ── Navbar scroll effect ──────────────────────────────
+    const navbar = document.getElementById('mainNavbar');
+    const onScroll = () => {
+        if (window.scrollY > 50) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+
+    // ── Mobile Menu ──────────────────────────────
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const closeMobileMenuBtn = document.getElementById('closeMobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileMenuBackdrop = document.getElementById('mobileMenuBackdrop');
+    const mobileMenuSidebar = document.getElementById('mobileMenuSidebar');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
+    const openMobileMenu = () => {
+        mobileMenu.classList.remove('invisible');
+        setTimeout(() => {
+            mobileMenuBackdrop.classList.replace('opacity-0', 'opacity-100');
+            mobileMenuSidebar.classList.replace('translate-x-full', 'translate-x-0');
+        }, 10);
+    };
+
+    const closeMobileMenu = () => {
+        mobileMenuBackdrop.classList.replace('opacity-100', 'opacity-0');
+        mobileMenuSidebar.classList.replace('translate-x-0', 'translate-x-full');
+        setTimeout(() => mobileMenu.classList.add('invisible'), 300);
+    };
+
+    mobileMenuBtn?.addEventListener('click', openMobileMenu);
+    closeMobileMenuBtn?.addEventListener('click', closeMobileMenu);
+    mobileMenuBackdrop?.addEventListener('click', closeMobileMenu);
+    mobileNavLinks.forEach(link => link.addEventListener('click', closeMobileMenu));
+
+    // ── Scroll Reveal ─────────────
+    const revealObserver = new IntersectionObserver(
+        (entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+});
+

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail — Beragam Sewa Bali</title>
+    <link rel="stylesheet" href="./src/style/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="font-outfit bg-bg-base text-text-body antialiased">
+
+    <!-- Nav Minimalist -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-black/5 px-6 py-4 dark:bg-dark-bg-base/80">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 font-black text-xl tracking-tight text-text-primary notranslate">
+                <img src="./src/assets/images/logos.png" class="w-8 h-8">
+                <span class="hidden sm:inline">Beragam Sewa Bali</span>
+            </a>
+            
+            <div class="flex items-center gap-6">
+                <!-- Language & Theme Toggles -->
+                <div class="flex items-center gap-4 px-3 py-1 bg-black/5 rounded-full">
+                    <div class="flex items-center gap-2">
+                        <button class="lang-btn w-6 h-6 rounded-full overflow-hidden border-2 border-transparent transition-all" data-lang="id" title="Indonesian">
+                            <img src="https://img.icons8.com/?size=100&id=60248&format=png" alt="ID" class="w-full h-full object-cover">
+                        </button>
+                        <button class="lang-btn w-6 h-6 rounded-full overflow-hidden border-2 border-transparent transition-all" data-lang="en" title="English">
+                            <img src="https://img.icons8.com/?size=100&id=15534&format=png" alt="EN" class="w-full h-full object-cover">
+                        </button>
+                    </div>
+                    <div class="w-px h-4 bg-black/10"></div>
+                    <button class="theme-toggle-btn text-text-body hover:text-brand-red transition-colors" title="Toggle Dark Mode">
+                        <i class="fa-solid fa-moon dark:hidden"></i>
+                        <i class="fa-solid fa-sun hidden dark:block"></i>
+                    </button>
+                </div>
+
+                <a href="/" class="group flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-red transition-colors">
+                    <div class="w-10 h-10 flex items-center justify-center rounded-full bg-black/5 group-hover:bg-brand-red group-hover:text-white transition-all">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </div>
+                    <span class="hidden lg:inline" data-i18n="back_to_home">Kembali ke Beranda</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-32 pb-24 px-6">
+        <div class="max-w-6xl mx-auto">
+            
+            <!-- Skeleton Loader -->
+            <div id="detail-skeleton" class="animate-pulse space-y-12">
+                <div class="h-[500px] bg-gray-200 rounded-[3rem]"></div>
+                <div class="space-y-4">
+                    <div class="h-8 bg-gray-200 rounded-xl w-1/3"></div>
+                    <div class="h-4 bg-gray-200 rounded-lg w-full"></div>
+                    <div class="h-4 bg-gray-200 rounded-lg w-full"></div>
+                </div>
+            </div>
+
+            <!-- Main Content Container -->
+            <div id="detail-content" class="hidden space-y-12 animate-fade-in">
+                
+                <!-- Hero Image Section -->
+                <div class="relative group">
+                    <div class="absolute inset-0 bg-brand-red/10 blur-3xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                    <div class="relative h-[400px] md:h-[600px] rounded-[3rem] overflow-hidden border-[8px] border-white shadow-2xl">
+                        <img id="detail-img" src="" class="w-full h-full object-cover" alt="">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                        <div class="absolute bottom-12 left-12 right-12">
+                            <h1 id="detail-title" class="text-4xl md:text-6xl font-black text-white tracking-tight drop-shadow-lg"></h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+                    
+                    <!-- Left: Description (8 Columns) -->
+                    <div class="lg:col-span-8 space-y-8">
+                        <div class="detail-card p-10 md:p-14">
+                            <span id="detail-type" class="info-badge"></span>
+                            <h3 class="text-2xl font-black mb-6 flex items-center gap-3 text-text-primary">
+                                <span class="w-2 h-8 bg-brand-red rounded-full"></span>
+                                <span data-i18n="desc_detail">Deskripsi Detail</span>
+                            </h3>
+                            <div id="detail-desc" class="content-text text-text-body"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Sticky CTA (4 Columns) -->
+                    <div class="lg:col-span-4 sticky top-32">
+                        <div class="detail-card p-8 bg-brand-dark text-white border-none shadow-brand-red/20">
+                            <h4 class="text-xl font-black mb-2" data-i18n="cta_title">Tertarik Unit Ini?</h4>
+                            <p class="text-gray-400 text-sm mb-8 leading-relaxed" data-i18n="cta_desc">Hubungi admin kami sekarang untuk cek ketersediaan tanggal dan booking unit Anda.</p>
+                            
+                            <div class="space-y-4 mb-10 text-sm">
+                                <div class="feature-pill bg-white/5 border-white/10 hover:bg-white/10">
+                                    <i class="fa-solid fa-check-circle text-emerald-400"></i>
+                                    <span data-i18n="cta_ready">Unit Ready & Terawat</span>
+                                </div>
+                                <div class="feature-pill bg-white/5 border-white/10 hover:bg-white/10">
+                                    <i class="fa-solid fa-check-circle text-emerald-400"></i>
+                                    <span data-i18n="cta_insurance">Asuransi All Risk</span>
+                                </div>
+                                <div class="feature-pill bg-white/5 border-white/10 hover:bg-white/10">
+                                    <i class="fa-solid fa-check-circle text-emerald-400"></i>
+                                    <span data-i18n="cta_pickup">Gratis Antar Jemput*</span>
+                                </div>
+                            </div>
+
+                            <a id="wa-link" href="#" target="_blank" class="flex items-center justify-center gap-3 w-full py-5 bg-brand-red hover:bg-brand-red-dark text-white rounded-[1.5rem] font-black text-lg transition-all active:scale-95 shadow-xl shadow-brand-red/20">
+                                <i class="fa-brands fa-whatsapp text-2xl"></i>
+                                <span data-i18n="cta_wa">Hubungi WhatsApp</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Error State -->
+            <div id="detail-error" class="hidden text-center py-20 space-y-6">
+                <div class="w-24 h-24 bg-red-50 text-brand-red rounded-full flex items-center justify-center mx-auto text-4xl">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                </div>
+                <h2 class="text-3xl font-black text-text-primary" data-i18n="error_title">Unit Tidak Ditemukan</h2>
+                <p class="text-text-muted" data-i18n="error_desc">Maaf, data yang Anda cari tidak tersedia atau sudah dihapus.</p>
+                <a href="/" class="inline-block px-10 py-4 bg-brand-dark text-white rounded-2xl font-bold" data-i18n="back_to_home">Kembali ke Beranda</a>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-black/5 py-12 text-center text-gray-400 text-sm font-medium dark:bg-dark-bg-base dark:border-white/5">
+        <p>&copy; <span id="year"></span> <span class="notranslate">Beragam Sewa Bali</span>. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+    <script src="./src/js/translations.js"></script>
+    <script src="./src/js/common.js"></script>
+    <script src="./src/js/detail.js"></script>
+    
+    <!-- Google Translate Widget (Hidden) -->
+    <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'id',
+                includedLanguages: 'en,id',
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+</body>
+
+</html>

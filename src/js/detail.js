@@ -1,0 +1,64 @@
+/**
+ * detail.js — Beragam Sewa Bali
+ * Optimized for professional layout and smooth rendering.
+ */
+
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3000/api' 
+    : '/api';
+const WA_PHONE = '6281338277098'; // Updated contact contact
+
+async function loadDetail() {
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get('type'); // service | package
+    const id = params.get('id');
+
+    const skeleton = document.getElementById('detail-skeleton');
+    const content = document.getElementById('detail-content');
+    const errorState = document.getElementById('detail-error');
+
+    if (!type || !id) {
+        showError();
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/${type}s/${id}`);
+        if (!res.ok) throw new Error('Not found');
+        const data = await res.json();
+
+        renderData(data, type);
+    } catch (err) {
+        console.error(err);
+        showError();
+    }
+}
+
+function renderData(item, type) {
+    const skeleton = document.getElementById('detail-skeleton');
+    const content = document.getElementById('detail-content');
+
+    // Fill data
+    document.title = `${item.title || item.name} — Beragam Sewa Bali`;
+    document.getElementById('detail-title').textContent = item.title || item.name;
+    document.getElementById('detail-img').src = item.image_url;
+    document.getElementById('detail-type').textContent = type.toUpperCase();
+    const descText = item.long_text || item.text || item.description || 'Tidak ada detail tambahan.';
+    document.getElementById('detail-desc').innerHTML = descText.replace(/\n/g, '<br>');
+
+    // WA Link
+    const message = encodeURIComponent(`Halo Beragam Sewa Bali, saya tertarik dengan ${type} "${item.title || item.name}". Bisa info harga dan ketersediaan?`);
+    document.getElementById('wa-link').href = `https://wa.me/${WA_PHONE}?text=${message}`;
+
+    // Transitions
+    skeleton.classList.add('hidden');
+    content.classList.remove('hidden');
+}
+
+function showError() {
+    document.getElementById('detail-skeleton').classList.add('hidden');
+    document.getElementById('detail-content').classList.add('hidden');
+    document.getElementById('detail-error').classList.remove('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', loadDetail);

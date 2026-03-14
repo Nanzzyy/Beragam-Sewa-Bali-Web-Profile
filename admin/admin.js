@@ -1,384 +1,196 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const API_URL = 'http://localhost:3000/api';
-    let serviceModal, packageModal; // instances for bootstrap modals
+/**
+ * admin.js — Beragam Sewa Bali Admin Panel
+ * Optimized image previews with uniform box sizes.
+ */
 
-    // --- GLOBAL ELEMENT REFERENCES ---
-    // Hero
-    const heroForm = document.getElementById('hero-form');
-    const heroTitleInput = document.getElementById('hero-title-input');
-    const heroSubtitleInput = document.getElementById('hero-subtitle-input');
-    const heroSliderList = document.getElementById('hero-slider-list');
-    const heroImageForm = document.getElementById('hero-image-form');
-    const heroImageUpload = document.getElementById('hero-image-upload');
-    // About
-    const aboutForm = document.getElementById('about-form');
-    const aboutTitleInput = document.getElementById('about-title-input');
-    const aboutTextInput = document.getElementById('about-text-input');
-    const aboutCarouselList = document.getElementById('about-carousel-list');
-    const aboutImageForm = document.getElementById('about-image-form');
-    const aboutImageUpload = document.getElementById('about-image-upload');
-    // Services
-    const servicesList = document.getElementById('services-list');
-    const addServiceBtn = document.getElementById('add-service-btn');
-    const serviceModalEl = document.getElementById('service-modal');
-    const serviceForm = document.getElementById('service-form');
-    const serviceModalTitle = document.getElementById('service-modal-title');
-    const serviceIdInput = document.getElementById('service-id-input');
-    const serviceTitleInput = document.getElementById('service-title-input');
-    const serviceTextInput = document.getElementById('service-text-input');
-    const serviceImageInput = document.getElementById('service-image-input');
-    // Packages
-    const packagesList = document.getElementById('packages-list');
-    const addPackageBtn = document.getElementById('add-package-btn');
-    const packageModalEl = document.getElementById('package-modal');
-    const packageForm = document.getElementById('package-form');
-    const packageModalTitle = document.getElementById('package-modal-title');
-    const packageIdInput = document.getElementById('package-id-input');
-    const packageTitleInput = document.getElementById('package-title-input');
-    const packageTextInput = document.getElementById('package-text-input');
-    const packageImageInput = document.getElementById('package-image-input');
-    // Gallery
-    const galleryList = document.getElementById('gallery-list');
-    const galleryImageForm = document.getElementById('gallery-image-form');
-    const galleryImageUpload = document.getElementById('gallery-image-upload');
+const API_URL = 'http://localhost:3000/api';
+const FETCH_OPTS = { credentials: 'include' };
 
+const el = (id) => document.getElementById(id);
 
-    // --- GENERIC RENDER/API FUNCTIONS ---
-    const createItemCard = (item, section) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <img src="${item.image_url}" class="card-img-top" alt="${item.title}" style="height: 150px; object-fit: cover;">
-            <div class="card-body">
-                <h5 class="card-title">${item.title || 'Gallery Image'}</h5>
-                ${item.text ? `<p class="card-text" style="font-size: 0.8rem;">${item.text.substring(0, 50)}...</p>` : ''}
-                ${section !== 'gallery' ? `<button class="btn btn-sm btn-primary edit-btn" data-id="${item.id}" data-section="${section}">Edit</button>` : ''}
-                <button class="btn btn-sm btn-danger delete-btn" data-id="${item.id}" data-section="${section}">Delete</button>
+// ── Modal Controller ──────────────────────────────────────────
+function openModal(type, item = null) {
+    const modal = el('admin-modal');
+    if (!modal) return;
+
+    el('modal-form').reset();
+    el('modal-type-input').value = type;
+    el('modal-id-input').value = item ? item.id : '';
+    el('modal-title').textContent = (item ? 'Configure ' : 'Create ') + type.charAt(0).toUpperCase() + type.slice(1);
+    
+    if (item) {
+        el('modal-title-input').value = item.title || item.name || '';
+        el('modal-text-input').value = item.text || item.description || '';
+        el('modal-long-text-input').value = item.long_text || '';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeModal() {
+    const modal = el('admin-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// ── Data Loading ──────────────────────────────────────────────
+async function loadAll() {
+    try {
+        const [hero, about, srv, pkg, gal] = await Promise.all([
+            fetch(`${API_URL}/hero`, FETCH_OPTS).then(r => r.json()),
+            fetch(`${API_URL}/about`, FETCH_OPTS).then(r => r.json()),
+            fetch(`${API_URL}/services`, FETCH_OPTS).then(r => r.json()),
+            fetch(`${API_URL}/packages`, FETCH_OPTS).then(r => r.json()),
+            fetch(`${API_URL}/gallery`, FETCH_OPTS).then(r => r.json())
+        ]);
+
+        if(el('hero-title-input')) el('hero-title-input').value = hero.title || '';
+        if(el('hero-subtitle-input')) el('hero-subtitle-input').value = hero.subtitle || '';
+        renderImages('hero-slider-list', hero.images, 'hero');
+
+        if(el('about-title-input')) el('about-title-input').value = about.title || '';
+        if(el('about-text-input')) el('about-text-input').value = about.text || '';
+        renderImages('about-carousel-list', about.images, 'about');
+
+        renderCards('services-list', srv, 'service');
+        renderCards('packages-list', pkg, 'package');
+        renderCards('gallery-list', gal, 'gallery');
+
+    } catch (e) { console.error('Data Sync Error'); }
+}
+
+// ── Renderers ─────────────────────────────────────────────────
+function renderImages(id, items, section) {
+    const list = el(id); if(!list) return;
+    list.innerHTML = '';
+    (items || []).forEach(img => {
+        const d = document.createElement('div');
+        d.className = 'flex items-center justify-between p-3 bg-white rounded-2xl border border-black/5 shadow-sm';
+        d.innerHTML = `
+            <div class="flex items-center gap-4">
+                <!-- Kotak Preview Seragam -->
+                <div class="w-20 h-12 rounded-lg overflow-hidden border border-black/5 flex-shrink-0 bg-gray-100">
+                    <img src="${img.image_url}" class="w-full h-full object-cover">
+                </div>
+                <span class="text-[10px] font-bold text-gray-400 tracking-widest">ID #${img.id}</span>
+            </div>
+            <button type="button" class="btn-delete w-8 h-8 text-brand-red hover:bg-red-50 rounded-lg transition-all" data-id="${img.id}" data-section="${section}"><i class="fa-solid fa-trash-can text-lg"></i></button>
+        `;
+        list.appendChild(d);
+    });
+}
+
+function renderCards(id, items, section) {
+    const list = el(id); if(!list) return;
+    list.innerHTML = '';
+    (items || []).forEach(item => {
+        const d = document.createElement('div');
+        d.className = 'admin-card group';
+        d.innerHTML = `
+            <!-- Kotak Preview Kartu Seragam -->
+            <div class="relative aspect-video overflow-hidden bg-gray-100">
+                <img src="${item.image_url}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                <div class="absolute inset-0 bg-brand-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    ${section !== 'gallery' ? `<button type="button" class="btn-edit w-10 h-10 bg-white text-blue-600 rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform" data-id="${item.id}" data-section="${section}"><i class="fa-solid fa-pen-to-square"></i></button>` : ''}
+                    <button type="button" class="btn-delete w-10 h-10 bg-white text-brand-red rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform" data-id="${item.id}" data-section="${section}"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+            <div class="p-5">
+                <h6 class="font-bold text-gray-800 text-xs truncate mb-1">${item.title || item.name || 'Untitled'}</h6>
+                ${section !== 'gallery' ? `<p class="text-[10px] text-gray-400 line-clamp-1 italic">${item.text || item.description || ''}</p>` : ''}
             </div>
         `;
-        return card;
+        list.appendChild(d);
+    });
+}
+
+// ── Event Controller ─────────────────────────────────────────
+document.addEventListener('click', async (e) => {
+    const t = e.target;
+
+    const tabBtn = t.closest('.tab-btn');
+    if (tabBtn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content-pane').forEach(p => p.classList.remove('active'));
+        tabBtn.classList.add('active');
+        el(tabBtn.dataset.target.substring(1)).classList.add('active');
+        return;
+    }
+
+    if (t.id === 'add-service-btn') return openModal('service');
+    if (t.id === 'add-package-btn') return openModal('package');
+    if (t.closest('.close-modal-btn')) return closeModal();
+
+    const delBtn = t.closest('.btn-delete');
+    if (delBtn) {
+        const { id, section } = delBtn.dataset;
+        if (!confirm('Hapus item ini selamanya?')) return;
+        await fetch(section === 'hero' ? `${API_URL}/hero/image/${id}` : section === 'about' ? `${API_URL}/about/image/${id}` : section === 'gallery' ? `${API_URL}/gallery/${id}` : `${API_URL}/${section}s/${id}`, { ...FETCH_OPTS, method: 'DELETE' });
+        loadAll();
+        return;
+    }
+
+    const editBtn = t.closest('.btn-edit');
+    if (editBtn) {
+        const { id, section } = editBtn.dataset;
+        const res = await fetch(`${API_URL}/${section}s/${id}`, FETCH_OPTS);
+        const data = await res.json();
+        openModal(section, data);
+        return;
+    }
+
+    // Direct Uploads
+    const handleUpload = async (fileId, endpoint, tBtn) => {
+        const file = el(fileId).files[0];
+        if(!file) return alert('No file chosen');
+        const fd = new FormData(); fd.append('image', file);
+        tBtn.disabled = true; tBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing';
+        await fetch(endpoint, { ...FETCH_OPTS, method: 'POST', body: fd });
+        el(fileId).value = ''; tBtn.disabled = false; tBtn.textContent = 'Upload Success';
+        setTimeout(() => loadAll(), 500);
     };
+
+    if (t.id === 'btn-upload-hero') return handleUpload('hero-image-upload', `${API_URL}/hero/image`, t);
+    if (t.id === 'btn-upload-about') return handleUpload('about-image-upload', `${API_URL}/about/image`, t);
     
-    // --- HERO SECTION ---
-    const renderHeroImages = (images) => {
-        heroSliderList.innerHTML = '';
-        if (!images || images.length === 0) {
-            heroSliderList.innerHTML = '<p class="text-muted">No images found.</p>';
-            return;
-        }
-        images.forEach(image => {
-            const imageEl = document.createElement('div');
-            imageEl.className = 'image-list-item';
-            imageEl.innerHTML = `
-                <div>
-                    <img src="${image.image_url}" alt="Hero Slider Image">
-                    <span>${image.image_url.split('/').pop()}</span>
-                </div>
-                <button class="btn btn-danger btn-sm" data-id="${image.id}" data-section="hero">Delete</button>
-            `;
-            heroSliderList.appendChild(imageEl);
-        });
-    };
-    const loadHeroData = async () => {
-        try {
-            const response = await fetch(`${API_URL}/hero`); 
-            if (!response.ok) throw new Error('Failed to fetch hero data');
-            const data = await response.json();
-            heroTitleInput.value = data.title || '';
-            heroSubtitleInput.value = data.subtitle || '';
-            renderHeroImages(data.images);
-        } catch (error) { console.error('Error loading hero data:', error); }
-    };
-    const saveHeroText = async (e) => {
-        e.preventDefault();
-        try {
-            const response = await fetch(`${API_URL}/hero/text`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: heroTitleInput.value, subtitle: heroSubtitleInput.value })
-            });
-            if (!response.ok) throw new Error('Failed to save hero text');
-            alert('Hero text saved successfully!');
-        } catch (error) { console.error('Error saving hero text:', error); alert('Could not save hero text.'); }
-    };
-    const uploadHeroImage = async (e) => {
-        e.preventDefault();
-        if (!heroImageUpload.files.length) return alert('Please select an image file first.');
-        const formData = new FormData();
-        formData.append('image', heroImageUpload.files[0]);
-        try {
-            const response = await fetch(`${API_URL}/hero/image`, { method: 'POST', body: formData });
-            if (!response.ok) throw new Error('Failed to upload image');
-            alert('Image uploaded successfully!');
-            heroImageUpload.value = '';
-            loadHeroData();
-        } catch (error) { console.error('Error uploading hero image:', error); alert('Could not upload image.'); }
-    };
-
-    // --- ABOUT SECTION ---
-    const renderAboutImages = (images) => {
-        aboutCarouselList.innerHTML = '';
-        if (!images || images.length === 0) {
-            aboutCarouselList.innerHTML = '<p class="text-muted">No images found.</p>';
-            return;
-        }
-        images.forEach(image => {
-            const imageEl = document.createElement('div');
-            imageEl.className = 'image-list-item';
-            imageEl.innerHTML = `
-                <div>
-                    <img src="${image.image_url}" alt="About Carousel Image">
-                    <span>${image.image_url.split('/').pop()}</span>
-                </div>
-                <button class="btn btn-danger btn-sm" data-id="${image.id}" data-section="about">Delete</button>
-            `;
-            aboutCarouselList.appendChild(imageEl);
-        });
-    };
-    const loadAboutData = async () => {
-        try {
-            const response = await fetch(`${API_URL}/about`);
-            if (!response.ok) throw new Error('Failed to fetch about data');
-            const data = await response.json();
-            aboutTitleInput.value = data.title || '';
-            aboutTextInput.value = data.text || '';
-            renderAboutImages(data.images);
-        } catch (error) { console.error('Error loading about data:', error); }
-    };
-    const saveAboutText = async (e) => {
-        e.preventDefault();
-        try {
-            const response = await fetch(`${API_URL}/about/text`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: aboutTitleInput.value, text: aboutTextInput.value })
-            });
-            if (!response.ok) throw new Error('Failed to save about text');
-            alert('About text saved successfully!');
-        } catch (error) { console.error('Error saving about text:', error); alert('Could not save about text.'); }
-    };
-    const uploadAboutImage = async (e) => {
-        e.preventDefault();
-        if (!aboutImageUpload.files.length) return alert('Please select an image file first.');
-        const formData = new FormData();
-        formData.append('image', aboutImageUpload.files[0]);
-        try {
-            const response = await fetch(`${API_URL}/about/image`, { method: 'POST', body: formData });
-            if (!response.ok) throw new Error('Failed to upload image');
-            alert('Image uploaded successfully!');
-            aboutImageUpload.value = '';
-            loadAboutData();
-        } catch (error) { console.error('Error uploading about image:', error); alert('Could not upload image.'); }
-    };
-
-
-    // --- SERVICES SECTION ---
-    const renderServices = (services) => {
-        servicesList.innerHTML = '';
-        if (!services || services.length === 0) return;
-        services.forEach(item => servicesList.appendChild(createItemCard(item, 'service')));
-    };
-    const loadServices = async () => {
-        try {
-            const response = await fetch(`${API_URL}/services`);
-            const data = await response.json();
-            renderServices(data);
-        } catch(error) { console.error('Error loading services:', error); }
-    };
-    const handleServiceFormSubmit = async (e) => {
-        e.preventDefault();
-        const id = serviceIdInput.value;
-        const formData = new FormData();
-        formData.append('title', serviceTitleInput.value);
-        formData.append('text', serviceTextInput.value);
-        if (serviceImageInput.files[0]) {
-            formData.append('image', serviceImageInput.files[0]);
-        }
-
-        const url = id ? `${API_URL}/services/${id}` : `${API_URL}/services`;
-        const method = id ? 'PUT' : 'POST';
-
-        try {
-            const response = await fetch(url, { method, body: formData });
-            if (!response.ok) throw new Error(`Failed to save service.`);
-            alert(`Service saved successfully!`);
-            serviceModal.hide();
-            loadServices();
-        } catch(error) { console.error('Error saving service:', error); alert('Could not save service.'); }
-    };
-    const openServiceModalForEdit = async (id) => {
-        try {
-            const response = await fetch(`${API_URL}/services/${id}`);
-            const item = await response.json();
-            serviceModalTitle.textContent = 'Edit Service';
-            serviceIdInput.value = item.id;
-            serviceTitleInput.value = item.title;
-            serviceTextInput.value = item.text;
-            serviceImageInput.value = '';
-            serviceModal.show();
-        } catch(error) { console.error('Error fetching service for edit:', error); }
-    };
-    
-    // --- PACKAGES SECTION ---
-    const renderPackages = (packages) => {
-        packagesList.innerHTML = '';
-        if (!packages || packages.length === 0) return;
-        packages.forEach(item => packagesList.appendChild(createItemCard(item, 'package')));
-    };
-    const loadPackages = async () => {
-        try {
-            const response = await fetch(`${API_URL}/packages`);
-            const data = await response.json();
-            renderPackages(data);
-        } catch(error) { console.error('Error loading packages:', error); }
-    };
-    const handlePackageFormSubmit = async (e) => {
-        e.preventDefault();
-        const id = packageIdInput.value;
-        const formData = new FormData();
-        formData.append('title', packageTitleInput.value);
-        formData.append('text', packageTextInput.value);
-        if (packageImageInput.files[0]) {
-            formData.append('image', packageImageInput.files[0]);
-        }
-
-        const url = id ? `${API_URL}/packages/${id}` : `${API_URL}/packages`;
-        const method = id ? 'PUT' : 'POST';
-
-        try {
-            const response = await fetch(url, { method, body: formData });
-            if (!response.ok) throw new Error(`Failed to save package.`);
-            alert(`Package saved successfully!`);
-            packageModal.hide();
-            loadPackages();
-        } catch(error) { console.error('Error saving package:', error); alert('Could not save package.'); }
-    };
-    const openPackageModalForEdit = async (id) => {
-        try {
-            const response = await fetch(`${API_URL}/packages/${id}`);
-            const item = await response.json();
-            packageModalTitle.textContent = 'Edit Package';
-            packageIdInput.value = item.id;
-            packageTitleInput.value = item.title;
-            packageTextInput.value = item.text;
-            packageImageInput.value = '';
-            packageModal.show();
-        } catch(error) { console.error('Error fetching package for edit:', error); }
-    };
-
-    // --- GALLERY SECTION ---
-    const renderGalleryImages = (images) => {
-        galleryList.innerHTML = '';
-        if (!images || images.length === 0) {
-            galleryList.innerHTML = '<p class="text-muted">No images found in gallery.</p>';
-            return;
-        }
-        images.forEach(item => galleryList.appendChild(createItemCard(item, 'gallery')));
-    };
-
-    const loadGalleryData = async () => {
-        try {
-            const response = await fetch(`${API_URL}/gallery`);
-            const data = await response.json();
-            renderGalleryImages(data);
-        } catch(error) { console.error('Error loading gallery:', error); }
-    };
-
-    const uploadGalleryImages = async (e) => {
-        e.preventDefault();
-        if (!galleryImageUpload.files.length) return alert('Please select one or more image files first.');
-        
-        const formData = new FormData();
-        for (const file of galleryImageUpload.files) {
-            formData.append('images', file);
-        }
-
-        try {
-            const response = await fetch(`${API_URL}/gallery`, { method: 'POST', body: formData });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to upload images');
-            }
-            alert('Images uploaded successfully!');
-            galleryImageForm.reset(); // Clear the file input
-            loadGalleryData(); // Refresh the gallery
-        } catch (error) {
-            console.error('Error uploading gallery images:', error);
-            alert(`Could not upload images. ${error.message}`);
-        }
-    };
-
-
-    // --- GENERIC DELETE ---
-    const handleDelete = async (id, section) => {
-        if (!confirm(`Are you sure you want to delete this ${section} item?`)) return;
-        
-        let url;
-        if (section === 'hero') url = `${API_URL}/hero/image/${id}`;
-        else if (section === 'about') url = `${API_URL}/about/image/${id}`;
-        else if (section === 'gallery') url = `${API_URL}/gallery/${id}`;
-        else url = `${API_URL}/${section}s/${id}`;
-
-        try {
-            const response = await fetch(url, { method: 'DELETE' });
-            if (!response.ok) throw new Error(`Failed to delete item.`);
-            alert('Item deleted successfully!');
-            if (section === 'hero') loadHeroData();
-            if (section === 'about') loadAboutData();
-            if (section === 'service') loadServices();
-            if (section === 'package') loadPackages();
-            if (section === 'gallery') loadGalleryData();
-        } catch (error) { console.error('Error deleting item:', error); alert('Could not delete item.'); }
-    };
-
-
-    // --- INITIALIZATION & EVENT LISTENERS ---
-    const init = () => {
-        // Modals
-        serviceModal = new bootstrap.Modal(serviceModalEl);
-        packageModal = new bootstrap.Modal(packageModalEl);
-        
-        // Initial Data Load
-        loadHeroData();
-        loadAboutData();
-        loadServices();
-        loadPackages();
-        loadGalleryData();
-
-        // Event Listeners
-        heroForm.addEventListener('submit', saveHeroText);
-        heroImageForm.addEventListener('submit', uploadHeroImage);
-        
-        aboutForm.addEventListener('submit', saveAboutText);
-        aboutImageForm.addEventListener('submit', uploadAboutImage);
-
-        serviceForm.addEventListener('submit', handleServiceFormSubmit);
-        packageForm.addEventListener('submit', handlePackageFormSubmit);
-
-        galleryImageForm.addEventListener('submit', uploadGalleryImages);
-        
-        addServiceBtn.addEventListener('click', () => {
-            serviceModalTitle.textContent = 'Add New Service';
-            serviceForm.reset();
-            serviceIdInput.value = '';
-        });
-        addPackageBtn.addEventListener('click', () => {
-            packageModalTitle.textContent = 'Add New Package';
-            packageForm.reset();
-            packageIdInput.value = '';
-        });
-
-        document.body.addEventListener('click', (e) => {
-            const target = e.target;
-            if (target.matches('.delete-btn')) {
-                handleDelete(target.dataset.id, target.dataset.section);
-            }
-            if (target.matches('.edit-btn')) {
-                if (target.dataset.section === 'service') openServiceModalForEdit(target.dataset.id);
-                if (target.dataset.section === 'package') openPackageModalForEdit(target.dataset.id);
-            }
-        });
-    };
-
-    init();
+    if (t.id === 'btn-upload-gallery') {
+        const files = el('gallery-image-upload').files;
+        if(!files.length) return alert('No images');
+        const fd = new FormData(); for(let f of files) fd.append('images', f);
+        t.disabled = true; t.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading';
+        await fetch(`${API_URL}/gallery`, { ...FETCH_OPTS, method: 'POST', body: fd });
+        el('gallery-image-upload').value = ''; t.disabled = false; t.textContent = 'Upload Success';
+        loadAll();
+    }
 });
+
+document.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const btn = e.submitter;
+    if(btn) btn.disabled = true;
+
+    try {
+        if (f.id === 'hero-form') {
+            await fetch(`${API_URL}/hero/text`, { ...FETCH_OPTS, method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({title:el('hero-title-input').value, subtitle:el('hero-subtitle-input').value})});
+            alert('Updated!');
+        } else if (f.id === 'about-form') {
+            await fetch(`${API_URL}/about/text`, { ...FETCH_OPTS, method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({title:el('about-title-input').value, text:el('about-text-input').value})});
+            alert('Updated!');
+        } else if (f.id === 'modal-form') {
+            const type = el('modal-type-input').value;
+            const id = el('modal-id-input').value;
+            const fd = new FormData();
+            fd.append('title', el('modal-title-input').value);
+            fd.append('text', el('modal-text-input').value);
+            fd.append('long_text', el('modal-long-text-input').value);
+            if(el('modal-image-input').files[0]) fd.append('image', el('modal-image-input').files[0]);
+            await fetch(id ? `${API_URL}/${type}s/${id}` : `${API_URL}/${type}s`, { ...FETCH_OPTS, method: id ? 'PUT' : 'POST', body: fd });
+            closeModal();
+            loadAll();
+        }
+    } catch (e) { alert('Operation Failed'); }
+    if(btn) btn.disabled = false;
+});
+
+window.initAdmin = loadAll;
+window.loadAllData = loadAll;

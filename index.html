@@ -1,162 +1,354 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <meta name="description" content="Beragam Sewa Bali — Solusi rental terpercaya di Bali">
     <title>Beragam Sewa Bali</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <!-- 👇 css code file 👇 -->
-    <link rel="stylesheet" href="./src/style/global.css" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Built Tailwind CSS -->
+    <link rel="stylesheet" href="./src/style/output.css">
+
+    <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
-</head>
+    </head>
 
-<body>
+    <body class="font-outfit bg-bg-base text-text-body overflow-x-hidden pt-[68px] antialiased">
 
-    <!-- ======= 👇 Navbar Section 👇 ======= -->
-    <nav class="navbar navbar-light navbar-expand-lg fixed-top p-3 w-100 bg-light shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand mb-0 h1" href="#">
-                <img src="./src/assets/images/logos.png" alt="Logo" width="30" height="30"
-                    class="d-inline-block align-text-top">
-                Beragam Sewa Bali
+    <!-- ======= Navbar ======= -->
+    <nav id="mainNavbar"
+        class="fixed top-0 left-0 right-0 z-50 w-full px-4 lg:px-8 py-3 transition-all duration-300">
+        <div class="max-w-[1700px] mx-auto flex items-center justify-between">
+
+            <!-- Brand -->
+            <a href="#home"
+                class="flex items-center gap-3 text-text-primary font-bold text-lg no-underline notranslate">
+                <img src="./src/assets/images/logos.png" alt="Logo" width="36" height="36">
+                <span class="hidden sm:inline tracking-tight">Beragam Sewa Bali</span>
+                <span class="sm:hidden">Beragam Sewa Bali</span>
             </a>
 
-            <button class="navbar-toggler " type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
-                aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <!-- Desktop Nav -->
+            <div class="hidden lg:flex items-center gap-10" id="desktopNav">
+                <a href="#home" class="nav-link text-text-body text-[0.95rem] font-semibold hover:text-brand-red transition-colors" data-i18n="nav_home">Home</a>
+                <a href="#about" class="nav-link text-text-body text-[0.95rem] font-semibold hover:text-brand-red transition-colors" data-i18n="nav_about">About</a>
 
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar"
-                aria-labelledby="offcanvasNavbarLabel">
-                <div class="offcanvas-header">
-                    <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Beragam Sewa Bali</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                <!-- Dropdown -->
+                <div class="relative group">
+                    <button class="flex items-center gap-1 text-text-body text-[0.95rem] font-semibold hover:text-brand-red transition-colors">
+                        <span data-i18n="nav_service_package">Service & Package</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] ml-1 transition-transform group-hover:rotate-180 duration-200"></i>
+                    </button>
+                    <div class="absolute top-full left-0 mt-2 w-48 bg-bg-surface rounded-2xl shadow-2xl border border-black/5 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                        <a href="#service" class="block px-5 py-2.5 text-sm text-text-body hover:text-brand-red hover:bg-red-50 rounded-xl mx-2 transition-colors" data-i18n="nav_service">Service</a>
+                        <a href="#package" class="block px-5 py-2.5 text-sm text-text-body hover:text-brand-red hover:bg-red-50 rounded-xl mx-2 transition-colors" data-i18n="nav_package">Package</a>
+                    </div>
                 </div>
-                <div class="offcanvas-body">
-                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-3 ">
-                        <li class="nav-item">
-                            <a class="nav-link active" ariia-current="page" href="#home">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#about">About</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                                aria-expanded="false">Service & Package</a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#service">Service</a></li>
-                                <li><a class="dropdown-item" href="#package">Package</a></li>
-                            </ul>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#gallery">Gallery</a>
-                        </li>
-                        <li class="nav-item">
-                            <a type="button" class="btn btn-outline-dark" href="#">
-                                <img class="icon" src="https://img.icons8.com/?size=100&id=78382&format=png&color=000000" alt=""
-                                    width="20" height="20">
-                                Contact
-                            </a>
-                        </li>
-                    </ul>
+
+                <a href="#gallery" class="nav-link text-text-body text-[0.95rem] font-semibold hover:text-brand-red transition-colors" data-i18n="nav_gallery">Gallery</a>
+
+                <!-- Language & Theme Toggles -->
+                <div class="flex items-center gap-4 px-4 py-1.5 bg-black/5 rounded-full">
+                    <div class="flex items-center gap-2">
+                        <button class="lang-btn w-6 h-6 rounded-full overflow-hidden border-2 border-transparent transition-all" data-lang="id" title="Indonesian">
+                            <img src="https://img.icons8.com/?size=100&id=60248&format=png" alt="ID" class="w-full h-full object-cover">
+                        </button>
+                        <button class="lang-btn w-6 h-6 rounded-full overflow-hidden border-2 border-transparent transition-all" data-lang="en" title="English">
+                            <img src="https://img.icons8.com/?size=100&id=15534&format=png" alt="EN" class="w-full h-full object-cover">
+                        </button>
+                    </div>
+                    <div class="w-px h-4 bg-black/10"></div>
+                    <button class="theme-toggle-btn text-text-body hover:text-brand-red transition-colors" title="Toggle Dark Mode">
+                        <i class="fa-solid fa-moon dark:hidden"></i>
+                        <i class="fa-solid fa-sun hidden dark:block"></i>
+                    </button>
                 </div>
+
+                <a href="#footer" class="flex items-center gap-2 border-2 border-brand-red text-brand-red px-6 py-2 rounded-full text-sm font-bold hover:bg-brand-red hover:text-white transition-all duration-300 shadow-lg shadow-brand-red/10">
+                    <img src="https://img.icons8.com/?size=100&id=78382&format=png&color=e63946" alt="" width="18" height="18" class="contact-icon">
+                    <span data-i18n="nav_contact">Contact Us</span>
+                </a>
             </div>
+
+            <!-- Mobile Toggler -->
+            <div class="flex items-center gap-3 lg:hidden">
+                <!-- Theme Toggle Mobile -->
+                <button class="theme-toggle-btn w-11 h-11 flex items-center justify-center rounded-xl bg-black/5 text-text-body transition-colors">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block"></i>
+                </button>
+                <button id="mobileMenuBtn" class="flex items-center justify-center w-11 h-11 rounded-xl bg-brand-red/5 text-brand-red hover:bg-brand-red hover:text-white transition-all duration-300">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
     </nav>
 
-    <!-- ======= 👇 Home Section 👇 ======= -->
+    <!-- Mobile Offcanvas (Tailwind Custom) -->
+    <div id="mobileMenu" class="fixed inset-0 z-[60] invisible">
+        <!-- Backdrop -->
+        <div id="mobileMenuBackdrop" class="absolute inset-0 bg-black/50 opacity-0 transition-opacity duration-300"></div>
+        <!-- Sidebar -->
+        <div id="mobileMenuSidebar" class="absolute top-0 right-0 bottom-0 w-[280px] bg-bg-surface border-l border-black/8 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+            <div class="flex items-center justify-between p-5 border-b border-black/8">
+                <h5 class="text-text-primary font-bold font-outfit text-base notranslate">Beragam Sewa Bali</h5>
+                <button type="button" id="closeMobileMenuBtn" class="text-text-muted hover:text-brand-red text-xl leading-none transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="flex flex-col py-2 flex-grow">
+                <nav class="flex flex-col w-full">
+                    <a href="#home" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors" data-i18n="nav_home">Home</a>
+                    <a href="#about" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors" data-i18n="nav_about">About</a>
+                    <a href="#service" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors" data-i18n="nav_service">Service</a>
+                    <a href="#package" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors" data-i18n="nav_package">Package</a>
+                    <a href="#gallery" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors" data-i18n="nav_gallery">Gallery</a>
+                </nav>
+                <div class="p-6 space-y-4 mt-auto">
+                    <div class="flex items-center justify-center gap-4 py-3 bg-black/5 rounded-2xl">
+                        <button class="lang-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent transition-all" data-lang="id">
+                            <img src="https://img.icons8.com/?size=100&id=60248&format=png" alt="ID" class="w-5 h-5 rounded-full">
+                            <span class="text-xs font-bold">ID</span>
+                        </button>
+                        <button class="lang-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent transition-all" data-lang="en">
+                            <img src="https://img.icons8.com/?size=100&id=15534&format=png" alt="EN" class="w-5 h-5 rounded-full">
+                            <span class="text-xs font-bold">EN</span>
+                        </button>
+                    </div>
+                    <a href="#footer" class="mobile-nav-link group flex items-center justify-center gap-2 w-full py-2.5 border-2 border-brand-red rounded-full text-brand-red font-semibold text-sm hover:bg-brand-red hover:text-white transition-colors">
+                        <img src="https://img.icons8.com/?size=100&id=78382&format=png&color=e63946" alt="" width="18" height="18" class="group-hover:brightness-0 group-hover:invert transition-all">
+                        <span data-i18n="nav_contact">Contact</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======= Hero Section ======= -->
     <section id="home" class="hero-swiper">
-        <!-- Container Swiper dinamis -->
         <div class="swiper heroSwiper" id="home-swiper-container">
             <div class="swiper-wrapper" id="home-swiper-wrapper">
                 <!-- Slides akan diisi oleh JavaScript -->
             </div>
+            <!-- Pagination inside container -->
+            <div class="swiper-pagination !bottom-12"></div>
         </div>
-        <div class="hero-content row justify-content-left align-items-center mx-5">
-            <div class="col-lg-5 d-flex flex-column p-5 justify-content-center align-items-left container-content">
-                <h1 class="fs-1 underline-accent" id="home_title"></h1>
-                <p class="fs-5 py-4" id="home_subtitle"></p>
-                <div class="btn-group text-start p-2 gap-2" role="group" aria-label="basic-example">
-                    <button type="button" class="btn btn btn-outline-light fs-5">About Our Company</button>
-                    <button type="button" class="btn btn btn-danger fs-5">Explore now
-                        <img class="icon-white" src="https://img.icons8.com/?size=100&id=100038&format=png&color=000000" alt="" width="20"
-                            height="20">
+        <div class="hero-content px-6 md:px-12 lg:px-24">
+            <div class="max-w-xl flex flex-col gap-4">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white underline-accent leading-tight" id="home_title"></h1>
+                <p class="text-base sm:text-lg text-white/80" id="home_subtitle"></p>
+                <div class="flex flex-col sm:flex-row gap-3 mt-2">
+                    <button type="button"
+                        class="px-6 py-3 border border-white/40 text-white/90 rounded-lg font-medium backdrop-blur-md hover:bg-white/12 hover:border-white/70 hover:-translate-y-0.5 transition-all duration-200 text-sm sm:text-base"
+                        onclick="document.getElementById('about').scrollIntoView({behavior:'smooth'})"
+                        data-i18n="btn_about">
+                        About Our Company
+                    </button>
+                    <button type="button"
+                        class="flex items-center justify-center gap-2 px-6 py-3 bg-brand-red text-white rounded-lg font-semibold hover:bg-brand-red-dark hover:-translate-y-0.5 transition-all duration-200 text-sm sm:text-base shadow-lg shadow-brand-red/30"
+                        onclick="document.getElementById('service').scrollIntoView({behavior:'smooth'})">
+                        <span data-i18n="btn_explore">Explore Now</span>
+                        <img class="icon-white" src="https://img.icons8.com/?size=100&id=100038&format=png&color=000000" alt="" width="20" height="20">
                     </button>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ======= 👇 About Section 👇 ======= -->
-    <section id="about" class="container-fluid container-position-relative text-bg-light p-5" >
-        <h1 class="fs-2 d-flex flex-column my-5 justify-content-center align-items-center" id="about_title"></h1>
-        <div class="row justify-content-evenly mx-8">
-            <div class="col-lg-4 d-flex flex-column justify-content-center align-items-center container-content">
-                <!-- Container Carousel dinamis -->
-                <div id="about-carousel-container" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3500">
-                    <div class="carousel-inner" id="about-carousel-inner">
-                        <!-- Carousel items akan diisi oleh JavaScript -->
+    <!-- ======= About Section ======= -->
+    <section id="about" class="relative bg-bg-base overflow-hidden py-24 px-6 md:px-12 lg:px-24">
+        <!-- Decorative elements -->
+        <div class="absolute top-0 right-0 w-1/3 h-full pointer-events-none opacity-100 hidden lg:block"
+             style="background: linear-gradient(135deg, rgba(230,57,70,0.05) 0%, transparent 80%); clip-path: polygon(30% 0, 100% 0, 100% 100%, 0% 100%);">
+        </div>
+        <div class="absolute -left-24 bottom-24 w-64 h-64 bg-brand-red/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 max-w-[1440px] mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center">
+                
+                <!-- Carousel Column (Col 5) -->
+                <div class="lg:col-span-5 flex justify-center order-2 lg:order-1">
+                    <div class="w-full relative group">
+                        <div class="absolute -inset-4 bg-brand-red/10 rounded-[40px] blur-2xl group-hover:bg-brand-red/20 transition-all duration-500"></div>
+                        <div class="relative rounded-[32px] overflow-hidden shadow-2xl border-[6px] border-white ring-1 ring-black/5 aspect-[4/5] sm:aspect-auto sm:h-[580px]">
+                            <div class="swiper aboutSwiper h-full w-full">
+                                <div class="swiper-wrapper" id="about-swiper-wrapper">
+                                    <!-- Carousel items akan diisi oleh JavaScript -->
+                                </div>
+                                <div class="swiper-pagination !bottom-6"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-6 d-flex flex-column justify-content-center align-items-left container-content">
-                <p class="fs-5 py-4" id="about_text"></p>
+
+                <!-- Text Column (Col 7) -->
+                <div class="lg:col-span-7 flex flex-col justify-center order-1 lg:order-2">
+                    <div class="inline-block w-fit px-4 py-1.5 bg-brand-red/10 text-brand-red rounded-full text-xs font-bold uppercase tracking-[0.2em] mb-6 reveal" data-i18n="about_badge">
+                        About Our Company
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl lg:text-6xl font-black text-text-primary mb-8 leading-[1.1] reveal reveal-delay-1" id="about_title"></h2>
+                    
+                    <div class="space-y-6 text-base sm:text-xl text-text-body leading-relaxed reveal reveal-delay-2" id="about_text">
+                        <!-- Text content filled by JS -->
+                    </div>
+
+                    <!-- Additional Value Propositions -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-12 pt-10 border-t border-black/5 reveal reveal-delay-3">
+                        <div class="flex items-start gap-5">
+                            <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-md shrink-0 border border-black/5">
+                                <i class="fa-solid fa-shield-halved text-brand-red text-2xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-text-primary text-base" data-i18n="about_prop_1_title">Layanan Terpercaya</h4>
+                                <p class="text-sm text-text-muted mt-1 leading-snug" data-i18n="about_prop_1_desc">Keamanan dan kenyamanan unit adalah prioritas utama kami.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-5">
+                            <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-md shrink-0 border border-black/5">
+                                <i class="fa-solid fa-headset text-brand-red text-2xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-text-primary text-base" data-i18n="about_prop_2_title">Support 24/7</h4>
+                                <p class="text-sm text-text-muted mt-1 leading-snug" data-i18n="about_prop_2_desc">Tim kami siap membantu Anda kapanpun dibutuhkan.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </section>
 
-    <!-- ======= 👇 Service And Package Section 👇 ======= -->
-    <section id="menu" class="menu px-5 mb-5">
-        <div id="service" class="container text-bg-light py-5 my-5 rounded-4 shadow-lg">
-            <h2 class="mb-6 text-center" id="services_title">Services</h2>
-            <!-- Container Swiper dinamis -->
-            <div class="swiper mySwiper">
-                <div class="swiper-wrapper" id="services-swiper-wrapper">
-                    <!-- Service cards akan diisi oleh JavaScript -->
+    <!-- ======= Service & Package Section ======= -->
+    <section id="menu" class="bg-bg-base px-4 sm:px-6 lg:px-10 py-6">
+        <!-- Service -->
+        <div id="service"
+            class="max-w-[1440px] mx-auto bg-bg-surface rounded-3xl shadow-md border border-black/5 border-t-4 border-t-brand-red py-12 px-8 md:px-12 mb-12 relative mySwiper-container">
+            <div class="absolute bottom-[-60px] right-[-60px] w-64 h-64 rounded-full bg-brand-red/5 pointer-events-none"></div>
+            <h2 class="text-2xl sm:text-3xl font-black text-text-primary text-center mb-10 reveal" id="services_title" data-i18n="section_service">Services</h2>
+            
+            <div class="relative group/swiper">
+                <div class="swiper mySwiper">
+                    <div class="swiper-wrapper" id="services-swiper-wrapper">
+                        <!-- Service cards akan diisi oleh JavaScript -->
+                    </div>
+                    <div class="swiper-pagination !-bottom-2"></div>
                 </div>
-                <div class="swiper-button-prev"></div>
-                <div class="swiper-button-next"></div>
-                <div class="swiper-pagination"></div>
+                <!-- Buttons outside swiper but inside container -->
+                <div class="swiper-button-prev !hidden md:!flex"></div>
+                <div class="swiper-button-next !hidden md:!flex"></div>
             </div>
         </div>
-        <div id="package" class="container text-bg-light py-5 my-5 rounded-4 shadow-lg">
-            <h2 class="mb-4 text-center" id="packages_title">Packages</h2>
-            <!-- Container Swiper dinamis -->
-            <div class="swiper mySwiper">
-                <div class="swiper-wrapper" id="packages-swiper-wrapper">
-                    <!-- Package cards akan diisi oleh JavaScript -->
+
+        <!-- Package -->
+        <div id="package"
+            class="max-w-[1440px] mx-auto bg-bg-surface rounded-3xl shadow-md border border-black/5 border-t-4 border-t-brand-red py-12 px-8 md:px-12 mb-12 relative mySwiper-container">
+            <div class="absolute bottom-[-60px] right-[-60px] w-64 h-64 rounded-full bg-brand-red/5 pointer-events-none"></div>
+            <h2 class="text-2xl sm:text-3xl font-black text-text-primary text-center mb-10 reveal" id="packages_title" data-i18n="section_package">Packages</h2>
+            
+            <div class="relative group/swiper">
+                <div class="swiper mySwiper">
+                    <div class="swiper-wrapper" id="packages-swiper-wrapper">
+                        <!-- Package cards akan diisi oleh JavaScript -->
+                    </div>
+                    <div class="swiper-pagination !-bottom-2"></div>
                 </div>
-                <div class="swiper-button-prev"></div>
-                <div class="swiper-button-next"></div>
-                <div class="swiper-pagination"></div>
+                <!-- Buttons outside swiper but inside container -->
+                <div class="swiper-button-prev !hidden md:!flex"></div>
+                <div class="swiper-button-next !hidden md:!flex"></div>
             </div>
         </div>
     </section>
 
-    <!-- ======= 👇 Gallery Section 👇 ======= -->
-    <section class="container-fluid container-position-relative text-bg-light p-5">
-            <h2 class="mb-4 text-left underline-accent mb-5">Gallery</h2>
-            <!-- Container Swiper dinamis -->
+    <!-- ======= Gallery Section ======= -->
+    <section id="gallery" class="relative bg-bg-elevated overflow-hidden pt-24 pb-16 px-6 md:px-12 lg:px-24">
+        <!-- Wavy top decoration -->
+        <div class="absolute top-[-1px] left-0 w-full h-20 pointer-events-none z-10"
+             style="background: var(--color-bg-base); clip-path: ellipse(55% 100% at 50% 0%);">
+        </div>
+
+        <div class="relative z-20 max-w-[1440px] mx-auto">
+            <h2 class="text-2xl sm:text-3xl font-black text-text-primary underline-accent mb-12 reveal" data-i18n="section_gallery">Gallery</h2>
             <div class="swiper GallerySwiper">
                 <div class="swiper-wrapper" id="main-gallery-swiper-wrapper">
                     <!-- Gallery slides akan diisi oleh JavaScript -->
                 </div>
             </div>
+        </div>
     </section>
 
-    <!-- ======= 👇 Footer Section 👇 ======= -->
+    <!-- ======= Footer ======= -->
+    <footer id="footer" class="site-footer">
+        <div class="footer-top max-w-[1440px] mx-auto px-8">
+            <div class="footer-brand">
+                <a href="#home" class="footer-logo-link notranslate">
+                    <img src="./src/assets/images/logos.png" alt="Beragam Sewa Bali Logo" width="40" height="40">
+                    <span class="footer-brand-name font-black tracking-tight text-2xl">Beragam Sewa Bali</span>
+                </a>
+                <p class="footer-tagline text-base opacity-70" data-i18n="footer_tagline">
+                    Solusi rental terpercaya di Bali. Nikmati perjalanan Anda dengan unit terbaik dan layanan prima dari kami.
+                </p>
+                <div class="footer-socials">
+                    <a href="https://www.instagram.com/beragamsewabali?igsh=MzRuandhajZ4dGY1" target="_blank" class="footer-social-link" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://www.facebook.com/share/179vKJYEdd/" target="_blank" class="footer-social-link" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://wa.me/6281338277098" target="_blank" class="footer-social-link" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                    <a href="https://www.tiktok.com/@beragam.sewa.bali?_r=1&_t=ZS-94gVzbJYK29" target="_blank" class="footer-social-link" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+                </div>
+                </div>
+                <div class="footer-col">
+                <h6 class="footer-col-title" data-i18n="footer_nav">Navigasi</h6>
+                <ul class="footer-links">
+                    <li><a href="#home" data-i18n="nav_home">Home</a></li>
+                    <li><a href="#about" data-i18n="nav_about">About</a></li>
+                    <li><a href="#service" data-i18n="nav_service">Service</a></li>
+                    <li><a href="#package" data-i18n="nav_package">Package</a></li>
+                    <li><a href="#gallery" data-i18n="nav_gallery">Gallery</a></li>
+                </ul>
+                </div>
+                <div class="footer-col">
+                <h6 class="footer-col-title" data-i18n="footer_contact">Kontak</h6>
+                <ul class="footer-contact-list">
+                    <li><i class="fa-solid fa-location-dot"></i><span data-i18n="footer_address">Bali, Indonesia</span></li>
+                    <li><i class="fa-solid fa-phone"></i><span>+62 813-3827-7098</span></li>
+                    <li><i class="fa-solid fa-envelope"></i><span>beragamsewabali@gmail.com</span></li>
+                    <li><i class="fa-regular fa-clock"></i><span data-i18n="footer_hours">Senin - Minggu, 08.00 - 22.00</span></li>
+                </ul>
+                </div>
+                </div>
+                <div class="footer-bottom">
+                <div class="max-w-[1440px] mx-auto px-8 footer-bottom-inner justify-center">
+                <span class="footer-copy text-center">&copy; <span id="footer-year"></span> <span class="notranslate">Beragam Sewa Bali</span>. All rights reserved.</span>
+                </div>
+                </div>    </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-        crossorigin="anonymous"></script>
-    
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+
     <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
-    
-    <!-- Script utama kita, pastikan di paling bawah -->
+    <script src="./src/js/translations.js"></script>
+    <script src="./src/js/common.js"></script>
     <script src="./src/js/index.js"></script>
+    
+    <!-- Google Translate Widget (Hidden) -->
+    <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'id',
+                includedLanguages: 'en,id',
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 </body>
 
