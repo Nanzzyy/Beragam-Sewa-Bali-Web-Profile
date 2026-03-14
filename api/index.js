@@ -3,13 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
-const { Pool } = require('pg');
-
-// Database Pool
-const db = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
+const db = require('../db');
 
 const app = express();
 
@@ -47,7 +41,7 @@ app.get('/api/content', async (req, res) => {
     try {
         const texts = await db.query('SELECT * FROM site_content');
         const images = await db.query('SELECT * FROM section_images ORDER BY id DESC');
-        
+
         const siteContent = texts.rows.reduce((a, r) => ({ ...a, [r.content_key]: r.content_value }), {});
         const groupedImages = images.rows.reduce((acc, img) => {
             let key = img.section_key;
@@ -56,7 +50,7 @@ app.get('/api/content', async (req, res) => {
             acc[key].push(key.endsWith('s') ? { id: img.id, image_url: img.image_url, name: img.title, description: img.text } : img);
             return acc;
         }, {});
-        
+
         res.json({ ...siteContent, ...groupedImages });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
