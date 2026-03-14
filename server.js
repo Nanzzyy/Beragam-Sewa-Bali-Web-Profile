@@ -176,8 +176,8 @@ const queryOne = (sql, params) => db.query(sql, params).then(r => r.rows[0] || n
 app.post('/api/admin/login', async (req, res) => {
     const { password } = req.body;
     if (!password) return res.status(400).json({ message: 'Password diperlukan.' });
-    const truePassword = process.env.ADMIN_PASSWORD || 'admin123';
-    if (password !== truePassword) {
+    const truePassword = (process.env.ADMIN_PASSWORD || 'admin123').trim();
+    if (password.trim() !== truePassword) {
         return res.status(401).json({ message: 'Password salah.' });
     }
     req.session.isAdmin = true;
