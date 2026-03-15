@@ -37,12 +37,13 @@ function closeModal() {
 // ── Data Loading ──────────────────────────────────────────────
 async function loadAll() {
     try {
-        const [hero, about, srv, pkg, gal] = await Promise.all([
+        const [hero, about, srv, pkg, gal, content] = await Promise.all([
             fetch(`${API_URL}/hero`, FETCH_OPTS).then(r => r.json()),
             fetch(`${API_URL}/about`, FETCH_OPTS).then(r => r.json()),
             fetch(`${API_URL}/services`, FETCH_OPTS).then(r => r.json()),
             fetch(`${API_URL}/packages`, FETCH_OPTS).then(r => r.json()),
-            fetch(`${API_URL}/gallery`, FETCH_OPTS).then(r => r.json())
+            fetch(`${API_URL}/gallery`, FETCH_OPTS).then(r => r.json()),
+            fetch(`${API_URL}/content`, FETCH_OPTS).then(r => r.json())
         ]);
 
         if(el('hero-title-input')) el('hero-title-input').value = hero.title || '';
@@ -56,6 +57,10 @@ async function loadAll() {
         renderCards('services-list', srv, 'service');
         renderCards('packages-list', pkg, 'package');
         renderCards('gallery-list', gal, 'gallery');
+
+        if (content.site_logo && el('admin-site-logo-preview')) {
+            el('admin-site-logo-preview').src = content.site_logo;
+        }
 
     } catch (e) { console.error('Data Sync Error'); }
 }
