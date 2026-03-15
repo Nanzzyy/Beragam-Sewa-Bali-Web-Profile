@@ -27,8 +27,10 @@ async function initializePage() {
         if (data.site_logo) {
             const navLogo = document.getElementById('nav-logo');
             const footerLogo = document.getElementById('footer-logo');
+            const favicon = document.getElementById('favicon');
             if (navLogo) navLogo.src = data.site_logo;
             if (footerLogo) footerLogo.src = data.site_logo;
+            if (favicon) favicon.href = data.site_logo;
         }
 
         const servicesTitle = document.getElementById('services_title');

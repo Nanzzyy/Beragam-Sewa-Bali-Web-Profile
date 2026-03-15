@@ -34,7 +34,9 @@ async function loadDetail() {
                 const contentData = await contentRes.json();
                 if (contentData.site_logo) {
                     const navLogo = document.getElementById('nav-logo');
+                    const favicon = document.getElementById('favicon');
                     if (navLogo) navLogo.src = contentData.site_logo;
+                    if (favicon) favicon.href = contentData.site_logo;
                 }
             }
         } catch (e) { console.warn('Global content fetch failed'); }
