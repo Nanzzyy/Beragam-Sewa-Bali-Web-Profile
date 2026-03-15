@@ -146,9 +146,25 @@ document.addEventListener('click', async (e) => {
         if(!file) return alert('No file chosen');
         const fd = new FormData(); fd.append('image', file);
         tBtn.disabled = true; tBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing';
-        await fetch(endpoint, { ...FETCH_OPTS, method: 'POST', body: fd });
-        el(fileId).value = ''; tBtn.disabled = false; tBtn.textContent = 'Upload Success';
-        setTimeout(() => loadAll(), 500);
+        
+        try {
+            const res = await fetch(endpoint, { ...FETCH_OPTS, method: 'POST', body: fd });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Upload failed');
+            }
+            el(fileId).value = ''; 
+            tBtn.disabled = false; 
+            tBtn.textContent = 'Upload Success';
+            setTimeout(() => {
+                tBtn.textContent = tBtn.id === 'btn-upload-logo' ? 'Update Site Logo' : (tBtn.id === 'btn-upload-hero' ? 'Update Hero Image' : 'Update About Image');
+                loadAll();
+            }, 2000);
+        } catch (err) {
+            alert(err.message);
+            tBtn.disabled = false;
+            tBtn.textContent = 'Upload Failed';
+        }
     };
 
     if (t.id === 'btn-upload-hero') return handleUpload('hero-image-upload', `${API_URL}/hero/image`, t);

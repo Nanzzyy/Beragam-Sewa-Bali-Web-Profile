@@ -60,17 +60,45 @@ function parseMultipart(req) {
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
             const body = Buffer.concat(chunks);
-            const boundary = req.headers['content-type']?.split('boundary=')[1];
+            const contentType = req.headers['content-type'];
+            const boundaryMatch = contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/);
+            const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
             if (!boundary) return resolve({ fields: {}, files: [] });
 
-            const parts = body.toString('binary').split(`--${boundary}`);
+            const boundaryBuffer = Buffer.from(`--${boundary}`);
+            const parts = [];
+            let start = 0;
+
+            while (true) {
+                const boundaryIndex = body.indexOf(boundaryBuffer, start);
+                if (boundaryIndex === -1) break;
+                
+                // End of this part is where the next boundary starts
+                const nextBoundaryIndex = body.indexOf(boundaryBuffer, boundaryIndex + boundaryBuffer.length);
+                if (nextBoundaryIndex === -1) break;
+
+                // The part content is between boundaries
+                // It usually starts with \r\n and ends with \r\n
+                const part = body.slice(boundaryIndex + boundaryBuffer.length, nextBoundaryIndex);
+                parts.push(part);
+                start = nextBoundaryIndex;
+            }
+
             const fields = {};
             const files = [];
 
             parts.forEach(part => {
-                if (!part || part === '--\r\n' || part.trim() === '--') return;
-                const [headerStr, ...bodyParts] = part.split('\r\n\r\n');
-                const bodyStr = bodyParts.join('\r\n\r\n').replace(/\r\n$/, '');
+                const headerEndIndex = part.indexOf('\r\n\r\n');
+                if (headerEndIndex === -1) return;
+
+                const headerStr = part.slice(0, headerEndIndex).toString();
+                // The body starts after \r\n\r\n and ends before the \r\n that precedes the next boundary
+                // But since we sliced 'part' between boundaries, the \r\n before the NEXT boundary is at the end of 'part'
+                let bodyBuffer = part.slice(headerEndIndex + 4);
+                if (bodyBuffer.slice(-2).toString() === '\r\n') {
+                    bodyBuffer = bodyBuffer.slice(0, -2);
+                }
+
                 const nameMatch = headerStr.match(/name="([^"]+)"/);
                 const filenameMatch = headerStr.match(/filename="([^"]+)"/);
                 const contentTypeMatch = headerStr.match(/Content-Type: ([^\r\n]+)/i);
@@ -82,10 +110,10 @@ function parseMultipart(req) {
                         fieldname: name,
                         originalname: filenameMatch[1],
                         mimetype: contentTypeMatch?.[1]?.trim() || 'application/octet-stream',
-                        buffer: Buffer.from(bodyStr, 'binary')
+                        buffer: bodyBuffer
                     });
                 } else {
-                    fields[name] = bodyStr;
+                    fields[name] = bodyBuffer.toString().trim();
                 }
             });
             resolve({ fields, files });
@@ -249,7 +277,7 @@ app.delete('/api/about/image/:id', requireAdmin, async (req, res) => {
 });
 
 // GET /api/services
-app.get('/api/services', requireAdmin, async (req, res) => {
+app.get('/api/services', async (req, res) => {
     try {
         const r = await db.query("SELECT * FROM section_images WHERE section_key='service' ORDER BY id DESC");
         res.json(r.rows);
@@ -257,7 +285,7 @@ app.get('/api/services', requireAdmin, async (req, res) => {
 });
 
 // GET /api/services/:id
-app.get('/api/services/:id', requireAdmin, async (req, res) => {
+app.get('/api/services/:id', async (req, res) => {
     try {
         const r = await db.query('SELECT * FROM section_images WHERE id=$1', [req.params.id]);
         if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });
@@ -306,7 +334,7 @@ app.delete('/api/services/:id', requireAdmin, async (req, res) => {
 });
 
 // GET /api/packages
-app.get('/api/packages', requireAdmin, async (req, res) => {
+app.get('/api/packages', async (req, res) => {
     try {
         const r = await db.query("SELECT * FROM section_images WHERE section_key='package' ORDER BY id DESC");
         res.json(r.rows);
@@ -314,7 +342,7 @@ app.get('/api/packages', requireAdmin, async (req, res) => {
 });
 
 // GET /api/packages/:id
-app.get('/api/packages/:id', requireAdmin, async (req, res) => {
+app.get('/api/packages/:id', async (req, res) => {
     try {
         const r = await db.query('SELECT * FROM section_images WHERE id=$1', [req.params.id]);
         if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });
