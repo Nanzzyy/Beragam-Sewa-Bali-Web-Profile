@@ -46,10 +46,10 @@ async function uploadToSupabase(fileBuffer, mimetype, folder = 'uploads') {
     const ext = mimetype.split('/')[1] || 'jpg';
     const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage
-        .from('images')
+        .from('beragam-sewa-bali-images')
         .upload(filename, fileBuffer, { contentType: mimetype, upsert: false });
     if (error) throw new Error(error.message);
-    const { data } = supabase.storage.from('images').getPublicUrl(filename);
+    const { data } = supabase.storage.from('beragam-sewa-bali-images').getPublicUrl(filename);
     return data.publicUrl;
 }
 
