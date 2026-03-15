@@ -36,7 +36,10 @@ async function loadDetail() {
                     const navLogo = document.getElementById('nav-logo');
                     const favicon = document.getElementById('favicon');
                     if (navLogo) navLogo.src = contentData.site_logo;
-                    if (favicon) favicon.href = contentData.site_logo;
+                    if (favicon) {
+                        // Tambahkan cache buster agar browser tidak ambil cache lama
+                        favicon.href = contentData.site_logo + '?t=' + new Date().getTime();
+                    }
                 }
             }
         } catch (e) { console.warn('Global content fetch failed'); }

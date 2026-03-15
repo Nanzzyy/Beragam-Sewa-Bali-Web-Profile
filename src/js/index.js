@@ -30,7 +30,10 @@ async function initializePage() {
             const favicon = document.getElementById('favicon');
             if (navLogo) navLogo.src = data.site_logo;
             if (footerLogo) footerLogo.src = data.site_logo;
-            if (favicon) favicon.href = data.site_logo;
+            if (favicon) {
+                // Tambahkan cache buster (?t=...) agar browser selalu mengambil yang terbaru
+                favicon.href = data.site_logo + '?t=' + new Date().getTime();
+            }
         }
 
         const servicesTitle = document.getElementById('services_title');
