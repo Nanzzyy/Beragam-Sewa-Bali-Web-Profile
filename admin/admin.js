@@ -58,8 +58,12 @@ async function loadAll() {
         renderCards('packages-list', pkg, 'package');
         renderCards('gallery-list', gal, 'gallery');
 
-        if (content.site_logo && el('admin-site-logo-preview')) {
-            el('admin-site-logo-preview').src = content.site_logo;
+        if (content.site_logo) {
+            const logoUrl = content.site_logo + '?t=' + new Date().getTime();
+            if (el('admin-site-logo-preview')) el('admin-site-logo-preview').src = content.site_logo;
+            if (el('login-logo')) el('login-logo').src = content.site_logo;
+            if (el('nav-logo')) el('nav-logo').src = content.site_logo;
+            if (el('favicon')) el('favicon').href = logoUrl;
         }
 
     } catch (e) { console.error('Data Sync Error'); }
