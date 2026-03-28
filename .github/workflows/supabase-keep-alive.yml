@@ -1,0 +1,17 @@
+name: Supabase Stay Awake
+
+on:
+  schedule:
+    # Berjalan setiap hari Senin dan Kamis jam 00:00 UTC
+    - cron: '0 0 * * 1,4' 
+  workflow_dispatch: # Agar Anda bisa klik "Run" manual di GitHub
+
+jobs:
+  ping_supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Request to Supabase API
+        run: |
+          curl -i -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/section_images?select=id&limit=1" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
