@@ -12,7 +12,8 @@
     <link rel="icon" type="image/png" id="favicon" href="favicon.png">
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +25,8 @@
     <link rel="stylesheet" href="./src/style/output.css">
 
     <!-- Swiper CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css"></noscript>
     </head>
 
     <body class="font-outfit bg-bg-base text-text-body overflow-x-hidden pt-[68px] antialiased">
@@ -64,15 +66,15 @@
                 <!-- Language & Theme Toggles -->
                 <div class="flex items-center gap-4 px-4 py-1.5 bg-black/5 rounded-full">
                     <div class="flex items-center gap-2">
-                        <button class="lang-btn w-6 h-6 rounded-full overflow-hidden border-2 border-transparent transition-all" data-lang="id" title="Indonesian">
-                            <img src="https://img.icons8.com/?size=100&id=60248&format=png" alt="ID" class="w-full h-full object-cover">
+                        <button class="lang-btn w-6 h-6 rounded-full overflow-hidden border-2 border-transparent transition-all" data-lang="id" title="Indonesian" aria-label="Switch to Indonesian">
+                            <img src="https://img.icons8.com/?size=100&id=60248&format=png" alt="Indonesian Flag" width="24" height="24" class="w-full h-full object-cover">
                         </button>
-                        <button class="lang-btn w-6 h-6 rounded-full overflow-hidden border-2 border-transparent transition-all" data-lang="en" title="English">
-                            <img src="https://img.icons8.com/?size=100&id=15534&format=png" alt="EN" class="w-full h-full object-cover">
+                        <button class="lang-btn w-6 h-6 rounded-full overflow-hidden border-2 border-transparent transition-all" data-lang="en" title="English" aria-label="Switch to English">
+                            <img src="https://img.icons8.com/?size=100&id=15534&format=png" alt="English Flag" width="24" height="24" class="w-full h-full object-cover">
                         </button>
                     </div>
                     <div class="w-px h-4 bg-black/10"></div>
-                    <button class="theme-toggle-btn text-text-body hover:text-brand-red transition-colors" title="Toggle Dark Mode">
+                    <button class="theme-toggle-btn text-text-body hover:text-brand-red transition-colors" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">
                         <i class="fa-solid fa-moon dark:hidden"></i>
                         <i class="fa-solid fa-sun hidden dark:block"></i>
                     </button>
@@ -87,11 +89,11 @@
             <!-- Mobile Toggler -->
             <div class="flex items-center gap-3 lg:hidden">
                 <!-- Theme Toggle Mobile -->
-                <button class="theme-toggle-btn w-11 h-11 flex items-center justify-center rounded-xl bg-black/5 text-text-body transition-colors">
+                <button class="theme-toggle-btn w-11 h-11 flex items-center justify-center rounded-xl bg-black/5 text-text-body transition-colors" aria-label="Toggle Dark Mode">
                     <i class="fa-solid fa-moon dark:hidden"></i>
                     <i class="fa-solid fa-sun hidden dark:block"></i>
                 </button>
-                <button id="mobileMenuBtn" class="flex items-center justify-center w-11 h-11 rounded-xl bg-brand-red/5 text-brand-red hover:bg-brand-red hover:text-white transition-all duration-300">
+                <button id="mobileMenuBtn" class="flex items-center justify-center w-11 h-11 rounded-xl bg-brand-red/5 text-brand-red hover:bg-brand-red hover:text-white transition-all duration-300" aria-label="Open Mobile Menu" aria-expanded="false" aria-controls="mobileMenu">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
             </div>
@@ -106,7 +108,7 @@
         <div id="mobileMenuSidebar" class="absolute top-0 right-0 bottom-0 w-[280px] bg-bg-surface border-l border-black/8 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
             <div class="flex items-center justify-between p-5 border-b border-black/8">
                 <h5 class="text-text-primary font-bold font-outfit text-base notranslate">Beragam Sewa Bali</h5>
-                <button type="button" id="closeMobileMenuBtn" class="text-text-muted hover:text-brand-red text-xl leading-none transition-colors">
+                <button type="button" id="closeMobileMenuBtn" class="text-text-muted hover:text-brand-red text-xl leading-none transition-colors" aria-label="Close Mobile Menu">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -120,12 +122,12 @@
                 </nav>
                 <div class="p-6 space-y-4 mt-auto">
                     <div class="flex items-center justify-center gap-4 py-3 bg-black/5 rounded-2xl">
-                        <button class="lang-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent transition-all" data-lang="id">
-                            <img src="https://img.icons8.com/?size=100&id=60248&format=png" alt="ID" class="w-5 h-5 rounded-full">
+                        <button class="lang-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent transition-all" data-lang="id" aria-label="Switch to Indonesian">
+                            <img src="https://img.icons8.com/?size=100&id=60248&format=png" alt="Indonesian Flag" width="20" height="20" class="w-5 h-5 rounded-full">
                             <span class="text-xs font-bold">ID</span>
                         </button>
-                        <button class="lang-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent transition-all" data-lang="en">
-                            <img src="https://img.icons8.com/?size=100&id=15534&format=png" alt="EN" class="w-5 h-5 rounded-full">
+                        <button class="lang-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent transition-all" data-lang="en" aria-label="Switch to English">
+                            <img src="https://img.icons8.com/?size=100&id=15534&format=png" alt="English Flag" width="20" height="20" class="w-5 h-5 rounded-full">
                             <span class="text-xs font-bold">EN</span>
                         </button>
                     </div>
@@ -249,8 +251,8 @@
                     <div class="swiper-pagination !-bottom-2"></div>
                 </div>
                 <!-- Buttons outside swiper but inside container -->
-                <div class="swiper-button-prev !hidden md:!flex"></div>
-                <div class="swiper-button-next !hidden md:!flex"></div>
+                <div class="swiper-button-prev !hidden md:!flex" aria-label="Previous service"></div>
+                <div class="swiper-button-next !hidden md:!flex" aria-label="Next service"></div>
             </div>
         </div>
 
@@ -268,8 +270,8 @@
                     <div class="swiper-pagination !-bottom-2"></div>
                 </div>
                 <!-- Buttons outside swiper but inside container -->
-                <div class="swiper-button-prev !hidden md:!flex"></div>
-                <div class="swiper-button-next !hidden md:!flex"></div>
+                <div class="swiper-button-prev !hidden md:!flex" aria-label="Previous package"></div>
+                <div class="swiper-button-next !hidden md:!flex" aria-label="Next package"></div>
             </div>
         </div>
     </section>
