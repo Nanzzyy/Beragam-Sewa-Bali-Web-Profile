@@ -184,6 +184,7 @@ app.get('/api/content', async (req, res) => {
             return acc;
         }, {});
 
+        res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.json({ ...siteContent, ...groupedImages });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -192,6 +193,7 @@ app.get('/api/content', async (req, res) => {
 app.get('/api/gallery', async (req, res) => {
     try {
         const result = await db.query("SELECT * FROM section_images WHERE section_key='gallery' ORDER BY id DESC");
+        res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.json(result.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
