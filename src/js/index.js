@@ -5,11 +5,14 @@ async function initializePage() {
             ? 'http://localhost:3000/api' 
             : '/api';
             
-        const response = await fetch(`${API_BASE}/content`);
-        if (!response.ok) {
-            throw new Error(`Gagal mengambil data: ${response.statusText}`);
+        let data;
+        if (window.__CONTENT_PROMISE__) {
+            data = await window.__CONTENT_PROMISE__;
+        } else {
+            const response = await fetch(`${API_BASE}/content`);
+            if (!response.ok) throw new Error(`Gagal mengambil data: ${response.statusText}`);
+            data = await response.json();
         }
-        const data = await response.json();
 
         const protectBrand = (text) => {
             if (!text) return '';
@@ -183,11 +186,16 @@ async function initializePage() {
         // 5. Gallery Swiper
         const mainGallerySwiperWrapper = document.getElementById('main-gallery-swiper-wrapper');
         try {
-            const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                ? 'http://localhost:3000/api' 
-                : '/api';
-            const galleryResponse = await fetch(`${API_BASE}/gallery`);
-            const galleryData = await galleryResponse.json();
+            let galleryData;
+            if (window.__GALLERY_PROMISE__) {
+                galleryData = await window.__GALLERY_PROMISE__;
+            } else {
+                const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                    ? 'http://localhost:3000/api' 
+                    : '/api';
+                const galleryResponse = await fetch(`${API_BASE}/gallery`);
+                galleryData = await galleryResponse.json();
+            }
 
             if (mainGallerySwiperWrapper && galleryData) {
                 mainGallerySwiperWrapper.innerHTML = '';

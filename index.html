@@ -27,6 +27,12 @@
     <!-- Swiper CSS -->
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css"></noscript>
+    <!-- Pre-fetch API Data to parallelize with HTML/JS parsing -->
+    <script>
+        const __API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000/api' : '/api';
+        window.__CONTENT_PROMISE__ = fetch(`${__API_BASE}/content`).then(r => r.ok ? r.json() : Promise.reject(r));
+        window.__GALLERY_PROMISE__ = fetch(`${__API_BASE}/gallery`).then(r => r.ok ? r.json() : Promise.reject(r));
+    </script>
     </head>
 
     <body class="font-outfit bg-bg-base text-text-body overflow-x-hidden pt-[68px] antialiased">
