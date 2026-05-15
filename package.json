@@ -4,6 +4,7 @@
   "description": "Beragam Sewa Bali Web Profile",
   "main": "api/index.js",
   "scripts": {
+    "dev": "node --watch api/index.js",
     "start": "node api/index.js",
     "build": "echo 'CSS pre-built, skipping tailwind'",
     "build:css": "tailwindcss -i ./src/style/input.css -o ./src/style/output.css"

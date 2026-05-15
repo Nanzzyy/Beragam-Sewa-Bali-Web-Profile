@@ -16,7 +16,9 @@
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
     <!-- Built Tailwind CSS -->
     <link rel="stylesheet" href="./src/style/output.css">
@@ -335,14 +337,14 @@
 
     <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
 
-    <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
-    <script src="./src/js/translations.js"></script>
-    <script src="./src/js/common.js"></script>
-    <script src="./src/js/index.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+    <script defer src="./src/js/translations.js"></script>
+    <script defer src="./src/js/common.js"></script>
+    <script defer src="./src/js/index.js"></script>
     
     <!-- Google Translate Widget (Hidden) -->
     <div id="google_translate_element" style="display:none;"></div>
-    <script type="text/javascript">
+    <script>
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({
                 pageLanguage: 'id',
@@ -350,8 +352,16 @@
                 autoDisplay: false
             }, 'google_translate_element');
         }
+        // Lazy load the Google Translate script to improve page load speed
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const script = document.createElement('script');
+                script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+                script.defer = true;
+                document.body.appendChild(script);
+            }, 1000);
+        });
     </script>
-    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 </body>
 

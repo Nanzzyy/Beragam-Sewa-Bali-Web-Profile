@@ -83,7 +83,7 @@ async function initializePage() {
             data.about_carousel.forEach((item) => {
                 const slideEl = document.createElement('div');
                 slideEl.className = 'swiper-slide h-full';
-                slideEl.innerHTML = `<img src="${item.image_url}" class="w-full h-full object-cover" alt="${item.caption || ''}">`;
+                slideEl.innerHTML = `<img src="${item.image_url}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${item.caption || ''}">`;
                 aboutSwiperWrapper.appendChild(slideEl);
             });
 
@@ -111,6 +111,7 @@ async function initializePage() {
                         <div class="w-full max-w-[340px] bg-white rounded-3xl overflow-hidden border border-black/5 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group mx-auto">
                             <div class="relative overflow-hidden h-[240px]">
                                 <img src="${item.image_url || 'https://picsum.photos/seed/placeholder/600/400'}" 
+                                     loading="lazy" decoding="async"
                                      class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                                      alt="${item.name || ''}">
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -186,7 +187,7 @@ async function initializePage() {
                     slideEl.className = 'swiper-slide';
                     slideEl.innerHTML = `
                         <div class="group relative aspect-square shadow-sm rounded-2xl overflow-hidden bg-bg-surface hover:-translate-y-2 hover:shadow-2xl transition-all duration-500">
-                            <img src="${img.image_url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" alt="${img.caption || ''}">
+                            <img src="${img.image_url}" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" alt="${img.caption || ''}">
                             <div class="absolute inset-0 bg-brand-red opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none"></div>
                         </div>
                     `;

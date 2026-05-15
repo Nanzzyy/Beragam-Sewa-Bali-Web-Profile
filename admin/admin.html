@@ -19,6 +19,7 @@
             <h2 class="text-2xl font-black mb-2 tracking-tight">Admin Portal</h2>
             <p class="text-gray-400 text-sm mb-10">Sign in to manage your content</p>
             <form id="login-form">
+                <input type="email" id="admin-email" class="input-control mb-4 text-center" placeholder="Enter Admin Email" required>
                 <input type="password" id="admin-password" class="input-control mb-6 text-center" placeholder="Enter Access Password" required>
                 <button type="submit" class="btn-main btn-dark w-full">Authorize Access</button>
             </form>
@@ -196,12 +197,13 @@
         }
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const email = document.getElementById('admin-email').value;
             const password = document.getElementById('admin-password').value;
             const res = await fetch(`${API}/api/admin/login`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                credentials: 'include', body: JSON.stringify({ password })
+                credentials: 'include', body: JSON.stringify({ email, password })
             });
-            if (res.ok) location.reload(); else alert('Invalid Access Key');
+            if (res.ok) location.reload(); else alert('Invalid Credentials');
         });
         document.getElementById('logout-btn').addEventListener('click', async () => {
             await fetch(`${API}/api/admin/logout`, { method: 'POST', credentials: 'include' });

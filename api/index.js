@@ -141,9 +141,12 @@ app.get('/api/admin/status', (req, res) => {
 });
 
 // POST /api/admin/login
-app.post('/api/admin/login', (req, res) => {
-    const { password } = req.body;
-    if (password === (process.env.ADMIN_PASSWORD || 'admin123')) {
+app.post('/api/admin/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        
         res.cookie('isAdmin', 'true', {
             httpOnly: true,
             secure: isProduction,
@@ -152,8 +155,9 @@ app.post('/api/admin/login', (req, res) => {
             maxAge: 3600000
         });
         return res.json({ message: 'OK' });
+    } catch (err) {
+        res.status(401).json({ message: err.message || 'Error' });
     }
-    res.status(401).json({ message: 'Error' });
 });
 
 // POST /api/admin/logout
