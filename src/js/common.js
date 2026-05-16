@@ -31,19 +31,23 @@ function toggleLanguage(lang) {
     localStorage.setItem('lang', lang);
     
     // Set Google Translate Cookie
-    let domain = window.location.hostname;
-    if (!domain || domain === 'localhost' || domain === '127.0.0.1') {
-        domain = '';
-    } else {
-        domain = `domain=${domain};`;
-    }
+    const hostname = window.location.hostname;
+    const isLocal = !hostname || hostname === 'localhost' || hostname === '127.0.0.1';
 
     if (lang === 'id') {
-        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; ${domain}`;
+        // Clear all possible googtrans cookies
         document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+        if (!isLocal) {
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${hostname}`;
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${hostname}`;
+        }
     } else {
-        document.cookie = `googtrans=/id/${lang}; path=/; ${domain}`;
+        // Set googtrans cookie
         document.cookie = `googtrans=/id/${lang}; path=/`;
+        if (!isLocal) {
+            document.cookie = `googtrans=/id/${lang}; path=/; domain=${hostname}`;
+            document.cookie = `googtrans=/id/${lang}; path=/; domain=.${hostname}`;
+        }
     }
 
     // Apply manual translations first
