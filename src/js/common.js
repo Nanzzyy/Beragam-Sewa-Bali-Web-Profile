@@ -33,28 +33,44 @@ function toggleLanguage(lang) {
     // Set Google Translate Cookie
     const hostname = window.location.hostname;
 
+    // Helper to get root domain variations (e.g. from www.example.com to .example.com)
+    const parts = hostname.split('.');
+    const rootDomain = parts.length > 1 ? parts.slice(-2).join('.') : hostname;
+
     if (lang === 'id') {
         // Aggressive cookie clearing for all domain variants
         const domains = [
             '',
             hostname,
             `.${hostname}`,
+            rootDomain,
+            `.${rootDomain}`,
             'localhost',
             '.localhost',
             '127.0.0.1',
             '.127.0.0.1'
         ];
         
+        // Google Translate might also set path=/id, path=/en, or just path=/
+        const paths = ['/', '/id', '/id/en'];
+        
         domains.forEach(d => {
-            const domainStr = d ? `; domain=${d}` : '';
-            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${domainStr}`;
+            paths.forEach(p => {
+                const domainStr = d ? `; domain=${d}` : '';
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${p}${domainStr}`;
+                // Also clear for googtrans%2Fid%2Fen or similar URL encoded ones just in case
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${domainStr}`;
+            });
         });
     } else {
         // Set googtrans cookie
         document.cookie = `googtrans=/id/${lang}; path=/`;
         if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
             document.cookie = `googtrans=/id/${lang}; path=/; domain=${hostname}`;
-            document.cookie = `googtrans=/id/${lang}; path=/; domain=.${hostname}`;
+            // Let's also set it on the root domain so it definitely works across www and non-www
+            if (rootDomain !== hostname) {
+                document.cookie = `googtrans=/id/${lang}; path=/; domain=.${rootDomain}`;
+            }
         }
     }
 
