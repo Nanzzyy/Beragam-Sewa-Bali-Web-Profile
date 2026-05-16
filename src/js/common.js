@@ -32,19 +32,27 @@ function toggleLanguage(lang) {
     
     // Set Google Translate Cookie
     const hostname = window.location.hostname;
-    const isLocal = !hostname || hostname === 'localhost' || hostname === '127.0.0.1';
 
     if (lang === 'id') {
-        // Clear all possible googtrans cookies
-        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
-        if (!isLocal) {
-            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${hostname}`;
-            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${hostname}`;
-        }
+        // Aggressive cookie clearing for all domain variants
+        const domains = [
+            '',
+            hostname,
+            `.${hostname}`,
+            'localhost',
+            '.localhost',
+            '127.0.0.1',
+            '.127.0.0.1'
+        ];
+        
+        domains.forEach(d => {
+            const domainStr = d ? `; domain=${d}` : '';
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${domainStr}`;
+        });
     } else {
         // Set googtrans cookie
         document.cookie = `googtrans=/id/${lang}; path=/`;
-        if (!isLocal) {
+        if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
             document.cookie = `googtrans=/id/${lang}; path=/; domain=${hostname}`;
             document.cookie = `googtrans=/id/${lang}; path=/; domain=.${hostname}`;
         }
