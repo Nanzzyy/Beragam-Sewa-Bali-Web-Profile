@@ -430,6 +430,83 @@ app.post('/api/site/logo', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CATALOG PUBLIC ENDPOINTS (with price)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/catalog/services — semua layanan + harga untuk halaman katalog
+app.get('/api/catalog/services', async (req, res) => {
+    try {
+        const r = await db.query(
+            `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
+                    cp.price, cp.price_unit
+             FROM section_images si
+             LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'service'
+             WHERE si.section_key = 'service'
+             ORDER BY si.id DESC`
+        );
+        res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/catalog/packages — semua paket + harga untuk halaman katalog
+app.get('/api/catalog/packages', async (req, res) => {
+    try {
+        const r = await db.query(
+            `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
+                    cp.price, cp.price_unit
+             FROM section_images si
+             LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'package'
+             WHERE si.section_key = 'package'
+             ORDER BY si.id DESC`
+        );
+        res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Admin: Set/Update harga item katalog ──────────────────────────────────────
+
+// PUT /api/catalog/price/:type/:id  (type = service | package)
+app.put('/api/catalog/price/:type/:id', requireAdmin, async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        if (!['service', 'package'].includes(type)) {
+            return res.status(400).json({ error: 'Invalid type' });
+        }
+        const { price, price_unit } = req.body;
+        const unit = price_unit || '/hari';
+
+        // Upsert ke catalog_prices
+        const existing = await db.query(
+            'SELECT id FROM catalog_prices WHERE item_id=$1 AND item_type=$2',
+            [id, type]
+        );
+        if (existing.rowCount > 0) {
+            await db.query(
+                'UPDATE catalog_prices SET price=$1, price_unit=$2 WHERE item_id=$3 AND item_type=$4',
+                [price, unit, id, type]
+            );
+        } else {
+            await db.query(
+                'INSERT INTO catalog_prices(item_id, item_type, price, price_unit) VALUES($1,$2,$3,$4)',
+                [id, type, price, unit]
+            );
+        }
+        res.json({ message: 'Price updated' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/catalog/price/:type/:id
+app.delete('/api/catalog/price/:type/:id', requireAdmin, async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        await db.query('DELETE FROM catalog_prices WHERE item_id=$1 AND item_type=$2', [id, type]);
+        res.json({ message: 'Price removed' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Vercel export
 module.exports = app;
 
