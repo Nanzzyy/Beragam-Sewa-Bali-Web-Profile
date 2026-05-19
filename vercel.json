@@ -36,6 +36,18 @@
   ],
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/src/:path*",
+      "destination": "/src/:path*"
+    },
+    {
+      "source": "/favicon:path*",
+      "destination": "/favicon:path*"
+    },
+    {
       "source": "/:path*",
       "has": [
         {
@@ -55,15 +67,5 @@
       ],
       "destination": "/katalog/:path*"
     }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/index.js" },
-    { "src": "/src/(.*)", "dest": "/src/$1" },
-    { "src": "/admin/(.*)", "dest": "/admin/$1" },
-    { "src": "/katalog/(.*)", "dest": "/katalog/$1" },
-    { "src": "/favicon\\.ico", "dest": "/favicon.ico" },
-    { "src": "/favicon\\.png", "dest": "/favicon.png" },
-    { "src": "/detail\\.html", "dest": "/detail.html" },
-    { "src": "/", "dest": "/index.html" }
   ]
 }
