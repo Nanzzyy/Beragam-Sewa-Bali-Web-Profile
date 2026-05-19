@@ -507,6 +507,32 @@ app.delete('/api/catalog/price/:type/:id', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUBDOMAIN ROUTING — catch-all handler for host-based routing
+// Vercel's static filesystem serves index.html before rewrites can process,
+// so we handle subdomain routing here in the serverless function.
+// ═══════════════════════════════════════════════════════════════════════════════
+app.get('*', (req, res) => {
+    const host = (req.headers.host || req.headers['x-forwarded-host'] || '').toLowerCase();
+
+    if (host.startsWith('admin.')) {
+        const filePath = req.path === '/' ? 'admin/index.html' : `admin${req.path}`;
+        return res.sendFile(path.resolve(__dirname, '..', filePath), (err) => {
+            if (err) res.sendFile(path.resolve(__dirname, '..', 'admin/index.html'));
+        });
+    }
+
+    if (host.startsWith('katalog.')) {
+        const filePath = req.path === '/' ? 'katalog/index.html' : `katalog${req.path}`;
+        return res.sendFile(path.resolve(__dirname, '..', filePath), (err) => {
+            if (err) res.sendFile(path.resolve(__dirname, '..', 'katalog/index.html'));
+        });
+    }
+
+    // Default: main domain — serve root index.html
+    return res.sendFile(path.resolve(__dirname, '..', 'index.html'));
+});
+
 // Vercel export
 module.exports = app;
 
