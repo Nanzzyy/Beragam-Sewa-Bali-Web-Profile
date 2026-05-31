@@ -988,15 +988,44 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Check initial session
-supabase.auth.onAuthStateChange(async (event, session) => {
-  if (session) {
-    state.user = session.user;
-    await fetchUserProfile(session.user.id);
-  } else {
+// Check initial session explicitly on startup
+async function initAuth() {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (session) {
+      state.user = session.user;
+      await fetchUserProfile(session.user.id);
+    } else {
+      state.user = null;
+      state.role = null;
+      state.loading = false;
+      render();
+    }
+  } catch (err) {
+    console.error("Auth init error:", err);
     state.user = null;
     state.role = null;
     state.loading = false;
     render();
   }
-});
+
+  // Subscribe to subsequent auth changes
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session) {
+      if (!state.user || state.user.id !== session.user.id) {
+        state.user = session.user;
+        state.loading = true;
+        render();
+        await fetchUserProfile(session.user.id);
+      }
+    } else {
+      state.user = null;
+      state.role = null;
+      state.loading = false;
+      render();
+    }
+  });
+}
+
+initAuth();
