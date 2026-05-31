@@ -129,4 +129,4 @@ After setting up, you can create users via the Supabase Dashboard or programmati
 - **Staff**: [EMAIL_ADDRESS] / staff123
 
 ### Database Configuration
-For development, you can use the **PostgREST** extension in Supabase to expose your database tables as a REST API. Ensure PostgREST is enabled in your Supabase project settings.
+For development, you can use the **PostgREST** extension in Supabase to expose your database tables as a REST API. Ensure PostgREST is enabled in your Supabase project settings.w
