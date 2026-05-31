@@ -4,7 +4,7 @@
 const SUPABASE_URL = "https://izqrlblxbajnaovelvef.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cXJsYmx4YmFqbmFvdmVsdmVmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjgwNzg3MSwiZXhwIjoyMDg4MzgzODcxfQ.oaqJmBVPYGJRhOOVmWv3CSLhJALobYeOwrs-tN1DE-I";
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let state = {
   user: null,
@@ -480,7 +480,7 @@ function bindLoginEvents() {
     render();
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
       
       state.user = data.user;
@@ -503,7 +503,7 @@ function bindUnauthorizedEvents() {
 async function handleLogout() {
   state.loading = true;
   render();
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   state.user = null;
   state.role = null;
   state.categories = [];
@@ -586,12 +586,12 @@ function bindDashboardEvents() {
         const fileExt = file.name.split('.').pop();
         const fileName = `${state.user.id}/${Date.now()}.${fileExt}`;
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
           .from('receipts')
           .upload(fileName, file);
 
         if (!uploadError) {
-          const { data: publicUrlData } = supabase.storage
+          const { data: publicUrlData } = supabaseClient.storage
             .from('receipts')
             .getPublicUrl(fileName);
           receiptUrl = publicUrlData.publicUrl;
@@ -599,7 +599,7 @@ function bindDashboardEvents() {
       }
 
       try {
-        const { error } = await supabase.from('transactions').insert({
+        const { error } = await supabaseClient.from('transactions').insert({
           owner_id: state.user.id,
           amount: amount,
           type: state.txType,
@@ -639,7 +639,7 @@ function bindDashboardEvents() {
       document.getElementById('save-cat-btn').disabled = true;
       
       try {
-        const { error } = await supabase.from('categories').insert({
+        const { error } = await supabaseClient.from('categories').insert({
           owner_id: state.user.id,
           name: name,
           type: state.newCatType
@@ -666,7 +666,7 @@ function bindDashboardEvents() {
         state.loading = true;
         render();
         try {
-          const { error } = await supabase.from('transactions').delete().eq('id', id);
+          const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
           if (error) throw error;
           await fetchTransactions();
         } catch (err) {
@@ -686,7 +686,7 @@ function bindDashboardEvents() {
 async function fetchUserProfile(userId) {
   try {
     // Read from public profiles table configured on checkup
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('profiles')
       .select('role')
       .eq('id', userId)
@@ -707,7 +707,7 @@ async function fetchUserProfile(userId) {
 }
 
 async function fetchCategories() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('categories')
     .select('*')
     .order('name');
@@ -717,7 +717,7 @@ async function fetchCategories() {
 }
 
 async function fetchTransactions() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('transactions')
     .select(`
       id,
@@ -991,7 +991,7 @@ if ('serviceWorker' in navigator) {
 // Check initial session explicitly on startup
 async function initAuth() {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
     if (session) {
       state.user = session.user;
@@ -1011,7 +1011,7 @@ async function initAuth() {
   }
 
   // Subscribe to subsequent auth changes
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if (session) {
       if (!state.user || state.user.id !== session.user.id) {
         state.user = session.user;
