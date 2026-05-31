@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ==========================================
 
 -- Custom transaction category table
-CREATE TABLE public.categories (
+CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE public.categories (
 );
 
 -- Financial transactions ledger table
-CREATE TABLE public.transactions (
+CREATE TABLE IF NOT EXISTS public.transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     amount NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
@@ -36,12 +36,14 @@ ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
 -- Categories RLS
+DROP POLICY IF EXISTS "Allow owner full control on their categories" ON public.categories;
 CREATE POLICY "Allow owner full control on their categories"
 ON public.categories FOR ALL TO authenticated
 USING (auth.uid() = owner_id)
 WITH CHECK (auth.uid() = owner_id);
 
 -- Transactions RLS
+DROP POLICY IF EXISTS "Allow owner full control on their transactions" ON public.transactions;
 CREATE POLICY "Allow owner full control on their transactions"
 ON public.transactions FOR ALL TO authenticated
 USING (auth.uid() = owner_id)
