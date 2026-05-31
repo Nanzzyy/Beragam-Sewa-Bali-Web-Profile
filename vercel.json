@@ -7,7 +7,8 @@
     { "src": "src/**", "use": "@vercel/static" },
     { "src": "admin/**", "use": "@vercel/static" },
     { "src": "katalog/**", "use": "@vercel/static" },
-    { "src": "dashboard-build/**", "use": "@vercel/static" }
+    { "src": "dashboard-build/**", "use": "@vercel/static" },
+    { "src": "cashflow-build/**", "use": "@vercel/static" }
   ],
   "routes": [
     {
@@ -78,6 +79,21 @@
         { "type": "host", "value": "dashboard.beragamsewabali.com" }
       ],
       "dest": "/dashboard-build/$1"
+    },
+
+    {
+      "src": "/",
+      "has": [
+        { "type": "host", "value": "cashflow.beragamsewabali.com" }
+      ],
+      "dest": "/cashflow-build/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        { "type": "host", "value": "cashflow.beragamsewabali.com" }
+      ],
+      "dest": "/cashflow-build/$1"
     },
 
     {
