@@ -6,7 +6,8 @@
     { "src": "favicon.*", "use": "@vercel/static" },
     { "src": "src/**", "use": "@vercel/static" },
     { "src": "admin/**", "use": "@vercel/static" },
-    { "src": "katalog/**", "use": "@vercel/static" }
+    { "src": "katalog/**", "use": "@vercel/static" },
+    { "src": "dashboard/**", "use": "@vercel/static" }
   ],
   "routes": [
     {
@@ -62,6 +63,21 @@
         { "type": "host", "value": "katalog.beragamsewabali.com" }
       ],
       "dest": "/katalog/$1"
+    },
+
+    {
+      "src": "/",
+      "has": [
+        { "type": "host", "value": "dashboard.beragamsewabali.com" }
+      ],
+      "dest": "/dashboard/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        { "type": "host", "value": "dashboard.beragamsewabali.com" }
+      ],
+      "dest": "/dashboard/$1"
     },
 
     {
