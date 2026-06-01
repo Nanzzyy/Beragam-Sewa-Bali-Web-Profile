@@ -198,6 +198,26 @@ app.get('/api/gallery', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/site-logo.png
+app.get('/api/site-logo.png', async (req, res) => {
+    try {
+        const result = await db.query("SELECT content_value FROM site_content WHERE content_key = 'site_logo' LIMIT 1");
+        if (result.rows.length > 0 && result.rows[0].content_value) {
+            const logoUrl = result.rows[0].content_value;
+            const imgRes = await fetch(logoUrl);
+            if (imgRes.ok) {
+                res.setHeader('Content-Type', imgRes.headers.get('content-type') || 'image/png');
+                res.setHeader('Cache-Control', 'public, max-age=86400');
+                const arrayBuffer = await imgRes.arrayBuffer();
+                return res.send(Buffer.from(arrayBuffer));
+            }
+        }
+    } catch (e) {
+        // Fallback below
+    }
+    return res.sendFile(path.join(__dirname, '../favicon.png'));
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADMIN ENDPOINTS — data per-section untuk admin panel
 // ═══════════════════════════════════════════════════════════════════════════════

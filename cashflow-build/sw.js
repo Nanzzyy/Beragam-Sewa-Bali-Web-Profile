@@ -37,6 +37,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   
+  const url = new URL(event.request.url);
+  if (url.pathname.includes('/icons/Icon-') || url.pathname.endsWith('/favicon.png') || url.pathname.endsWith('/favicon.ico')) {
+    event.respondWith(
+      fetch('/api/site-logo.png').catch(() => {
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {

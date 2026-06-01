@@ -17,6 +17,9 @@ if (localStorage.getItem('theme') === 'light') {
 let state = {
   user: null,
   role: null,
+  targetOwnerId: null,
+  roleDisplayName: '',
+  logoUrl: '/api/site-logo.png',
   categories: [],
   transactions: [],
   loading: true,
@@ -70,8 +73,9 @@ function render() {
     return;
   }
 
-  // 2. Unauthorized View (If not Owner)
-  if (state.role !== 'owner') {
+  // 2. Unauthorized View (If not in allowed roles)
+  const allowedRoles = ['owner', 'staff', 'accounting', 'guest'];
+  if (!allowedRoles.includes(state.role)) {
     root.innerHTML = renderUnauthorizedView();
     bindUnauthorizedEvents();
     return;
@@ -92,21 +96,19 @@ function renderLoginView() {
     <div class="flex flex-col items-center justify-center min-h-screen px-4">
       <div class="w-full max-w-md bg-[#0F172A] border border-slate-800 rounded-2xl p-8 shadow-2xl">
         <div class="flex flex-col items-center mb-8">
-          <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center font-bold text-black text-xl shadow-lg shadow-emerald-500/25 mb-4">
-            B
-          </div>
+          <img src="${state.logoUrl}" class="w-16 h-16 object-contain mb-4 rounded-xl shadow-lg" onerror="this.src='/favicon.png'; this.onerror=null;">
           <h2 class="text-xl font-bold text-white tracking-tight">Beragam Sewa Bali</h2>
-          <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">Financial Ledger Access</p>
+          <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest text-center">Financial Ledger Access</p>
         </div>
 
         <form id="login-form" class="space-y-4">
           <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Owner</label>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Pengguna</label>
             <input 
               type="email" 
               id="login-email" 
               required 
-              placeholder="owner@beragamsewabali.com" 
+              placeholder="nama@domain.com" 
               value="${state.loginEmail}"
               class="w-full bg-[#1E293B]/70 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors"
             />
@@ -181,12 +183,10 @@ function renderDashboardView() {
       <!-- Header -->
       <header class="sticky top-0 z-30 backdrop-blur-md bg-white/85 dark:bg-[#0F172A]/85 border-b border-slate-200 dark:border-slate-800/80 px-4 py-3 flex items-center justify-between transition-colors">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-black text-lg shadow-md shadow-emerald-500/25">
-            B
-          </div>
+          <img src="${state.logoUrl}" class="w-9 h-9 object-contain rounded-lg shadow-md" onerror="this.src='/favicon.png'; this.onerror=null;">
           <div>
             <h1 class="text-xs font-extrabold tracking-wider text-slate-800 dark:text-white">BSB CASHFLOW</h1>
-            <p class="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase">Owner Corporate Ledger</p>
+            <p class="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase">${state.roleDisplayName}</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -830,7 +830,7 @@ function bindDashboardEvents() {
 
       try {
         const { error } = await supabaseClient.from('transactions').insert({
-          owner_id: state.user.id,
+          owner_id: state.targetOwnerId,
           amount: amount,
           type: state.txType,
           category_id: categoryId,
@@ -870,7 +870,7 @@ function bindDashboardEvents() {
       
       try {
         const { error } = await supabaseClient.from('categories').insert({
-          owner_id: state.user.id,
+          owner_id: state.targetOwnerId,
           name: name,
           type: state.newCatType
         });
@@ -918,18 +918,58 @@ async function fetchUserProfile(userId) {
     // Read from public profiles table configured on checkup
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('role')
+      .select('*')
       .eq('id', userId)
       .single();
 
     if (error) throw error;
-    state.role = data ? data.role : 'staff';
+    state.role = data ? data.role : 'guest';
     
-    if (state.role === 'owner') {
-      await Promise.all([fetchCategories(), fetchTransactions()]);
+    if (state.role === 'owner' || state.role === 'staff' || state.role === 'accounting') {
+      // Main company team
+      const roleStr = state.role.charAt(0).toUpperCase() + state.role.slice(1);
+      state.roleDisplayName = `${roleStr} Ledger`;
+      
+      // Fetch the main owner's ID
+      try {
+        const { data: ownerData, error: ownerError } = await supabaseClient
+          .from('profiles')
+          .select('id')
+          .eq('role', 'owner')
+          .limit(1);
+        
+        if (!ownerError && ownerData && ownerData.length > 0) {
+          state.targetOwnerId = ownerData[0].id;
+        } else {
+          state.targetOwnerId = userId;
+        }
+      } catch (e) {
+        state.targetOwnerId = userId;
+      }
+    } else {
+      // Guest user - get deterministic guest number based on creation date
+      state.targetOwnerId = userId;
+      try {
+        const { count, error: countError } = await supabaseClient
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'guest')
+          .lte('created_at', data.created_at);
+        
+        const guestIndex = count || 1;
+        state.roleDisplayName = `Guest-${guestIndex} Ledger`;
+      } catch (e) {
+        state.roleDisplayName = `Guest Ledger`;
+      }
     }
+    
+    // Now fetch categories and transactions using the resolved targetOwnerId
+    await Promise.all([fetchCategories(), fetchTransactions()]);
   } catch (err) {
-    state.role = 'staff'; // Fallback to safe restriction
+    state.role = 'guest';
+    state.targetOwnerId = userId;
+    state.roleDisplayName = 'Guest Ledger';
+    await Promise.all([fetchCategories(), fetchTransactions()]);
   } finally {
     state.loading = false;
     render();
@@ -940,6 +980,7 @@ async function fetchCategories() {
   const { data, error } = await supabaseClient
     .from('categories')
     .select('*')
+    .eq('owner_id', state.targetOwnerId)
     .order('name');
   if (!error && data) {
     state.categories = data;
@@ -959,6 +1000,7 @@ async function fetchTransactions() {
       transaction_date,
       categories(name)
     `)
+    .eq('owner_id', state.targetOwnerId)
     .order('transaction_date', { ascending: false });
   
   if (!error && data) {
