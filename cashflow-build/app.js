@@ -7,6 +7,21 @@ const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Script Lazy-Loader Utility
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${url}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
 // Theme initialization
 if (localStorage.getItem('theme') === 'light') {
   document.documentElement.classList.remove('dark');
@@ -757,9 +772,36 @@ function bindDashboardEvents() {
     render();
   });
 
-  // Export Excel
+  // Export Excel with Lazy-Loaded Modules
   const excelBtn = document.getElementById('export-excel-btn');
-  if (excelBtn) excelBtn.addEventListener('click', exportToExcel);
+  if (excelBtn) {
+    excelBtn.addEventListener('click', async () => {
+      if (state.transactions.length === 0) {
+        alert("Tidak ada transaksi untuk diekspor!");
+        return;
+      }
+      
+      const originalText = excelBtn.innerHTML;
+      excelBtn.innerHTML = `
+        <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        Memproses...
+      `;
+      excelBtn.disabled = true;
+
+      try {
+        await Promise.all([
+          loadScript('https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js'),
+          loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js')
+        ]);
+        await exportToExcel();
+      } catch (err) {
+        alert("Gagal memuat modul ekspor: " + err.message);
+      } finally {
+        excelBtn.innerHTML = originalText;
+        excelBtn.disabled = false;
+      }
+    });
+  }
 
   // Manage Categories modal trigger
   const manageCatsBtn = document.getElementById('manage-cats-btn');
@@ -1022,8 +1064,16 @@ async function fetchTransactions() {
 // ==========================================================
 let trendsChartInstance = null;
 let expensesChartInstance = null;
+let lastRenderedDataHash = "";
 
 function renderCharts() {
+  // Check if data is unchanged to skip heavy chart re-renders
+  const currentDataHash = state.transactions.length + "-" + state.transactions.reduce((acc, t) => acc + t.amount + t.transaction_date, "");
+  if (currentDataHash === lastRenderedDataHash && trendsChartInstance && expensesChartInstance) {
+    return;
+  }
+  lastRenderedDataHash = currentDataHash;
+
   // Chart 1: Trend Inflow vs Outflow
   const trendsCtx = document.getElementById('trendsChart');
   if (trendsCtx) {

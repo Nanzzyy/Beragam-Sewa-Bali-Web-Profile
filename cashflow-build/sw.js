@@ -1,13 +1,17 @@
-const CACHE_NAME = 'bsb-cashflow-cache-v2';
+const CACHE_NAME = 'bsb-cashflow-cache-v3';
 const ASSETS_TO_CACHE = [
   '/',
   'index.html',
   'app.js',
+  'style.css',
   'manifest.json',
   'icons/Icon-192.png',
   'icons/Icon-512.png',
   'icons/Icon-maskable-192.png',
-  'icons/Icon-maskable-512.png'
+  'icons/Icon-maskable-512.png',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap'
 ];
 
 self.addEventListener('install', (event) => {
