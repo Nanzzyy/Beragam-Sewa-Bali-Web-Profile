@@ -56,6 +56,41 @@ let state = {
   catSaving: false
 };
 
+// LocalStorage Caching Utility for Stale-While-Revalidate pattern
+function saveStateToCache() {
+  try {
+    localStorage.setItem('bsb_cashflow_cache', JSON.stringify({
+      user: state.user,
+      role: state.role,
+      targetOwnerId: state.targetOwnerId,
+      roleDisplayName: state.roleDisplayName,
+      categories: state.categories,
+      transactions: state.transactions
+    }));
+  } catch (e) {
+    console.warn("Gagal menyimpan cache lokal:", e);
+  }
+}
+
+// Load cached data from localStorage for instant boot
+try {
+  const cachedState = localStorage.getItem('bsb_cashflow_cache');
+  if (cachedState) {
+    const parsed = JSON.parse(cachedState);
+    if (parsed.user) {
+      state.user = parsed.user;
+      state.role = parsed.role;
+      state.targetOwnerId = parsed.targetOwnerId;
+      state.roleDisplayName = parsed.roleDisplayName;
+      state.categories = parsed.categories || [];
+      state.transactions = parsed.transactions || [];
+      state.loading = false; // Bypass loading spinner screen if cache is present
+    }
+  }
+} catch (e) {
+  console.warn("Gagal membaca cache lokal:", e);
+}
+
 // ==========================================================
 // 2. MAIN STATE RENDERER (VIRTUAL UI BINDING)
 // ==========================================================
@@ -669,6 +704,7 @@ async function handleLogout() {
   state.loading = true;
   render();
   await supabaseClient.auth.signOut();
+  localStorage.removeItem('bsb_cashflow_cache');
   state.user = null;
   state.role = null;
   state.categories = [];
@@ -932,18 +968,25 @@ function bindDashboardEvents() {
   const deleteBtns = document.querySelectorAll('.delete-tx-btn');
   deleteBtns.forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const id = e.target.getAttribute('data-id');
+      const btnEl = e.target.closest('.delete-tx-btn');
+      const id = btnEl ? btnEl.getAttribute('data-id') : null;
       if (!id) return;
       if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
-        state.loading = true;
+        // Optimistic UI update: remove item instantly without showing loading screen
+        const originalTransactions = [...state.transactions];
+        state.transactions = state.transactions.filter(t => t.id !== id);
+        saveStateToCache();
         render();
+        
         try {
           const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
           if (error) throw error;
-          await fetchTransactions();
+          saveStateToCache();
         } catch (err) {
           alert("Gagal menghapus transaksi: " + err.message);
-          state.loading = false;
+          // Rollback if failed
+          state.transactions = originalTransactions;
+          saveStateToCache();
           render();
         }
       }
@@ -1026,6 +1069,7 @@ async function fetchCategories() {
     .order('name');
   if (!error && data) {
     state.categories = data;
+    saveStateToCache();
   }
 }
 
@@ -1056,6 +1100,7 @@ async function fetchTransactions() {
       receipt_url: t.receipt_url,
       transaction_date: t.transaction_date
     }));
+    saveStateToCache();
   }
 }
 
@@ -1319,8 +1364,20 @@ async function initAuth() {
     if (error) throw error;
     if (session) {
       state.user = session.user;
-      await fetchUserProfile(session.user.id);
+      // Stale-While-Revalidate background fetch
+      if (state.transactions.length > 0) {
+        // Cache exists, render immediately and fetch in the background
+        state.loading = false;
+        render();
+        fetchUserProfile(session.user.id);
+      } else {
+        // No cache, show loading spinner and fetch sequentially
+        state.loading = true;
+        render();
+        await fetchUserProfile(session.user.id);
+      }
     } else {
+      localStorage.removeItem('bsb_cashflow_cache');
       state.user = null;
       state.role = null;
       state.loading = false;
@@ -1328,6 +1385,7 @@ async function initAuth() {
     }
   } catch (err) {
     console.error("Auth init error:", err);
+    localStorage.removeItem('bsb_cashflow_cache');
     state.user = null;
     state.role = null;
     state.loading = false;
@@ -1339,11 +1397,34 @@ async function initAuth() {
     if (session) {
       if (!state.user || state.user.id !== session.user.id) {
         state.user = session.user;
+        
+        // Try to load cached data for this user ID to prevent flash of loading screen
+        const cached = localStorage.getItem('bsb_cashflow_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed.user && parsed.user.id === session.user.id) {
+              state.role = parsed.role;
+              state.targetOwnerId = parsed.targetOwnerId;
+              state.roleDisplayName = parsed.roleDisplayName;
+              state.categories = parsed.categories || [];
+              state.transactions = parsed.transactions || [];
+              state.loading = false;
+              render();
+              fetchUserProfile(session.user.id); // revalidate in background
+              return;
+            }
+          } catch (e) {
+            console.warn("Failed to load user-specific cache", e);
+          }
+        }
+        
         state.loading = true;
         render();
         await fetchUserProfile(session.user.id);
       }
     } else {
+      localStorage.removeItem('bsb_cashflow_cache');
       state.user = null;
       state.role = null;
       state.loading = false;
