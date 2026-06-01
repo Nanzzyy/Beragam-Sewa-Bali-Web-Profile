@@ -33,10 +33,10 @@ async function run() {
       SET search_path = public
       AS $$
       BEGIN
-        INSERT INTO public.profiles (id, full_name, role)
+        INSERT INTO public.profiles (id, email, role)
         VALUES (
           NEW.id,
-          COALESCE(NEW.raw_user_meta_data->>'full_name', 'Guest User'),
+          NEW.email,
           COALESCE((NEW.raw_user_meta_data->>'role')::app_role, 'guest')
         );
         RETURN NEW;
