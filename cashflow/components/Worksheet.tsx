@@ -105,29 +105,29 @@ export default function Worksheet() {
   const formatCurrency = (val: number) => val === 0 ? '-' : `Rp. ${val.toLocaleString('id-ID')}`;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100 shadow-sm">
+    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-sm">
       <table className="w-full text-[11px] text-left text-slate-600 dark:text-slate-400">
         <thead className="text-[10px] uppercase bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold tracking-wider">
           <tr>
-            <th rowSpan={2} className="px-4 py-3 whitespace-nowrap border-b border-slate-200 dark:border-slate-800">Kode</th>
-            <th rowSpan={2} className="px-4 py-3 whitespace-nowrap border-b border-slate-200 dark:border-slate-800">Nama Akun</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800">Neraca Saldo (Unadjusted)</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800">Penyesuaian</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800">Neraca Saldo Disesuaikan</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800">Laba Rugi</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800">Neraca</th>
+            <th rowSpan={2} className="px-4 py-3 whitespace-nowrap border-b border-slate-200 dark:border-slate-800/60">Kode</th>
+            <th rowSpan={2} className="px-4 py-3 whitespace-nowrap border-b border-slate-200 dark:border-slate-800/60">Nama Akun</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800/60">Neraca Saldo (Unadjusted)</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800/60">Penyesuaian</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800/60">Neraca Saldo Disesuaikan</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800/60">Laba Rugi</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200 dark:border-slate-800/60">Neraca</th>
           </tr>
           <tr>
-            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800 border-b border-slate-200 dark:border-slate-800">Debit</th>
-            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800">Kredit</th>
-            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800 border-b border-slate-200 dark:border-slate-800">Debit</th>
-            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800">Kredit</th>
-            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800 border-b border-slate-200 dark:border-slate-800">Debit</th>
-            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800">Kredit</th>
-            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800 border-b border-slate-200 dark:border-slate-800">Debit</th>
-            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800">Kredit</th>
-            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800 border-b border-slate-200 dark:border-slate-800">Debit</th>
-            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800/60 border-b border-slate-200 dark:border-slate-800/60">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800/60">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800/60 border-b border-slate-200 dark:border-slate-800/60">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800/60">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800/60 border-b border-slate-200 dark:border-slate-800/60">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800/60">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800/60 border-b border-slate-200 dark:border-slate-800/60">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800/60">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 dark:border-slate-800/60 border-b border-slate-200 dark:border-slate-800/60">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800/60">Kredit</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -137,38 +137,38 @@ export default function Worksheet() {
               <td className="px-4 py-2.5 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">{row.name}</td>
               <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 dark:border-slate-800/50">{formatCurrency(row.unAdjD)}</td>
               <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(row.unAdjC)}</td>
-              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 dark:border-slate-800/50 text-amber-600 font-medium">{formatCurrency(row.adjDebit)}</td>
-              <td className="px-4 py-2.5 text-right font-mono text-amber-600 font-medium">{formatCurrency(row.adjCredit)}</td>
+              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 dark:border-slate-800/50 text-amber-600 dark:text-amber-400 font-medium">{formatCurrency(row.adjDebit)}</td>
+              <td className="px-4 py-2.5 text-right font-mono text-amber-600 dark:text-amber-400 font-medium">{formatCurrency(row.adjCredit)}</td>
               <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 dark:border-slate-800/50">{formatCurrency(row.adjBalD)}</td>
               <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(row.adjBalC)}</td>
-              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 dark:border-slate-800/50 text-rose-600">{formatCurrency(row.isD)}</td>
-              <td className="px-4 py-2.5 text-right font-mono text-emerald-600">{formatCurrency(row.isC)}</td>
-              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 dark:border-slate-800/50 text-blue-600">{formatCurrency(row.bsD)}</td>
-              <td className="px-4 py-2.5 text-right font-mono text-purple-600">{formatCurrency(row.bsC)}</td>
+              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 dark:border-slate-800/50 text-rose-600 dark:text-rose-400">{formatCurrency(row.isD)}</td>
+              <td className="px-4 py-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(row.isC)}</td>
+              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 dark:border-slate-800/50 text-blue-600 dark:text-blue-400">{formatCurrency(row.bsD)}</td>
+              <td className="px-4 py-2.5 text-right font-mono text-purple-600 dark:text-purple-400">{formatCurrency(row.bsC)}</td>
             </tr>
           ))}
         </tbody>
-        <tfoot className="bg-slate-50 dark:bg-slate-950 font-bold border-t-2 border-slate-200 dark:border-slate-800">
+        <tfoot className="bg-slate-50 dark:bg-slate-950 font-bold border-t-2 border-slate-200 dark:border-slate-800/60">
           <tr>
             <td colSpan={2} className="px-4 py-3.5 text-right text-slate-800 dark:text-slate-200">TOTAL</td>
-            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800">{formatCurrency(totals.unAdjD)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800/60">{formatCurrency(totals.unAdjD)}</td>
             <td className="px-4 py-3.5 text-right font-mono">{formatCurrency(totals.unAdjC)}</td>
-            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800 text-amber-700">{formatCurrency(totals.adjDebit)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800/60 text-amber-700">{formatCurrency(totals.adjDebit)}</td>
             <td className="px-4 py-3.5 text-right font-mono text-amber-700">{formatCurrency(totals.adjCredit)}</td>
-            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800">{formatCurrency(totals.adjBalD)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800/60">{formatCurrency(totals.adjBalD)}</td>
             <td className="px-4 py-3.5 text-right font-mono">{formatCurrency(totals.adjBalC)}</td>
-            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800 text-rose-700">{formatCurrency(totals.isD)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800/60 text-rose-700">{formatCurrency(totals.isD)}</td>
             <td className="px-4 py-3.5 text-right font-mono text-emerald-700">{formatCurrency(totals.isC)}</td>
-            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800 text-blue-700">{formatCurrency(totals.bsD)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800/60 text-blue-700">{formatCurrency(totals.bsD)}</td>
             <td className="px-4 py-3.5 text-right font-mono text-purple-700">{formatCurrency(totals.bsC)}</td>
           </tr>
           {netIncome !== 0 && (
-            <tr className="bg-emerald-50 border-t border-emerald-100">
+            <tr className="bg-emerald-50 dark:bg-emerald-500/10 border-t border-emerald-100">
               <td colSpan={2} className="px-4 py-3.5 text-right text-emerald-800">LABA BERSIH (NET INCOME)</td>
-              <td colSpan={6} className="px-4 py-3.5 border-l border-slate-200 dark:border-slate-800"></td>
-              <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800 text-emerald-700">{netIncome > 0 ? formatCurrency(netIncome) : '-'}</td>
+              <td colSpan={6} className="px-4 py-3.5 border-l border-slate-200 dark:border-slate-800/60"></td>
+              <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800/60 text-emerald-700">{netIncome > 0 ? formatCurrency(netIncome) : '-'}</td>
               <td className="px-4 py-3.5 text-right font-mono text-rose-700">{netIncome < 0 ? formatCurrency(Math.abs(netIncome)) : '-'}</td>
-              <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800 text-emerald-700">{netIncome > 0 ? formatCurrency(netIncome) : '-'}</td>
+              <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 dark:border-slate-800/60 text-emerald-700">{netIncome > 0 ? formatCurrency(netIncome) : '-'}</td>
               <td className="px-4 py-3.5 text-right font-mono text-rose-700">{netIncome < 0 ? formatCurrency(Math.abs(netIncome)) : '-'}</td>
             </tr>
           )}

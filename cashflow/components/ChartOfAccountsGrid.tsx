@@ -66,20 +66,20 @@ export default function ChartOfAccountsGrid() {
     </div>
   );
 
-  const inputCls = "w-full bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-300 dark:border-slate-700 rounded-md px-2 py-1.5 text-slate-900 dark:text-white dark:text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-sm text-sm";
+  const inputCls = "w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md px-2 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-sm text-sm";
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-2">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white dark:text-slate-900 flex items-center gap-2">Daftar Akun (Chart of Accounts)</h2>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Daftar Akun (Chart of Accounts)</h2>
         <button onClick={handleAddNew} className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 text-white dark:text-slate-900 rounded-lg text-xs font-semibold transition-colors shadow-sm">
           <Plus className="w-4 h-4" /> Tambah Akun
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100 shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-sm">
         <table className="w-full text-sm text-left text-slate-700 dark:text-slate-300">
-          <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-800">
+          <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-800/60">
             <tr>
               <th className="px-5 py-3">Kode Akun</th>
               <th className="px-5 py-3">Nama Akun</th>
@@ -113,7 +113,7 @@ export default function ChartOfAccountsGrid() {
                         className={inputCls}
                       />
                     ) : (
-                      <span className="font-medium text-slate-900 dark:text-white dark:text-slate-900">{acc.account_name}</span>
+                      <span className="font-medium text-slate-900 dark:text-white">{acc.account_name}</span>
                     )}
                   </td>
                   <td className="px-5 py-2.5">
@@ -150,7 +150,7 @@ export default function ChartOfAccountsGrid() {
                   <td className="px-5 py-2.5 text-right space-x-2">
                     {isEditing ? (
                       <div className="flex justify-end gap-2">
-                        <button onClick={handleSave} className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-md transition-colors" title="Simpan">
+                        <button onClick={handleSave} className="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 rounded-md transition-colors" title="Simpan">
                           <Check className="w-4 h-4" />
                         </button>
                         <button onClick={() => { setEditingCode(null); load(); }} className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 rounded-md transition-colors" title="Batal">
@@ -159,10 +159,10 @@ export default function ChartOfAccountsGrid() {
                       </div>
                     ) : (
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleEdit(acc)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Edit">
+                        <button onClick={() => handleEdit(acc)} className="p-1.5 text-slate-400 hover:text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-500/10 rounded-md transition-colors" title="Edit">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(acc.account_code)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors" title="Hapus">
+                        <button onClick={() => handleDelete(acc.account_code)} className="p-1.5 text-slate-400 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:bg-rose-500/10 rounded-md transition-colors" title="Hapus">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
