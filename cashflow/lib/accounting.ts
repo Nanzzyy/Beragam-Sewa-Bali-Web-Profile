@@ -93,7 +93,7 @@ export function validateJournalEntries(
   if (Math.abs(totalDebit - totalCredit) > 0.001) {
     return {
       valid: false,
-      error: `Jurnal tidak seimbang! Total Debit (Rp ${totalDebit.toLocaleString('id-ID')}) ≠ Total Credit (Rp ${totalCredit.toLocaleString('id-ID')}). Selisih: Rp ${Math.abs(totalDebit - totalCredit).toLocaleString('id-ID')}.`,
+      error: `Jurnal tidak seimbang! Total Debit (Rp. ${totalDebit.toLocaleString('id-ID')}) ≠ Total Credit (Rp. ${totalCredit.toLocaleString('id-ID')}). Selisih: Rp. ${Math.abs(totalDebit - totalCredit).toLocaleString('id-ID')}.`,
     };
   }
 

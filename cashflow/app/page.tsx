@@ -98,7 +98,7 @@ export default function CashflowDashboard() {
   const tbDebit = trialBalance.reduce((s, r) => s + r.total_debit, 0);
   const tbCredit = trialBalance.reduce((s, r) => s + r.total_credit, 0);
 
-  const fmtRp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
+  const fmtRp = (n: number) => `Rp. ${n.toLocaleString('id-ID')}`;
 
   // Login screen
   if (!authReady && !loading) {

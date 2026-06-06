@@ -104,7 +104,7 @@ export default function Worksheet() {
 
   const netIncome = totals.isC - totals.isD;
 
-  const formatCurrency = (val: number) => val === 0 ? '-' : `Rp ${val.toLocaleString('id-ID')}`;
+  const formatCurrency = (val: number) => val === 0 ? '-' : `Rp. ${val.toLocaleString('id-ID')}`;
 
   return (
     <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">

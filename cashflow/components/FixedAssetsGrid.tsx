@@ -122,12 +122,15 @@ export default function FixedAssetsGrid() {
                   <td className="px-4 py-2 text-right">
                     {isEditing ? (
                       <input 
-                        type="number"
-                        value={editForm.purchase_cost || 0} 
-                        onChange={e => setEditForm({...editForm, purchase_cost: Number(e.target.value)})}
+                        type="text"
+                        value={editForm.purchase_cost ? editForm.purchase_cost.toLocaleString('id-ID') : ''} 
+                        onChange={e => {
+                          const val = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
+                          setEditForm({...editForm, purchase_cost: val});
+                        }}
                         className="w-full bg-black/30 border border-white/20 rounded px-2 py-1 text-white text-right"
                       />
-                    ) : `Rp ${asset.purchase_cost.toLocaleString('id-ID')}`}
+                    ) : `Rp. ${asset.purchase_cost.toLocaleString('id-ID')}`}
                   </td>
                   <td className="px-4 py-2 text-right">
                     {isEditing ? (
@@ -142,12 +145,15 @@ export default function FixedAssetsGrid() {
                   <td className="px-4 py-2 text-right">
                     {isEditing ? (
                       <input 
-                        type="number"
-                        value={editForm.salvage_value || 0} 
-                        onChange={e => setEditForm({...editForm, salvage_value: Number(e.target.value)})}
+                        type="text"
+                        value={editForm.salvage_value ? editForm.salvage_value.toLocaleString('id-ID') : ''} 
+                        onChange={e => {
+                          const val = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
+                          setEditForm({...editForm, salvage_value: val});
+                        }}
                         className="w-full bg-black/30 border border-white/20 rounded px-2 py-1 text-white text-right"
                       />
-                    ) : `Rp ${asset.salvage_value.toLocaleString('id-ID')}`}
+                    ) : `Rp. ${asset.salvage_value.toLocaleString('id-ID')}`}
                   </td>
                   <td className="px-4 py-2 text-right space-x-2">
                     {isEditing ? (

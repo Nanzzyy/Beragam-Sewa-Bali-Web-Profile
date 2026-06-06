@@ -162,10 +162,10 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
 
                   {/* Debit */}
                   <input
-                    type="number" min="0" step="1"
-                    value={entry.debit || ''}
+                    type="text"
+                    value={entry.debit > 0 ? entry.debit.toLocaleString('id-ID') : ''}
                     onChange={e => {
-                      const val = Number(e.target.value) || 0;
+                      const val = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
                       updateEntry(idx, 'debit', val);
                       if (val > 0) updateEntry(idx, 'credit', 0);
                     }}
@@ -175,10 +175,10 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
 
                   {/* Credit */}
                   <input
-                    type="number" min="0" step="1"
-                    value={entry.credit || ''}
+                    type="text"
+                    value={entry.credit > 0 ? entry.credit.toLocaleString('id-ID') : ''}
                     onChange={e => {
-                      const val = Number(e.target.value) || 0;
+                      const val = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
                       updateEntry(idx, 'credit', val);
                       if (val > 0) updateEntry(idx, 'debit', 0);
                     }}
@@ -203,16 +203,16 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
                 </span>
                 <div className="flex items-center gap-6 font-mono text-sm">
                   <span className={`font-bold ${totalDebit > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
-                    D: Rp {totalDebit.toLocaleString('id-ID')}
+                    D: Rp. {totalDebit.toLocaleString('id-ID')}
                   </span>
                   <span className={`font-bold ${totalCredit > 0 ? 'text-blue-400' : 'text-slate-500'}`}>
-                    C: Rp {totalCredit.toLocaleString('id-ID')}
+                    C: Rp. {totalCredit.toLocaleString('id-ID')}
                   </span>
                 </div>
               </div>
               {!isBalanced && (totalDebit > 0 || totalCredit > 0) && (
                 <p className="text-[10px] text-rose-400 mt-1">
-                  Selisih: Rp {Math.abs(totalDebit - totalCredit).toLocaleString('id-ID')}
+                  Selisih: Rp. {Math.abs(totalDebit - totalCredit).toLocaleString('id-ID')}
                 </p>
               )}
             </div>
