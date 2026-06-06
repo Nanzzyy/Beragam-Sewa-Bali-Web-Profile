@@ -6,8 +6,11 @@ import { supabase } from '../lib/supabase';
 import { fetchAccounts, fetchTrialBalance, fetchTransactionsWithEntries, createTransaction, deleteTransaction } from '../lib/accounting';
 import ExcelExportButton from '../components/ExcelExportButton';
 import TransactionModal from '../components/TransactionModal';
+import Worksheet from '../components/Worksheet';
+import ChartOfAccountsGrid from '../components/ChartOfAccountsGrid';
+import FixedAssetsGrid from '../components/FixedAssetsGrid';
 
-type Tab = 'dashboard' | 'neraca' | 'ledger';
+type Tab = 'dashboard' | 'ledger' | 'neraca' | 'adjusting' | 'worksheet' | 'accounts' | 'assets';
 
 type TxWithEntries = Transaction & { journal_entries: JournalEntryWithAccount[] };
 
@@ -18,6 +21,7 @@ export default function CashflowDashboard() {
   const [transactions, setTransactions] = useState<TxWithEntries[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showAdjModal, setShowAdjModal] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
@@ -138,8 +142,12 @@ export default function CashflowDashboard() {
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: 'dashboard', label: 'Ringkasan', icon: '📊' },
-    { key: 'neraca', label: 'Neraca Saldo', icon: '📋' },
     { key: 'ledger', label: 'Jurnal Umum', icon: '📒' },
+    { key: 'neraca', label: 'Neraca Saldo', icon: '📋' },
+    { key: 'adjusting', label: 'Penyesuaian', icon: '⚙️' },
+    { key: 'worksheet', label: 'Neraca Lajur', icon: '📄' },
+    { key: 'accounts', label: 'Daftar Akun', icon: '🗂️' },
+    { key: 'assets', label: 'Aktiva Tetap', icon: '🏢' },
   ];
 
   const categoryColors: Record<string, string> = {
@@ -173,11 +181,11 @@ export default function CashflowDashboard() {
       </header>
 
       {/* Tab Navigation */}
-      <nav className="max-w-6xl mx-auto px-4 mt-4">
-        <div className="flex gap-1 bg-slate-900/60 border border-slate-800/60 rounded-xl p-1">
+      <nav className="max-w-6xl mx-auto px-4 mt-4 overflow-x-auto hide-scrollbar">
+        <div className="flex gap-1 bg-slate-900/60 border border-slate-800/60 rounded-xl p-1 min-w-max">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${tab === t.key ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-slate-200'}`}>
+              className={`px-4 py-2.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${tab === t.key ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-slate-200'}`}>
               <span className="mr-1.5">{t.icon}</span>{t.label}
             </button>
           ))}
@@ -261,6 +269,30 @@ export default function CashflowDashboard() {
           </div>
         )}
 
+        {/* ========= WORKSHEET TAB ========= */}
+        {tab === 'worksheet' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Neraca Lajur (Worksheet)</h2>
+            </div>
+            <Worksheet />
+          </div>
+        )}
+
+        {/* ========= ACCOUNTS TAB ========= */}
+        {tab === 'accounts' && (
+          <div className="space-y-4 animate-fade-in">
+            <ChartOfAccountsGrid />
+          </div>
+        )}
+
+        {/* ========= ASSETS TAB ========= */}
+        {tab === 'assets' && (
+          <div className="space-y-4 animate-fade-in">
+            <FixedAssetsGrid />
+          </div>
+        )}
+
         {/* ========= NERACA SALDO TAB ========= */}
         {tab === 'neraca' && (
           <div className="space-y-4 animate-fade-in">
@@ -327,14 +359,14 @@ export default function CashflowDashboard() {
             </div>
 
             <div className="space-y-3">
-              {transactions.length === 0 ? (
+              {transactions.filter(t => !t.is_adjusting).length === 0 ? (
                 <div className="glass-card rounded-2xl p-12 text-center">
                   <p className="text-slate-500 text-sm">Belum ada transaksi yang tercatat.</p>
                   <button onClick={() => setShowModal(true)} className="mt-4 text-emerald-400 text-sm font-semibold hover:underline">
                     + Buat transaksi pertama
                   </button>
                 </div>
-              ) : transactions.map(tx => (
+              ) : transactions.filter(t => !t.is_adjusting).map(tx => (
                 <div key={tx.id} className="glass-card rounded-2xl p-5 hover:border-slate-700/60 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -373,6 +405,65 @@ export default function CashflowDashboard() {
             </div>
           </div>
         )}
+
+        {/* ========= JURNAL PENYESUAIAN TAB ========= */}
+        {tab === 'adjusting' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Jurnal Penyesuaian (Adjusting Entries)</h2>
+              <button onClick={() => setShowAdjModal(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl text-xs transition-all shadow-lg shadow-orange-600/20">
+                + Tambah Penyesuaian
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {transactions.filter(t => t.is_adjusting).length === 0 ? (
+                <div className="glass-card rounded-2xl p-12 text-center">
+                  <p className="text-slate-500 text-sm">Belum ada jurnal penyesuaian yang tercatat.</p>
+                  <button onClick={() => setShowAdjModal(true)} className="mt-4 text-orange-400 text-sm font-semibold hover:underline">
+                    + Buat jurnal penyesuaian
+                  </button>
+                </div>
+              ) : transactions.filter(t => t.is_adjusting).map(tx => (
+                <div key={tx.id} className="glass-card rounded-2xl p-5 border-orange-500/10 hover:border-orange-500/40 transition-colors">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-xs text-orange-400/80">{new Date(tx.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      <p className="text-sm font-bold text-white mt-0.5">{tx.description}</p>
+                    </div>
+                    <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-600 hover:text-rose-400 p-1.5 transition-colors" title="Hapus transaksi">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-[9px] text-slate-500 uppercase">
+                          <th className="text-left pb-2 pr-2">Akun</th>
+                          <th className="text-right pb-2 px-2 w-28">Debit</th>
+                          <th className="text-right pb-2 pl-2 w-28">Credit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/30">
+                        {tx.journal_entries.map((je, i) => (
+                          <tr key={i}>
+                            <td className={`py-1.5 pr-2 ${je.credit > 0 ? 'pl-6' : ''}`}>
+                              <span className="font-mono text-slate-400 mr-2">{je.account_code}</span>
+                              <span className="text-slate-200">{je.account_name}</span>
+                            </td>
+                            <td className="py-1.5 px-2 text-right font-mono text-orange-400">{je.debit > 0 ? fmtRp(je.debit) : ''}</td>
+                            <td className="py-1.5 pl-2 text-right font-mono text-orange-400">{je.credit > 0 ? fmtRp(je.credit) : ''}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Mobile Logout */}
@@ -383,6 +474,9 @@ export default function CashflowDashboard() {
 
       {/* Transaction Modal */}
       {showModal && <TransactionModal accounts={accounts} onSubmit={handleCreateTx} onClose={() => setShowModal(false)} />}
+      
+      {/* Adjusting Transaction Modal */}
+      {showAdjModal && <TransactionModal accounts={accounts} onSubmit={handleCreateTx} onClose={() => setShowAdjModal(false)} isAdjustingMode />}
     </div>
   );
 }

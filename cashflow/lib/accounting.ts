@@ -18,6 +18,7 @@ import {
   type GeneralLedgerRow,
   type Transaction,
   type JournalEntryWithAccount,
+  type FixedAsset,
 } from './supabase';
 
 // ============================================================
@@ -254,6 +255,7 @@ export async function createTransaction(
       description: input.description.trim(),
       date: input.date,
       receipt_url: input.receipt_url || null,
+      is_adjusting: input.is_adjusting || false,
       created_by: user.id,
     })
     .select('id')
@@ -330,4 +332,46 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
       'TX_DELETE_FAILED'
     );
   }
+}
+
+// ============================================================
+// ACCOUNTS CRUD
+// ============================================================
+
+export async function upsertAccount(account: Account): Promise<void> {
+  const { error } = await supabase.from('accounts').upsert(account);
+  if (error) throw new AccountingError(error.message, 'UPSERT_ACCOUNT_FAILED');
+}
+
+export async function deleteAccount(accountCode: string): Promise<void> {
+  const { error } = await supabase.from('accounts').delete().eq('account_code', accountCode);
+  if (error) throw new AccountingError(error.message, 'DELETE_ACCOUNT_FAILED');
+}
+
+// ============================================================
+// FIXED ASSETS CRUD
+// ============================================================
+
+export async function fetchFixedAssets(): Promise<FixedAsset[]> {
+  const { data, error } = await supabase
+    .from('fixed_assets')
+    .select('*')
+    .eq('is_active', true)
+    .order('purchase_date', { ascending: false });
+
+  if (error) throw new AccountingError(error.message, 'FETCH_ASSETS_FAILED');
+  return data || [];
+}
+
+export async function upsertFixedAsset(asset: Omit<FixedAsset, 'id' | 'is_active'> & { id?: string }): Promise<void> {
+  const { error } = await supabase.from('fixed_assets').upsert({
+    ...asset,
+    is_active: true
+  });
+  if (error) throw new AccountingError(error.message, 'UPSERT_ASSET_FAILED');
+}
+
+export async function deleteFixedAsset(id: string): Promise<void> {
+  const { error } = await supabase.from('fixed_assets').delete().eq('id', id);
+  if (error) throw new AccountingError(error.message, 'DELETE_ASSET_FAILED');
 }

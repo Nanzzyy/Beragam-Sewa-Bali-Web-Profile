@@ -20,11 +20,23 @@ export interface Account {
   is_active: boolean;
 }
 
+export interface FixedAsset {
+  id: string;
+  asset_code: string;
+  asset_name: string;
+  purchase_date: string;
+  purchase_cost: number;
+  useful_life: number;
+  salvage_value: number;
+  is_active: boolean;
+}
+
 export interface Transaction {
   id: string;
   description: string;
   date: string;
   receipt_url: string | null;
+  is_adjusting: boolean;
   created_by: string;
   created_at: string;
 }
@@ -57,6 +69,7 @@ export interface GeneralLedgerRow {
   transaction_id: string;
   transaction_date: string;
   transaction_description: string;
+  is_adjusting: boolean;
   account_code: string;
   account_name: string;
   category: AccountCategory;
@@ -74,6 +87,7 @@ export interface GeneralLedgerRow {
 export interface TransactionInput {
   description: string;
   date: string;
+  is_adjusting?: boolean;
   receipt_url?: string;
   entries: JournalEntryInput[];
 }

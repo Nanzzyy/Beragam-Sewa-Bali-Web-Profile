@@ -6,13 +6,14 @@ import { validateJournalEntries } from '../lib/accounting';
 
 interface Props {
   accounts: Account[];
-  onSubmit: (data: { description: string; date: string; entries: JournalEntryInput[] }) => Promise<void>;
+  onSubmit: (data: { description: string; date: string; is_adjusting?: boolean; entries: JournalEntryInput[] }) => Promise<void>;
   onClose: () => void;
+  isAdjustingMode?: boolean;
 }
 
 const EMPTY_ENTRY: JournalEntryInput = { account_code: '', debit: 0, credit: 0 };
 
-export default function TransactionModal({ accounts, onSubmit, onClose }: Props) {
+export default function TransactionModal({ accounts, onSubmit, onClose, isAdjustingMode = false }: Props) {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [entries, setEntries] = useState<JournalEntryInput[]>([
@@ -65,7 +66,7 @@ export default function TransactionModal({ accounts, onSubmit, onClose }: Props)
 
     setSubmitting(true);
     try {
-      await onSubmit({ description: description.trim(), date, entries: cleanEntries });
+      await onSubmit({ description: description.trim(), date, is_adjusting: isAdjustingMode, entries: cleanEntries });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal menyimpan transaksi.');
@@ -92,7 +93,7 @@ export default function TransactionModal({ accounts, onSubmit, onClose }: Props)
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
           <div>
-            <h3 className="font-bold text-white text-lg">Jurnal Umum Baru</h3>
+            <h3 className="font-bold text-white text-lg">{isAdjustingMode ? 'Jurnal Penyesuaian Baru' : 'Jurnal Umum Baru'}</h3>
             <p className="text-xs text-slate-400 mt-0.5">Double-entry — Debit harus sama dengan Credit</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1">

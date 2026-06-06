@@ -50,12 +50,29 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     description  TEXT NOT NULL,
     date         DATE NOT NULL DEFAULT CURRENT_DATE,
     receipt_url  TEXT,
+    is_adjusting BOOLEAN NOT NULL DEFAULT false,
     created_by   UUID NOT NULL REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at   TIMESTAMPTZ DEFAULT now(),
     updated_at   TIMESTAMPTZ DEFAULT now()
 );
 
 COMMENT ON TABLE public.transactions IS 'Transaction header — groups journal entry lines';
+
+-- Fixed Assets (Aktiva Tetap)
+CREATE TABLE IF NOT EXISTS public.fixed_assets (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    asset_code      TEXT UNIQUE NOT NULL,
+    asset_name      TEXT NOT NULL,
+    purchase_date   DATE NOT NULL,
+    purchase_cost   NUMERIC(15, 2) NOT NULL CHECK (purchase_cost >= 0),
+    useful_life     INT NOT NULL CHECK (useful_life > 0),
+    salvage_value   NUMERIC(15, 2) NOT NULL DEFAULT 0,
+    is_active       BOOLEAN NOT NULL DEFAULT true,
+    created_at      TIMESTAMPTZ DEFAULT now(),
+    updated_at      TIMESTAMPTZ DEFAULT now()
+);
+
+COMMENT ON TABLE public.fixed_assets IS 'Daftar Aktiva Tetap / Fixed Assets';
 
 -- Journal Entries (the double-entry rows)
 CREATE TABLE IF NOT EXISTS public.journal_entries (
@@ -187,6 +204,7 @@ SELECT
     t.id AS transaction_id,
     t.date AS transaction_date,
     t.description AS transaction_description,
+    t.is_adjusting,
     je.account_code,
     a.account_name,
     a.category,
@@ -209,6 +227,7 @@ COMMENT ON VIEW public.v_general_ledger IS 'Buku Besar — detailed ledger showi
 ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fixed_assets ENABLE ROW LEVEL SECURITY;
 
 -- Helper: get current user's role from profiles table
 -- (Reuses existing get_user_role() from main schema if present)
@@ -224,17 +243,44 @@ CREATE POLICY "accounts_select_policy"
 ON public.accounts FOR SELECT TO authenticated
 USING (public.get_user_role() IN ('owner', 'accounting'));
 
--- Write: Owner only (COA management is owner-restricted)
+-- Write: Owner + Accounting
 DROP POLICY IF EXISTS "accounts_insert_policy" ON public.accounts;
 CREATE POLICY "accounts_insert_policy"
 ON public.accounts FOR INSERT TO authenticated
-WITH CHECK (public.get_user_role() = 'owner');
+WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
 
 DROP POLICY IF EXISTS "accounts_update_policy" ON public.accounts;
 CREATE POLICY "accounts_update_policy"
 ON public.accounts FOR UPDATE TO authenticated
-USING (public.get_user_role() = 'owner')
-WITH CHECK (public.get_user_role() = 'owner');
+USING (public.get_user_role() IN ('owner', 'accounting'))
+WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
+
+DROP POLICY IF EXISTS "accounts_delete_policy" ON public.accounts;
+CREATE POLICY "accounts_delete_policy"
+ON public.accounts FOR DELETE TO authenticated
+USING (public.get_user_role() IN ('owner', 'accounting'));
+
+-- === FIXED ASSETS Policies ===
+DROP POLICY IF EXISTS "fixed_assets_select_policy" ON public.fixed_assets;
+CREATE POLICY "fixed_assets_select_policy"
+ON public.fixed_assets FOR SELECT TO authenticated
+USING (public.get_user_role() IN ('owner', 'accounting'));
+
+DROP POLICY IF EXISTS "fixed_assets_insert_policy" ON public.fixed_assets;
+CREATE POLICY "fixed_assets_insert_policy"
+ON public.fixed_assets FOR INSERT TO authenticated
+WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
+
+DROP POLICY IF EXISTS "fixed_assets_update_policy" ON public.fixed_assets;
+CREATE POLICY "fixed_assets_update_policy"
+ON public.fixed_assets FOR UPDATE TO authenticated
+USING (public.get_user_role() IN ('owner', 'accounting'))
+WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
+
+DROP POLICY IF EXISTS "fixed_assets_delete_policy" ON public.fixed_assets;
+CREATE POLICY "fixed_assets_delete_policy"
+ON public.fixed_assets FOR DELETE TO authenticated
+USING (public.get_user_role() IN ('owner', 'accounting'));
 
 -- === TRANSACTIONS Policies ===
 DROP POLICY IF EXISTS "transactions_select_policy" ON public.transactions;
@@ -315,5 +361,6 @@ INSERT INTO public.accounts (account_code, account_name, category, normal_balanc
     ('5-105', 'Beban Sewa Gedung/Gudang',          'Expense',   'Debet'),
     ('5-106', 'Beban Perlengkapan',                'Expense',   'Debet'),
     ('5-107', 'Beban Administrasi & Umum',         'Expense',   'Debet'),
-    ('5-108', 'Beban Penyusutan',                  'Expense',   'Debet')
+    ('5-108', 'Beban Penyusutan',                  'Expense',   'Debet'),
+    ('5-109', 'Beban Marketing and Promotion',     'Expense',   'Debet')
 ON CONFLICT (account_code) DO NOTHING;
