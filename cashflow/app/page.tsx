@@ -10,6 +10,7 @@ import Worksheet from '../components/Worksheet';
 import ChartOfAccountsGrid from '../components/ChartOfAccountsGrid';
 import FixedAssetsGrid from '../components/FixedAssetsGrid';
 import { LayoutDashboard, BookOpen, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 type Tab = 'dashboard' | 'ledger' | 'neraca' | 'adjusting' | 'worksheet' | 'accounts' | 'assets';
 
@@ -30,15 +31,12 @@ export default function CashflowDashboard() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [theme, setTheme] = useState<'light'|'dark'>('light');
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    // Theme setup
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme as 'light'|'dark');
-    if (savedTheme === 'dark') document.documentElement.classList.add('dark');
-    
+    setMounted(true);
     // PWA setup
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -47,11 +45,7 @@ export default function CashflowDashboard() {
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    if (newTheme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+    setTheme(resolvedTheme === 'light' ? 'dark' : 'light');
   };
 
   const handleInstallClick = () => {
@@ -143,9 +137,11 @@ export default function CashflowDashboard() {
               <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">BSB Cashflow</span>
             </div>
             <div className="flex items-center gap-4">
-              <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-              </button>
+              {mounted && (
+                <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  {resolvedTheme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                </button>
+              )}
               <button onClick={() => setShowLogin(true)} className="px-5 py-2.5 text-sm font-semibold bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-lg transition-colors shadow-sm flex items-center gap-2">
                 Masuk <ArrowRight className="w-4 h-4" />
               </button>
@@ -270,9 +266,11 @@ export default function CashflowDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors hidden sm:block">
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </button>
+            {mounted && (
+              <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors hidden sm:block">
+                {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              </button>
+            )}
             <ExcelExportButton trialBalance={trialBalance} />
             <div className="hidden sm:flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-800 pl-4">
               <span>{userEmail}</span>
