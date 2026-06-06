@@ -133,7 +133,7 @@ export default function CashflowDashboard() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col text-slate-800 dark:text-slate-200 font-sans selection:bg-emerald-100 dark:selection:bg-emerald-900/50 selection:text-emerald-900 dark:selection:text-emerald-100 transition-colors duration-300">
           <header className="px-6 py-4 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-300">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center font-bold text-white dark:text-slate-900 shadow-sm">B</div>
+              <img src="/logo-bsb.png" alt="BSB Logo" className="w-8 h-8 rounded-lg shadow-sm" />
               <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">BSB Cashflow</span>
             </div>
             <div className="flex items-center gap-4">
@@ -199,7 +199,7 @@ export default function CashflowDashboard() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
         <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl shadow-slate-200 dark:shadow-slate-900/50 animate-slide-up">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center font-black text-white dark:text-slate-900 text-lg shadow-md shadow-emerald-600/20">B</div>
+            <img src="/logo-bsb.png" alt="BSB Logo" className="w-10 h-10 rounded-xl shadow-md" />
             <div><h1 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Login Portal</h1><p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold tracking-wider uppercase">BSB Cashflow</p></div>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -259,7 +259,7 @@ export default function CashflowDashboard() {
       <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 shadow-sm transition-colors duration-300">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center font-black text-white dark:text-slate-900 text-lg shadow-sm">B</div>
+            <img src="/logo-bsb.png" alt="BSB Logo" className="w-9 h-9 rounded-xl shadow-sm" />
             <div>
               <h1 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">BSB Cashflow</h1>
               <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold tracking-widest uppercase">PT Praven Bali</p>
