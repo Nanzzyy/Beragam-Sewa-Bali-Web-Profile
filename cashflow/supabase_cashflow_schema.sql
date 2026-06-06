@@ -25,6 +25,11 @@ END $$;
 -- 2. TABLES
 -- ============================================================
 
+-- Clean up old incompatible tables from previous cashflow version if they exist
+DROP TABLE IF EXISTS public.transactions CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.journal_entries CASCADE;
+
 -- Chart of Accounts (Bagan Akun / COA)
 CREATE TABLE IF NOT EXISTS public.accounts (
     account_code TEXT PRIMARY KEY,                    -- e.g. '1-102', '4-101'
