@@ -81,20 +81,20 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm";
+  const inputCls = "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white dark:text-slate-900 focus:bg-white dark:bg-slate-900 dark:bg-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900 dark:bg-slate-100/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl p-6 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/50">
           <div>
-            <h3 className="font-bold text-slate-900 text-lg">{isAdjustingMode ? 'Jurnal Penyesuaian Baru' : 'Jurnal Umum Baru'}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Double-entry — Debit harus sama dengan Credit</p>
+            <h3 className="font-bold text-slate-900 dark:text-white dark:text-slate-900 text-lg">{isAdjustingMode ? 'Jurnal Penyesuaian Baru' : 'Jurnal Umum Baru'}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Double-entry — Debit harus sama dengan Credit</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-1.5 rounded-lg transition-colors">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -102,19 +102,19 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
         <form onSubmit={handleSubmit} className="mt-5 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5 tracking-wide">Deskripsi Transaksi</label>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 tracking-wide">Deskripsi Transaksi</label>
               <input type="text" required value={description} onChange={e => setDescription(e.target.value)}
                 placeholder="Contoh: Pembayaran kontrak event wedding" className={inputCls} />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5 tracking-wide">Tanggal</label>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 tracking-wide">Tanggal</label>
               <input type="date" required value={date} onChange={e => setDate(e.target.value)} className={inputCls} />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Baris Jurnal</label>
+              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Baris Jurnal</label>
               <button type="button" onClick={addEntry}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-xs text-emerald-700 hover:bg-emerald-100 rounded-lg font-semibold transition-colors">
                 <Plus className="w-3.5 h-3.5" /> Tambah Baris
@@ -184,9 +184,9 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
               ))}
             </div>
 
-            <div className={`mt-5 p-4 rounded-xl border ${isBalanced ? 'border-emerald-200 bg-emerald-50' : totalDebit > 0 || totalCredit > 0 ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
+            <div className={`mt-5 p-4 rounded-xl border ${isBalanced ? 'border-emerald-200 bg-emerald-50' : totalDebit > 0 || totalCredit > 0 ? 'border-rose-200 bg-rose-50' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'}`}>
               <div className="flex items-center justify-between">
-                <span className={`text-[11px] font-bold uppercase tracking-wider ${isBalanced ? 'text-emerald-700' : totalDebit > 0 || totalCredit > 0 ? 'text-rose-700' : 'text-slate-500'}`}>
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${isBalanced ? 'text-emerald-700' : totalDebit > 0 || totalCredit > 0 ? 'text-rose-700' : 'text-slate-500 dark:text-slate-400'}`}>
                   {isBalanced ? '✓ SEIMBANG' : totalDebit > 0 || totalCredit > 0 ? '✗ TIDAK SEIMBANG' : 'TOTAL'}
                 </span>
                 <div className="flex items-center gap-6 font-mono text-sm">
@@ -215,11 +215,11 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
 
           <div className="pt-2 flex gap-3">
             <button type="button" onClick={onClose}
-              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors">
+              className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-sm transition-colors">
               Batal
             </button>
             <button type="submit" disabled={submitting || !isBalanced}
-              className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20">
+              className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white dark:text-slate-900 font-bold rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20">
               {submitting ? 'Menyimpan...' : 'Simpan Jurnal'}
             </button>
           </div>
