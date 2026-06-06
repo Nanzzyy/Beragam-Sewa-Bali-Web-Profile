@@ -1,501 +1,388 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ExcelExportButton } from '../components/ExcelExportButton';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
-} from 'recharts';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { Account, TrialBalanceRow, Transaction, JournalEntryWithAccount, JournalEntryInput } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
+import { fetchAccounts, fetchTrialBalance, fetchTransactionsWithEntries, createTransaction, deleteTransaction } from '../lib/accounting';
+import ExcelExportButton from '../components/ExcelExportButton';
+import TransactionModal from '../components/TransactionModal';
 
-// Type definitions matching DB Schema
-interface Category {
-  id: string;
-  name: string;
-  type: 'inflow' | 'outflow';
-}
+type Tab = 'dashboard' | 'neraca' | 'ledger';
 
-interface Transaction {
-  id: string;
-  transaction_date: string;
-  type: 'inflow' | 'outflow';
-  category_id: string;
-  category_name: string;
-  amount: number;
-  description: string;
-}
-
-// Initial Mock data for offline/standalone execution
-const INITIAL_CATEGORIES: Category[] = [
-  { id: '1', name: 'Event Client Rental', type: 'inflow' },
-  { id: '2', name: 'Equipment Sale', type: 'inflow' },
-  { id: '3', name: 'Operational Services', type: 'inflow' },
-  { id: '4', name: 'Staff Salary', type: 'outflow' },
-  { id: '5', name: 'Equipment Maintenance', type: 'outflow' },
-  { id: '6', name: 'Office Rent & Utilities', type: 'outflow' }
-];
-
-const INITIAL_TRANSACTIONS: Transaction[] = [
-  { id: 'tx-1', transaction_date: '2026-05-10T10:00:00Z', type: 'inflow', category_id: '1', category_name: 'Event Client Rental', amount: 15500000, description: 'DP Sewa Sound & Lighting Wedding Uluwatu' },
-  { id: 'tx-2', transaction_date: '2026-05-12T14:30:00Z', type: 'outflow', category_id: '4', category_name: 'Staff Salary', amount: 4800000, description: 'Gaji Crew Operational Event Wedding' },
-  { id: 'tx-3', transaction_date: '2026-05-15T09:15:00Z', type: 'inflow', category_id: '1', category_name: 'Event Client Rental', amount: 8000000, description: 'Sewa Tenda & Kursi Event Gathering Sanur' },
-  { id: 'tx-4', transaction_date: '2026-05-18T16:00:00Z', type: 'outflow', category_id: '5', category_name: 'Equipment Maintenance', amount: 2400000, description: 'Reparasi Genset 10KVA & Beli Kabel Power' },
-  { id: 'tx-5', transaction_date: '2026-05-22T11:00:00Z', type: 'inflow', category_id: '2', category_name: 'Equipment Sale', amount: 3500000, description: 'Penjualan Speaker Aktif Bekas C-12' },
-  { id: 'tx-6', transaction_date: '2026-05-25T18:45:00Z', type: 'outflow', category_id: '6', category_name: 'Office Rent & Utilities', type: 'outflow', amount: 1800000, description: 'Pembayaran Tagihan Listrik Gudang & Air' }
-];
-
-const MONTHLY_TREND_DATA = [
-  { name: 'Jan', Inflow: 18200000, Outflow: 9500000 },
-  { name: 'Feb', Inflow: 22000000, Outflow: 12000000 },
-  { name: 'Mar', Inflow: 19500000, Outflow: 8800000 },
-  { name: 'Apr', Inflow: 28500000, Outflow: 14500000 },
-  { name: 'May', Inflow: 27000000, Outflow: 9000000 }
-];
-
-const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+type TxWithEntries = Transaction & { journal_entries: JournalEntryWithAccount[] };
 
 export default function CashflowDashboard() {
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
-  
-  // States for Modals/Forms
-  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
-  const [isCatModalOpen, setIsCatModalOpen] = useState(false);
-  
-  // Category Form State
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatType, setNewCatType] = useState<'inflow' | 'outflow'>('inflow');
-  
-  // Transaction Form State
-  const [txType, setTxType] = useState<'inflow' | 'outflow'>('inflow');
-  const [txCategoryId, setTxCategoryId] = useState('');
-  const [txAmount, setTxAmount] = useState('');
-  const [txDesc, setTxDesc] = useState('');
-  const [txDate, setTxDate] = useState('');
+  const [tab, setTab] = useState<Tab>('dashboard');
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [trialBalance, setTrialBalance] = useState<TrialBalanceRow[]>([]);
+  const [transactions, setTransactions] = useState<TxWithEntries[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
 
-  // Auto-fill category selection on form toggle
+  // Check auth
   useEffect(() => {
-    const filtered = categories.filter(c => c.type === txType);
-    if (filtered.length > 0) {
-      setTxCategoryId(filtered[0].id);
-    } else {
-      setTxCategoryId('');
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) { setAuthReady(true); setUserEmail(session.user.email || ''); }
+      else setAuthReady(false);
+      setLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
+      if (session?.user) { setAuthReady(true); setUserEmail(session.user.email || ''); }
+      else { setAuthReady(false); setUserEmail(''); }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadData = useCallback(async () => {
+    if (!authReady) return;
+    setLoading(true);
+    try {
+      const [accs, tb, txs] = await Promise.all([
+        fetchAccounts(),
+        fetchTrialBalance(),
+        fetchTransactionsWithEntries({ limit: 50 }),
+      ]);
+      setAccounts(accs);
+      setTrialBalance(tb);
+      setTransactions(txs);
+    } catch (err) {
+      console.error('Load error:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [txType, categories]);
+  }, [authReady]);
 
-  // Calculations
-  const totalInflow = transactions
-    .filter(t => t.type === 'inflow')
-    .reduce((sum, t) => sum + t.amount, 0);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const totalOutflow = transactions
-    .filter(t => t.type === 'outflow')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const netBalance = totalInflow - totalOutflow;
-
-  // Expense categories percentage breakdown
-  const expenseBreakdown = categories
-    .filter(c => c.type === 'outflow')
-    .map(c => {
-      const sum = transactions
-        .filter(t => t.category_id === c.id)
-        .reduce((s, t) => s + t.amount, 0);
-      return { name: c.name, value: sum };
-    })
-    .filter(item => item.value > 0);
-
-  // Handlers
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCatName.trim()) return;
-    
-    const newCat: Category = {
-      id: `cat-${Date.now()}`,
-      name: newCatName.trim(),
-      type: newCatType
-    };
-    setCategories([...categories, newCat]);
-    setNewCatName('');
-    setIsCatModalOpen(false);
+    setLoginError('');
+    setLoginLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPass });
+    if (error) setLoginError(error.message);
+    setLoginLoading(false);
   };
 
-  const handleAddTransaction = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!txAmount || !txCategoryId) return;
-
-    const selectedCat = categories.find(c => c.id === txCategoryId);
-    
-    const newTx: Transaction = {
-      id: `tx-${Date.now()}`,
-      transaction_date: txDate ? new Date(txDate).toISOString() : new Date().toISOString(),
-      type: txType,
-      category_id: txCategoryId,
-      category_name: selectedCat ? selectedCat.name : 'Lainnya',
-      amount: parseFloat(txAmount),
-      description: txDesc
-    };
-
-    setTransactions([newTx, ...transactions]);
-    setTxAmount('');
-    setTxDesc('');
-    setTxDate('');
-    setIsTxModalOpen(false);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setAuthReady(false);
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    setTransactions(transactions.filter(t => t.id !== id));
+  const handleCreateTx = async (data: { description: string; date: string; entries: JournalEntryInput[] }) => {
+    await createTransaction({ ...data }, accounts);
+    await loadData();
+  };
+
+  const handleDeleteTx = async (id: string) => {
+    if (!confirm('Hapus transaksi ini beserta seluruh jurnal entri?')) return;
+    await deleteTransaction(id);
+    await loadData();
+  };
+
+  // Summary stats
+  const totalAssets = trialBalance.filter(r => r.category === 'Asset').reduce((s, r) => s + r.ending_balance, 0);
+  const totalLiabilities = trialBalance.filter(r => r.category === 'Liability').reduce((s, r) => s + r.ending_balance, 0);
+  const totalRevenue = trialBalance.filter(r => r.category === 'Revenue').reduce((s, r) => s + r.ending_balance, 0);
+  const totalExpense = trialBalance.filter(r => r.category === 'Expense').reduce((s, r) => s + r.ending_balance, 0);
+  const netIncome = totalRevenue - totalExpense;
+  const tbDebit = trialBalance.reduce((s, r) => s + r.total_debit, 0);
+  const tbCredit = trialBalance.reduce((s, r) => s + r.total_credit, 0);
+
+  const fmtRp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
+
+  // Login screen
+  if (!authReady && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#06090F]">
+        <div className="w-full max-w-sm glass-card rounded-2xl p-8 animate-slide-up">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center font-black text-black text-lg shadow-lg shadow-emerald-500/30">B</div>
+            <div><h1 className="text-base font-bold text-white">BSB CASHFLOW</h1><p className="text-[10px] text-emerald-400 font-semibold tracking-wider">DOUBLE-ENTRY LEDGER</p></div>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Email</label>
+              <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" placeholder="admin@company.com" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Password</label>
+              <input type="password" required value={loginPass} onChange={e => setLoginPass(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" placeholder="••••••••" />
+            </div>
+            {loginError && <p className="text-xs text-rose-400 bg-rose-500/10 p-2 rounded-lg">⚠ {loginError}</p>}
+            <button type="submit" disabled={loginLoading}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50">
+              {loginLoading ? 'Masuk...' : 'Masuk ke Sistem'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#06090F]">
+        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <p className="mt-4 text-xs font-semibold text-slate-400 tracking-wider">MEMUAT DATA AKUNTANSI...</p>
+      </div>
+    );
+  }
+
+  const TABS: { key: Tab; label: string; icon: string }[] = [
+    { key: 'dashboard', label: 'Ringkasan', icon: '📊' },
+    { key: 'neraca', label: 'Neraca Saldo', icon: '📋' },
+    { key: 'ledger', label: 'Jurnal Umum', icon: '📒' },
+  ];
+
+  const categoryColors: Record<string, string> = {
+    Asset: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    Liability: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+    Equity: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+    Revenue: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+    Expense: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
   };
 
   return (
-    <div className="min-h-screen bg-[#090D16] text-slate-100 font-sans pb-12 selection:bg-emerald-500 selection:text-black">
-      {/* 1. Header Navigation Bar */}
-      <header className="sticky top-0 z-30 backdrop-blur-md bg-[#0F172A]/85 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between max-w-lg mx-auto md:max-w-none md:px-12">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-black text-lg shadow-md shadow-emerald-500/25">
-            B
+    <div className="min-h-screen bg-[#06090F] text-slate-100 pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#06090F]/85 border-b border-slate-800/60 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center font-black text-black text-lg shadow-md shadow-emerald-500/25">B</div>
+            <div>
+              <h1 className="text-sm font-bold tracking-wide">BSB CASHFLOW</h1>
+              <p className="text-[9px] text-emerald-400 font-semibold tracking-widest">DOUBLE-ENTRY LEDGER · PT PRAVEN BALI</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-wide">BSB CASHFLOW</h1>
-            <p className="text-[10px] text-emerald-400 font-medium">OWNER ERP PLATFORM</p>
+          <div className="flex items-center gap-3">
+            <ExcelExportButton trialBalance={trialBalance} />
+            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
+              <span>{userEmail}</span>
+              <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 font-semibold">Logout</button>
+            </div>
           </div>
         </div>
-        
-        {/* Excel Export Button Integration */}
-        <ExcelExportButton transactions={transactions} />
       </header>
 
-      {/* Main Container (Optimized for Mobile/Max-width) */}
-      <main className="max-w-lg mx-auto px-4 mt-6 space-y-6 md:max-w-5xl md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
-        
-        {/* LEFT COLUMN: Overview Cards & Quick Actions */}
-        <div className="space-y-6">
-          
-          {/* 2. Overview Card */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
-            <p className="text-xs text-slate-400 font-semibold tracking-wider uppercase">Saldo Bersih (Net Balance)</p>
-            <h2 className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">
-              Rp {netBalance.toLocaleString('id-ID')}
-            </h2>
-            
-            <div className="grid grid-cols-2 gap-4 mt-6 pt-5 border-t border-slate-800/80">
-              <div>
-                <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Total Pemasukan</p>
-                <p className="text-base font-bold text-emerald-400 mt-1">
-                  Rp {totalInflow.toLocaleString('id-ID')}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Total Pengeluaran</p>
-                <p className="text-base font-bold text-rose-500 mt-1">
-                  Rp {totalOutflow.toLocaleString('id-ID')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Quick Action Buttons */}
-          <div className="grid grid-cols-2 gap-3.5">
-            <button
-              onClick={() => { setTxType('inflow'); setIsTxModalOpen(true); }}
-              className="flex items-center justify-center gap-2 py-3.5 bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition-all font-semibold text-xs tracking-wider uppercase text-emerald-400"
-            >
-              <span className="text-sm">+</span> Pemasukan
+      {/* Tab Navigation */}
+      <nav className="max-w-6xl mx-auto px-4 mt-4">
+        <div className="flex gap-1 bg-slate-900/60 border border-slate-800/60 rounded-xl p-1">
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${tab === t.key ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-slate-200'}`}>
+              <span className="mr-1.5">{t.icon}</span>{t.label}
             </button>
-            <button
-              onClick={() => { setTxType('outflow'); setIsTxModalOpen(true); }}
-              className="flex items-center justify-center gap-2 py-3.5 bg-slate-900 border border-slate-800 hover:border-rose-500/50 rounded-xl transition-all font-semibold text-xs tracking-wider uppercase text-rose-400"
-            >
-              <span className="text-sm">-</span> Pengeluaran
-            </button>
-          </div>
-
-          {/* 4. Chart Visualization Component (Monthly Trends) */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <h3 className="text-sm font-bold tracking-wide text-white mb-4">Tren Bulanan (Inflow vs Outflow)</h3>
-            <div className="w-full h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={MONTHLY_TREND_DATA} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorInflow" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.25}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorOutflow" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.25}/>
-                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#64748B" fontSize={10} tickLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1E293B', borderColor: '#334155', color: '#fff' }} />
-                  <Area type="monotone" dataKey="Inflow" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorInflow)" />
-                  <Area type="monotone" dataKey="Outflow" stroke="#EF4444" strokeWidth={2} fillOpacity={1} fill="url(#colorOutflow)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          
+          ))}
         </div>
+      </nav>
 
-        {/* RIGHT COLUMN: Pie Chart Breakdown & Transaction Ledger */}
-        <div className="space-y-6">
-
-          {/* 5. Expense Breakdown Chart */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <h3 className="text-sm font-bold tracking-wide text-white mb-3 flex items-center justify-between">
-              <span>Alokasi Pengeluaran</span>
-              <button onClick={() => setIsCatModalOpen(true)} className="text-xs text-emerald-400 hover:underline">
-                Kelola Kategori
-              </button>
-            </h3>
-            {expenseBreakdown.length === 0 ? (
-              <div className="h-44 flex items-center justify-center text-xs text-slate-500">
-                Belum ada data pengeluaran terdaftar.
-              </div>
-            ) : (
-              <div className="flex items-center justify-between h-44">
-                <div className="w-[50%] h-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={expenseBreakdown}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={36}
-                        outerRadius={55}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {expenseBreakdown.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="w-[50%] overflow-y-auto max-h-36 pr-1 space-y-1.5">
-                  {expenseBreakdown.map((item, index) => (
-                    <div key={item.name} className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                      <span className="text-[10px] text-slate-400 truncate max-w-[70px]">{item.name}</span>
-                      <span className="text-[10px] font-semibold ml-auto text-slate-200">
-                        {((item.value / totalOutflow) * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 6. Transaction Ledger */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <h3 className="text-sm font-bold tracking-wide text-white mb-4">Daftar Transaksi (Ledger)</h3>
-            <div className="space-y-3.5 max-h-[420px] overflow-y-auto pr-1">
-              {transactions.length === 0 ? (
-                <div className="text-center py-12 text-xs text-slate-500">
-                  Tidak ada transaksi yang terdaftar.
-                </div>
-              ) : (
-                transactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between gap-4 p-3 bg-slate-900/60 border border-slate-800/80 rounded-xl hover:border-slate-700/50 transition-colors">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                          tx.type === 'inflow' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        }`}>
-                          {tx.category_name}
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          {new Date(tx.transaction_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                      <p className="text-xs font-semibold text-slate-200 mt-1.5 truncate">{tx.description || '-'}</p>
-                    </div>
-                    <div className="text-right shrink-0 flex items-center gap-3">
-                      <p className={`text-xs font-bold ${tx.type === 'inflow' ? 'text-emerald-400' : 'text-rose-500'}`}>
-                        {tx.type === 'inflow' ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
-                      </p>
-                      <button
-                        onClick={() => handleDeleteTransaction(tx.id)}
-                        className="text-slate-600 hover:text-rose-500 p-1 transition-colors"
-                        title="Hapus"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-        </div>
-
-      </main>
-
-      {/* --- ADD TRANSACTION MODAL --- */}
-      {isTxModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-              <h3 className="font-bold text-white text-base">Tambah {txType === 'inflow' ? 'Pemasukan' : 'Pengeluaran'}</h3>
-              <button onClick={() => setIsTxModalOpen(false)} className="text-slate-400 hover:text-slate-200">
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleAddTransaction} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jumlah (IDR)</label>
-                <input
-                  type="number"
-                  required
-                  placeholder="Rp 0"
-                  value={txAmount}
-                  onChange={(e) => setTxAmount(e.target.value)}
-                  className="w-full bg-[#1E293B]/70 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Kategori</label>
-                <select
-                  required
-                  value={txCategoryId}
-                  onChange={(e) => setTxCategoryId(e.target.value)}
-                  className="w-full bg-[#1E293B]/70 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-                >
-                  {categories.filter(c => c.type === txType).map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tanggal & Waktu</label>
-                <input
-                  type="datetime-local"
-                  value={txDate}
-                  onChange={(e) => setTxDate(e.target.value)}
-                  className="w-full bg-[#1E293B]/70 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Deskripsi / Catatan</label>
-                <textarea
-                  placeholder="Masukkan keterangan transaksi..."
-                  value={txDesc}
-                  onChange={(e) => setTxDesc(e.target.value)}
-                  className="w-full bg-[#1E293B]/70 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 h-16 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Foto Bukti Transfer/Kuitansi</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700"
-                />
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg text-sm transition-all"
-                >
-                  Simpan Transaksi
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MANAGE CATEGORIES MODAL --- */}
-      {isCatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-              <h3 className="font-bold text-white text-base">Kelola Kategori Keuangan</h3>
-              <button onClick={() => setIsCatModalOpen(false)} className="text-slate-400 hover:text-slate-200">
-                ✕
-              </button>
-            </div>
-            
-            {/* Category List */}
-            <div className="mt-4 max-h-36 overflow-y-auto space-y-2 pr-1">
-              {categories.map((c) => (
-                <div key={c.id} className="flex items-center justify-between px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg">
-                  <span className="text-xs text-slate-200">{c.name}</span>
-                  <span className={`text-[9px] font-bold uppercase ${c.type === 'inflow' ? 'text-emerald-400' : 'text-rose-500'}`}>
-                    {c.type === 'inflow' ? 'Pemasukan' : 'Pengeluaran'}
-                  </span>
+      <main className="max-w-6xl mx-auto px-4 mt-6">
+        {/* ========= DASHBOARD TAB ========= */}
+        {tab === 'dashboard' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Aset', value: totalAssets, color: 'emerald' },
+                { label: 'Total Kewajiban', value: totalLiabilities, color: 'rose' },
+                { label: 'Pendapatan', value: totalRevenue, color: 'blue' },
+                { label: 'Laba Bersih', value: netIncome, color: netIncome >= 0 ? 'emerald' : 'rose' },
+              ].map((card, i) => (
+                <div key={i} className="glass-card rounded-2xl p-5 relative overflow-hidden">
+                  <div className={`absolute top-0 right-0 w-20 h-20 bg-${card.color}-500/10 rounded-full blur-2xl`} />
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{card.label}</p>
+                  <p className={`text-xl font-extrabold mt-2 text-${card.color}-400`}>{fmtRp(card.value)}</p>
                 </div>
               ))}
             </div>
 
-            {/* Create Category Form */}
-            <form onSubmit={handleAddCategory} className="mt-5 pt-4 border-t border-slate-800/80 space-y-4">
-              <p className="text-[11px] font-bold text-white uppercase tracking-wider">Tambah Kategori Baru</p>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nama Kategori</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Belanja Aset, Bonus"
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  className="w-full bg-[#1E293B]/70 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
+            {/* Quick Action */}
+            <button onClick={() => setShowModal(true)}
+              className="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-2xl text-sm transition-all shadow-xl shadow-emerald-600/20 active:scale-[0.99]">
+              + Tambah Transaksi Jurnal Baru
+            </button>
 
+            {/* Balance Check */}
+            <div className={`glass-card rounded-2xl p-5 flex items-center justify-between ${Math.abs(tbDebit - tbCredit) < 0.01 ? 'border-emerald-500/30' : 'border-rose-500/30'}`}>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jenis Kategori</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNewCatType('inflow')}
-                    className={`py-2 text-xs font-semibold rounded-lg border ${
-                      newCatType === 'inflow' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40' : 'bg-slate-900 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    Pemasukan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewCatType('outflow')}
-                    className={`py-2 text-xs font-semibold rounded-lg border ${
-                      newCatType === 'outflow' ? 'bg-rose-500/10 text-rose-400 border-rose-500/40' : 'bg-slate-900 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    Pengeluaran
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance Check</p>
+                <p className={`text-sm font-bold mt-1 ${Math.abs(tbDebit - tbCredit) < 0.01 ? 'balance-ok' : 'balance-error'}`}>
+                  {Math.abs(tbDebit - tbCredit) < 0.01 ? '✓ Neraca Seimbang (Balanced)' : '✗ TIDAK SEIMBANG!'}
+                </p>
+              </div>
+              <div className="text-right text-xs space-y-1">
+                <p className="text-slate-400">Σ Debit: <span className="font-bold text-emerald-400">{fmtRp(tbDebit)}</span></p>
+                <p className="text-slate-400">Σ Credit: <span className="font-bold text-blue-400">{fmtRp(tbCredit)}</span></p>
+              </div>
+            </div>
+
+            {/* Recent Transactions */}
+            <div className="glass-card rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-white mb-4">Transaksi Terbaru</h3>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {transactions.length === 0 ? (
+                  <p className="text-center text-xs text-slate-500 py-8">Belum ada transaksi.</p>
+                ) : transactions.slice(0, 10).map(tx => (
+                  <div key={tx.id} className="p-3 bg-slate-900/50 border border-slate-800/60 rounded-xl hover:border-slate-700/60 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500">{new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                        <p className="text-xs font-semibold text-white mt-1 truncate">{tx.description}</p>
+                        <div className="mt-2 space-y-0.5">
+                          {tx.journal_entries.map((je, i) => (
+                            <div key={i} className="flex items-center justify-between text-[10px]">
+                              <span className="text-slate-400">{je.account_code} · {je.account_name}</span>
+                              <div className="flex gap-4 font-mono">
+                                <span className={je.debit > 0 ? 'text-emerald-400 font-semibold' : 'text-slate-600'}>{je.debit > 0 ? fmtRp(je.debit) : '-'}</span>
+                                <span className={je.credit > 0 ? 'text-blue-400 font-semibold' : 'text-slate-600'}>{je.credit > 0 ? fmtRp(je.credit) : '-'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-600 hover:text-rose-400 p-1 transition-colors shrink-0" title="Hapus">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========= NERACA SALDO TAB ========= */}
+        {tab === 'neraca' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Neraca Saldo (Trial Balance)</h2>
+              <p className="text-[10px] text-slate-400">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            </div>
+
+            {/* Table */}
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-slate-800/60">
+                      <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kode</th>
+                      <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nama Akun</th>
+                      <th className="text-center px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kategori</th>
+                      <th className="text-right px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Debit</th>
+                      <th className="text-right px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Credit</th>
+                      <th className="text-right px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Saldo Akhir</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/40">
+                    {trialBalance.map(row => (
+                      <tr key={row.account_code} className="hover:bg-slate-800/20 transition-colors">
+                        <td className="px-4 py-2.5 font-mono font-bold text-slate-300">{row.account_code}</td>
+                        <td className="px-4 py-2.5 text-slate-200">{row.account_name}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${categoryColors[row.category] || 'text-slate-400'}`}>
+                            {row.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-emerald-400">{row.total_debit > 0 ? fmtRp(row.total_debit) : '-'}</td>
+                        <td className="px-4 py-2.5 text-right font-mono text-blue-400">{row.total_credit > 0 ? fmtRp(row.total_credit) : '-'}</td>
+                        <td className={`px-4 py-2.5 text-right font-mono font-bold ${row.ending_balance >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                          {fmtRp(row.ending_balance)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-slate-800/40 border-t-2 border-emerald-500/30">
+                      <td colSpan={3} className="px-4 py-3 font-bold text-white text-sm">TOTAL</td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400">{fmtRp(tbDebit)}</td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-blue-400">{fmtRp(tbCredit)}</td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-white">{fmtRp(tbDebit - tbCredit)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========= JURNAL UMUM TAB ========= */}
+        {tab === 'ledger' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Jurnal Umum (General Ledger)</h2>
+              <button onClick={() => setShowModal(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/20">
+                + Tambah Jurnal
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {transactions.length === 0 ? (
+                <div className="glass-card rounded-2xl p-12 text-center">
+                  <p className="text-slate-500 text-sm">Belum ada transaksi yang tercatat.</p>
+                  <button onClick={() => setShowModal(true)} className="mt-4 text-emerald-400 text-sm font-semibold hover:underline">
+                    + Buat transaksi pertama
                   </button>
                 </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-xs transition-all"
-              >
-                Buat Kategori
-              </button>
-            </form>
+              ) : transactions.map(tx => (
+                <div key={tx.id} className="glass-card rounded-2xl p-5 hover:border-slate-700/60 transition-colors">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-xs text-slate-500">{new Date(tx.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      <p className="text-sm font-bold text-white mt-0.5">{tx.description}</p>
+                    </div>
+                    <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-600 hover:text-rose-400 p-1.5 transition-colors" title="Hapus transaksi">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-[9px] text-slate-500 uppercase">
+                          <th className="text-left pb-2 pr-2">Akun</th>
+                          <th className="text-right pb-2 px-2 w-28">Debit</th>
+                          <th className="text-right pb-2 pl-2 w-28">Credit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/30">
+                        {tx.journal_entries.map((je, i) => (
+                          <tr key={i}>
+                            <td className={`py-1.5 pr-2 ${je.credit > 0 ? 'pl-6' : ''}`}>
+                              <span className="font-mono text-slate-400 mr-2">{je.account_code}</span>
+                              <span className="text-slate-200">{je.account_name}</span>
+                            </td>
+                            <td className="py-1.5 px-2 text-right font-mono text-emerald-400">{je.debit > 0 ? fmtRp(je.debit) : ''}</td>
+                            <td className="py-1.5 pl-2 text-right font-mono text-blue-400">{je.credit > 0 ? fmtRp(je.credit) : ''}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </main>
+
+      {/* Mobile Logout */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-[#06090F]/95 backdrop-blur-sm border-t border-slate-800/60 px-4 py-3 flex items-center justify-between">
+        <span className="text-[10px] text-slate-500 truncate">{userEmail}</span>
+        <button onClick={handleLogout} className="text-xs text-rose-400 font-semibold">Logout</button>
+      </div>
+
+      {/* Transaction Modal */}
+      {showModal && <TransactionModal accounts={accounts} onSubmit={handleCreateTx} onClose={() => setShowModal(false)} />}
     </div>
   );
 }

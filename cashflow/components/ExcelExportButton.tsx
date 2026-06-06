@@ -1,152 +1,153 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import type { TrialBalanceRow } from '../lib/supabase';
 
-interface Transaction {
-  id: string;
-  transaction_date: string;
-  type: 'inflow' | 'outflow';
-  category_name: string;
-  amount: number;
-  description: string;
+interface Props {
+  trialBalance: TrialBalanceRow[];
 }
 
-interface ExcelExportButtonProps {
-  transactions: Transaction[];
-}
+export default function ExcelExportButton({ trialBalance }: Props) {
+  const [exporting, setExporting] = useState(false);
 
-export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({ transactions }) => {
   const exportToExcel = async () => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Cashflow Ledger', {
-      views: [{ showGridLines: true }]
-    });
+    if (trialBalance.length === 0) return;
+    setExporting(true);
 
-    // 1. Column definitions
-    worksheet.columns = [
-      { header: 'No', key: 'no', width: 8 },
-      { header: 'Tanggal', key: 'date', width: 22 },
-      { header: 'Jenis', key: 'type', width: 14 },
-      { header: 'Kategori', key: 'category', width: 22 },
-      { header: 'Jumlah (IDR)', key: 'amount', width: 20 },
-      { header: 'Deskripsi / Catatan', key: 'description', width: 35 }
-    ];
+    try {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'BSB Cashflow — PT Praven Bali Production';
+      wb.created = new Date();
 
-    // 2. Format Header Row (Dark Blue background, white bold text)
-    const headerRow = worksheet.getRow(1);
-    headerRow.height = 26;
-    headerRow.eachCell((cell) => {
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: '1E3A8A' } // Dark Blue
-      };
-      cell.font = {
-        name: 'Segoe UI',
-        bold: true,
-        color: { argb: 'FFFFFF' },
-        size: 11
-      };
-      cell.alignment = {
-        vertical: 'middle',
-        horizontal: 'center'
-      };
-      cell.border = {
-        top: { style: 'medium', color: { argb: '000000' } },
-        bottom: { style: 'medium', color: { argb: '000000' } },
-        left: { style: 'thin', color: { argb: 'D3D3D3' } },
-        right: { style: 'thin', color: { argb: 'D3D3D3' } }
-      };
-    });
+      const ws = wb.addWorksheet('Neraca Saldo', { views: [{ showGridLines: true }] });
 
-    // 3. Populate rows with formatting
-    transactions.forEach((tx, idx) => {
-      const row = worksheet.addRow({
-        no: idx + 1,
-        date: new Date(tx.transaction_date).toLocaleString('id-ID'),
-        type: tx.type === 'inflow' ? 'Pemasukan (Inflow)' : 'Pengeluaran (Outflow)',
-        category: tx.category_name,
-        amount: Number(tx.amount),
-        description: tx.description || '-'
-      });
+      // Title rows
+      ws.mergeCells('A1:F1');
+      const titleCell = ws.getCell('A1');
+      titleCell.value = 'NERACA SALDO (TRIAL BALANCE)';
+      titleCell.font = { name: 'Segoe UI', bold: true, size: 14, color: { argb: '1E3A8A' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-      row.height = 22;
+      ws.mergeCells('A2:F2');
+      const subtitleCell = ws.getCell('A2');
+      subtitleCell.value = `PT Praven Bali Production — ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+      subtitleCell.font = { name: 'Segoe UI', size: 10, color: { argb: '64748B' } };
+      subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-      // Apply Segoe UI to normal rows
-      row.eachCell((cell, colNumber) => {
-        cell.font = { name: 'Segoe UI', size: 10 };
+      // Empty row
+      ws.getRow(3).height = 8;
+
+      // Column definitions
+      ws.columns = [
+        { key: 'code', width: 14 },
+        { key: 'name', width: 36 },
+        { key: 'category', width: 16 },
+        { key: 'debit', width: 22 },
+        { key: 'credit', width: 22 },
+        { key: 'balance', width: 22 },
+      ];
+
+      // Header row (row 4)
+      const headerRow = ws.getRow(4);
+      headerRow.values = ['Kode Akun', 'Nama Akun', 'Kategori', 'Total Debit', 'Total Credit', 'Saldo Akhir'];
+      headerRow.height = 28;
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E293B' } };
+        cell.font = { name: 'Segoe UI', bold: true, color: { argb: 'FFFFFF' }, size: 10 };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
         cell.border = {
-          top: { style: 'thin', color: { argb: 'E2E8F0' } },
-          bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
-          left: { style: 'thin', color: { argb: 'E2E8F0' } },
-          right: { style: 'thin', color: { argb: 'E2E8F0' } }
+          top: { style: 'medium', color: { argb: '334155' } },
+          bottom: { style: 'medium', color: { argb: '334155' } },
+          left: { style: 'thin', color: { argb: '334155' } },
+          right: { style: 'thin', color: { argb: '334155' } },
         };
-        
-        // Alignment
-        if (colNumber === 1 || colNumber === 3) {
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        } else if (colNumber === 5) {
-          cell.alignment = { horizontal: 'right', vertical: 'middle' };
-          // Number formatting for IDR currency (Rp #,##0)
-          cell.numFormat = 'Rp" "#,##0';
-        } else {
-          cell.alignment = { horizontal: 'left', vertical: 'middle' };
-        }
       });
-    });
 
-    // 4. Summary Row (Total Balance SUM Formulas)
-    const summaryRowIndex = transactions.length + 2;
-    const totalLabelRow = worksheet.getRow(summaryRowIndex);
-    totalLabelRow.getCell(4).value = 'Total Pemasukan:';
-    totalLabelRow.getCell(4).font = { name: 'Segoe UI', bold: true };
-    totalLabelRow.getCell(5).value = {
-      formula: `SUMIF(C2:C${summaryRowIndex - 1}, "Pemasukan (Inflow)", E2:E${summaryRowIndex - 1})`,
-      date1904: false
-    };
-    totalLabelRow.getCell(5).font = { name: 'Segoe UI', bold: true };
-    totalLabelRow.getCell(5).numFormat = 'Rp" "#,##0';
+      // Data rows
+      trialBalance.forEach((row) => {
+        const r = ws.addRow({
+          code: row.account_code,
+          name: row.account_name,
+          category: row.category,
+          debit: row.total_debit,
+          credit: row.total_credit,
+          balance: row.ending_balance,
+        });
+        r.height = 24;
+        r.eachCell((cell, colNum) => {
+          cell.font = { name: 'Segoe UI', size: 10 };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'E2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+            left: { style: 'thin', color: { argb: 'E2E8F0' } },
+            right: { style: 'thin', color: { argb: 'E2E8F0' } },
+          };
+          if (colNum >= 4) {
+            cell.alignment = { horizontal: 'right', vertical: 'middle' };
+            cell.numFmt = '#,##0';
+          } else if (colNum === 1) {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.font = { name: 'Segoe UI Semibold', size: 10, bold: true };
+          } else {
+            cell.alignment = { horizontal: 'left', vertical: 'middle' };
+          }
+        });
+      });
 
-    const outflowLabelRow = worksheet.getRow(summaryRowIndex + 1);
-    outflowLabelRow.getCell(4).value = 'Total Pengeluaran:';
-    outflowLabelRow.getCell(4).font = { name: 'Segoe UI', bold: true };
-    outflowLabelRow.getCell(5).value = {
-      formula: `SUMIF(C2:C${summaryRowIndex - 1}, "Pengeluaran (Outflow)", E2:E${summaryRowIndex - 1})`,
-      date1904: false
-    };
-    outflowLabelRow.getCell(5).font = { name: 'Segoe UI', bold: true };
-    outflowLabelRow.getCell(5).numFormat = 'Rp" "#,##0';
+      // SUM row
+      const sumRowIdx = 4 + trialBalance.length + 1;
+      const sumRow = ws.getRow(sumRowIdx);
+      sumRow.getCell(1).value = '';
+      sumRow.getCell(2).value = '';
+      sumRow.getCell(3).value = 'TOTAL';
+      sumRow.getCell(3).font = { name: 'Segoe UI', bold: true, size: 11 };
+      sumRow.getCell(4).value = { formula: `SUM(D5:D${sumRowIdx - 1})` };
+      sumRow.getCell(5).value = { formula: `SUM(E5:E${sumRowIdx - 1})` };
+      sumRow.getCell(6).value = { formula: `SUM(F5:F${sumRowIdx - 1})` };
 
-    const netLabelRow = worksheet.getRow(summaryRowIndex + 2);
-    netLabelRow.getCell(4).value = 'Saldo Bersih (Net):';
-    netLabelRow.getCell(4).font = { name: 'Segoe UI', bold: true, color: { argb: '1E3A8A' } };
-    netLabelRow.getCell(5).value = {
-      formula: `E${summaryRowIndex} - E${summaryRowIndex + 1}`,
-      date1904: false
-    };
-    netLabelRow.getCell(5).font = { name: 'Segoe UI', bold: true, color: { argb: '1E3A8A' } };
-    netLabelRow.getCell(5).numFormat = 'Rp" "#,##0';
+      for (let c = 3; c <= 6; c++) {
+        const cell = sumRow.getCell(c);
+        cell.font = { name: 'Segoe UI', bold: true, size: 11, color: { argb: '1E3A8A' } };
+        cell.border = {
+          top: { style: 'double', color: { argb: '1E3A8A' } },
+          bottom: { style: 'double', color: { argb: '1E3A8A' } },
+        };
+        if (c >= 4) {
+          cell.numFmt = '#,##0';
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        }
+      }
 
-    // Apply double border to bottom of Net row
-    netLabelRow.getCell(4).border = { bottom: { style: 'double', color: { argb: '1E3A8A' } } };
-    netLabelRow.getCell(5).border = { bottom: { style: 'double', color: { argb: '1E3A8A' } } };
-
-    // 5. Generate Buffer and Save
-    const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `BSB_Cashflow_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+      const buffer = await wb.xlsx.writeBuffer();
+      saveAs(
+        new Blob([buffer]),
+        `BSB_NeracaSaldo_${new Date().toISOString().split('T')[0]}.xlsx`
+      );
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Gagal mengekspor Excel. Silakan coba lagi.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
     <button
+      id="btn-export-excel"
       onClick={exportToExcel}
-      className="flex items_center justify_center gap_2 px_4 py_2.5 bg_emerald_600 hover:bg_emerald_500 active:scale_95 transition_all text_white font_semibold rounded_lg shadow_md text_sm"
+      disabled={exporting || trialBalance.length === 0}
+      className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 text-sm"
     >
-      <svg className="w_4 h_4 fill_current" viewBox="0 0 24 24">
-        <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-      </svg>
-      Ekspor Excel
+      {exporting ? (
+        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+        </svg>
+      )}
+      {exporting ? 'Mengekspor...' : 'Ekspor Excel'}
     </button>
   );
-};
+}
