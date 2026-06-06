@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Account, JournalEntryInput } from '../lib/supabase';
 import { validateJournalEntries } from '../lib/accounting';
+import { X, Plus, Trash2, AlertCircle } from 'lucide-react';
 
 interface Props {
   accounts: Account[];
@@ -23,7 +24,6 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Group accounts by category for the dropdown
   const groupedAccounts = useMemo(() => {
     const groups: Record<string, Account[]> = {};
     accounts.forEach(a => {
@@ -75,78 +75,70 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
     }
   };
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  const inputCls = "w-full bg-slate-900/80 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-colors";
+  const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-[#0F172A] border border-slate-700/50 rounded-2xl w-full max-w-2xl p-6 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto"
+        className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl p-6 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <div>
-            <h3 className="font-bold text-white text-lg">{isAdjustingMode ? 'Jurnal Penyesuaian Baru' : 'Jurnal Umum Baru'}</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Double-entry — Debit harus sama dengan Credit</p>
+            <h3 className="font-bold text-slate-900 text-lg">{isAdjustingMode ? 'Jurnal Penyesuaian Baru' : 'Jurnal Umum Baru'}</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Double-entry — Debit harus sama dengan Credit</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-1.5 rounded-lg transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-          {/* Description & Date */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider">Deskripsi Transaksi</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5 tracking-wide">Deskripsi Transaksi</label>
               <input type="text" required value={description} onChange={e => setDescription(e.target.value)}
                 placeholder="Contoh: Pembayaran kontrak event wedding" className={inputCls} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider">Tanggal</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5 tracking-wide">Tanggal</label>
               <input type="date" required value={date} onChange={e => setDate(e.target.value)} className={inputCls} />
             </div>
           </div>
 
-          {/* Journal Entry Lines */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Baris Jurnal</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Baris Jurnal</label>
               <button type="button" onClick={addEntry}
-                className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                Tambah Baris
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-xs text-emerald-700 hover:bg-emerald-100 rounded-lg font-semibold transition-colors">
+                <Plus className="w-3.5 h-3.5" /> Tambah Baris
               </button>
             </div>
 
-            {/* Table Header */}
             <div className="grid grid-cols-[1fr_2fr_1fr_1fr_auto] gap-2 mb-2 px-1">
-              <span className="text-[9px] font-bold text-slate-500 uppercase">No</span>
-              <span className="text-[9px] font-bold text-slate-500 uppercase">Akun</span>
-              <span className="text-[9px] font-bold text-slate-500 uppercase text-right">Debit (Rp)</span>
-              <span className="text-[9px] font-bold text-slate-500 uppercase text-right">Credit (Rp)</span>
-              <span className="w-7"></span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">No</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Akun</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase text-right">Debit (Rp)</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase text-right">Credit (Rp)</span>
+              <span className="w-8"></span>
             </div>
 
-            {/* Entry Rows */}
             <div className="space-y-2">
               {entries.map((entry, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_2fr_1fr_1fr_auto] gap-2 items-center animate-fade-in">
-                  <span className="text-xs text-slate-500 text-center font-mono">{idx + 1}</span>
+                <div key={idx} className="grid grid-cols-[1fr_2fr_1fr_1fr_auto] gap-2 items-center animate-fade-in group">
+                  <span className="text-xs text-slate-400 text-center font-mono font-medium">{idx + 1}</span>
 
-                  {/* Account Dropdown — strict selection, no raw text */}
                   <select
                     required
                     value={entry.account_code}
                     onChange={e => updateEntry(idx, 'account_code', e.target.value)}
-                    className={`${inputCls} ${!entry.account_code ? 'text-slate-500' : ''}`}
+                    className={`${inputCls} ${!entry.account_code ? 'text-slate-400' : ''}`}
                   >
                     <option value="">— Pilih Akun —</option>
                     {Object.entries(groupedAccounts).map(([cat, accs]) => (
@@ -160,7 +152,6 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
                     ))}
                   </select>
 
-                  {/* Debit */}
                   <input
                     type="text"
                     value={entry.debit > 0 ? entry.debit.toLocaleString('id-ID') : ''}
@@ -170,10 +161,9 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
                       if (val > 0) updateEntry(idx, 'credit', 0);
                     }}
                     placeholder="0"
-                    className={`${inputCls} text-right font-mono ${entry.debit > 0 ? 'border-emerald-500/40 bg-emerald-500/5' : ''}`}
+                    className={`${inputCls} text-right font-mono font-medium ${entry.debit > 0 ? 'bg-emerald-50/50 border-emerald-200' : ''}`}
                   />
 
-                  {/* Credit */}
                   <input
                     type="text"
                     value={entry.credit > 0 ? entry.credit.toLocaleString('id-ID') : ''}
@@ -183,56 +173,53 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
                       if (val > 0) updateEntry(idx, 'debit', 0);
                     }}
                     placeholder="0"
-                    className={`${inputCls} text-right font-mono ${entry.credit > 0 ? 'border-blue-500/40 bg-blue-500/5' : ''}`}
+                    className={`${inputCls} text-right font-mono font-medium ${entry.credit > 0 ? 'bg-blue-50/50 border-blue-200' : ''}`}
                   />
 
-                  {/* Remove */}
                   <button type="button" onClick={() => removeEntry(idx)} disabled={entries.length <= 2}
-                    className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-rose-400 disabled:opacity-20 transition-colors rounded">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-20 transition-colors rounded-lg">
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               ))}
             </div>
 
-            {/* Balance Summary Bar */}
-            <div className={`mt-4 p-3 rounded-xl border ${isBalanced ? 'border-emerald-500/30 bg-emerald-500/5' : totalDebit > 0 || totalCredit > 0 ? 'border-rose-500/30 bg-rose-500/5' : 'border-slate-700/40 bg-slate-800/30'}`}>
+            <div className={`mt-5 p-4 rounded-xl border ${isBalanced ? 'border-emerald-200 bg-emerald-50' : totalDebit > 0 || totalCredit > 0 ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${isBalanced ? 'text-emerald-700' : totalDebit > 0 || totalCredit > 0 ? 'text-rose-700' : 'text-slate-500'}`}>
                   {isBalanced ? '✓ SEIMBANG' : totalDebit > 0 || totalCredit > 0 ? '✗ TIDAK SEIMBANG' : 'TOTAL'}
                 </span>
                 <div className="flex items-center gap-6 font-mono text-sm">
-                  <span className={`font-bold ${totalDebit > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  <span className={`font-bold ${totalDebit > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
                     D: Rp. {totalDebit.toLocaleString('id-ID')}
                   </span>
-                  <span className={`font-bold ${totalCredit > 0 ? 'text-blue-400' : 'text-slate-500'}`}>
+                  <span className={`font-bold ${totalCredit > 0 ? 'text-blue-700' : 'text-slate-400'}`}>
                     C: Rp. {totalCredit.toLocaleString('id-ID')}
                   </span>
                 </div>
               </div>
               {!isBalanced && (totalDebit > 0 || totalCredit > 0) && (
-                <p className="text-[10px] text-rose-400 mt-1">
+                <p className="text-xs font-medium text-rose-600 mt-2 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5" />
                   Selisih: Rp. {Math.abs(totalDebit - totalCredit).toLocaleString('id-ID')}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Error */}
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 animate-fade-in">
-              ⚠ {error}
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2 animate-fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0" /> {error}
             </div>
           )}
 
-          {/* Submit */}
           <div className="pt-2 flex gap-3">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-sm transition-colors">
+              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors">
               Batal
             </button>
             <button type="submit" disabled={submitting || !isBalanced}
-              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-600/20">
+              className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20">
               {submitting ? 'Menyimpan...' : 'Simpan Jurnal'}
             </button>
           </div>

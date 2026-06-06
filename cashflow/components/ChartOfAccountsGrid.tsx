@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { fetchAccounts, upsertAccount, deleteAccount } from '../lib/accounting';
 import type { Account } from '../lib/supabase';
+import { Loader2, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
 
 export default function ChartOfAccountsGrid() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -58,58 +59,69 @@ export default function ChartOfAccountsGrid() {
     setEditForm({ account_code: '', account_name: '', category: 'Asset', normal_balance: 'Debet', is_active: true });
   };
 
-  if (loading) return <div>Memuat Daftar Akun...</div>;
+  if (loading) return (
+    <div className="p-12 flex flex-col items-center justify-center text-slate-400">
+      <Loader2 className="w-8 h-8 animate-spin mb-4" />
+      <p className="text-sm font-medium">Memuat Daftar Akun...</p>
+    </div>
+  );
+
+  const inputCls = "w-full bg-white border border-slate-300 rounded-md px-2 py-1.5 text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-sm text-sm";
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Data Grid: Daftar Akun (COA)</h2>
-        <button onClick={handleAddNew} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors">
-          + Tambah Akun
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">Daftar Akun (Chart of Accounts)</h2>
+        <button onClick={handleAddNew} className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm">
+          <Plus className="w-4 h-4" /> Tambah Akun
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-white/10 text-gray-200">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full text-sm text-left text-slate-700">
+          <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3">Kode Akun</th>
-              <th className="px-4 py-3">Nama Akun</th>
-              <th className="px-4 py-3">Kategori</th>
-              <th className="px-4 py-3">Saldo Normal</th>
-              <th className="px-4 py-3 text-right">Aksi</th>
+              <th className="px-5 py-3">Kode Akun</th>
+              <th className="px-5 py-3">Nama Akun</th>
+              <th className="px-5 py-3">Kategori</th>
+              <th className="px-5 py-3">Saldo Normal</th>
+              <th className="px-5 py-3 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-slate-100">
             {accounts.map((acc) => {
               const isEditing = editingCode === acc.account_code;
               return (
-                <tr key={acc.account_code} className="hover:bg-white/5">
-                  <td className="px-4 py-2">
+                <tr key={acc.account_code} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-5 py-2.5">
                     {isEditing ? (
                       <input 
                         value={editForm.account_code || ''} 
                         onChange={e => setEditForm({...editForm, account_code: e.target.value})}
-                        className="w-full bg-black/30 border border-white/20 rounded px-2 py-1 text-white"
+                        className={inputCls}
                         placeholder="e.g. 1-110"
                       />
-                    ) : acc.account_code}
+                    ) : (
+                      <span className="font-mono font-medium text-slate-600">{acc.account_code}</span>
+                    )}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-5 py-2.5">
                     {isEditing ? (
                       <input 
                         value={editForm.account_name || ''} 
                         onChange={e => setEditForm({...editForm, account_name: e.target.value})}
-                        className="w-full bg-black/30 border border-white/20 rounded px-2 py-1 text-white"
+                        className={inputCls}
                       />
-                    ) : acc.account_name}
+                    ) : (
+                      <span className="font-medium text-slate-900">{acc.account_name}</span>
+                    )}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-5 py-2.5">
                     {isEditing ? (
                       <select 
                         value={editForm.category} 
                         onChange={e => setEditForm({...editForm, category: e.target.value as any})}
-                        className="w-full bg-black/80 border border-white/20 rounded px-2 py-1 text-white"
+                        className={inputCls}
                       >
                         <option value="Asset">Asset</option>
                         <option value="Liability">Liability</option>
@@ -117,31 +129,43 @@ export default function ChartOfAccountsGrid() {
                         <option value="Revenue">Revenue</option>
                         <option value="Expense">Expense</option>
                       </select>
-                    ) : acc.category}
+                    ) : (
+                      <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-semibold">{acc.category}</span>
+                    )}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-5 py-2.5">
                     {isEditing ? (
                       <select 
                         value={editForm.normal_balance} 
                         onChange={e => setEditForm({...editForm, normal_balance: e.target.value as any})}
-                        className="w-full bg-black/80 border border-white/20 rounded px-2 py-1 text-white"
+                        className={inputCls}
                       >
                         <option value="Debet">Debet</option>
                         <option value="Kredit">Kredit</option>
                       </select>
-                    ) : acc.normal_balance}
-                  </td>
-                  <td className="px-4 py-2 text-right space-x-2">
-                    {isEditing ? (
-                      <>
-                        <button onClick={handleSave} className="text-emerald-400 hover:text-emerald-300 font-medium">Simpan</button>
-                        <button onClick={() => { setEditingCode(null); load(); }} className="text-gray-400 hover:text-gray-300 font-medium">Batal</button>
-                      </>
                     ) : (
-                      <>
-                        <button onClick={() => handleEdit(acc)} className="text-blue-400 hover:text-blue-300 font-medium">Edit</button>
-                        <button onClick={() => handleDelete(acc.account_code)} className="text-rose-400 hover:text-rose-300 font-medium">Hapus</button>
-                      </>
+                      <span className="text-slate-500">{acc.normal_balance}</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-2.5 text-right space-x-2">
+                    {isEditing ? (
+                      <div className="flex justify-end gap-2">
+                        <button onClick={handleSave} className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-md transition-colors" title="Simpan">
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => { setEditingCode(null); load(); }} className="p-1.5 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-md transition-colors" title="Batal">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEdit(acc)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Edit">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(acc.account_code)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors" title="Hapus">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

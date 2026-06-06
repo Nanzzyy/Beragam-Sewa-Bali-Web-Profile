@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-primary: #06090F;
-  --color-bg-secondary: #0C1220;
-  --color-bg-card: #111827;
-  --color-bg-card-hover: #1a2332;
-  --color-border-primary: #1e293b;
-  --color-border-accent: #334155;
-  --color-accent-emerald: #10b981;
-  --color-accent-rose: #ef4444;
-  --color-accent-amber: #f59e0b;
-  --color-accent-blue: #3b82f6;
-  --color-accent-violet: #8b5cf6;
+  --color-bg-primary: #f8fafc;
+  --color-bg-secondary: #ffffff;
+  --color-bg-card: #ffffff;
+  --color-bg-card-hover: #f1f5f9;
+  --color-border-primary: #e2e8f0;
+  --color-border-accent: #cbd5e1;
+  --color-accent-emerald: #059669;
+  --color-accent-rose: #dc2626;
+  --color-accent-amber: #d97706;
+  --color-accent-blue: #2563eb;
+  --color-accent-violet: #7c3aed;
   --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -24,6 +24,8 @@ html {
 
 body {
   font-family: var(--font-family-sans);
+  background-color: var(--color-bg-primary);
+  color: #0f172a;
   overscroll-behavior-y: contain;
 }
 
@@ -36,17 +38,17 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94a3b8;
 }
 
 /* Selection */
 ::selection {
   background: #10b98140;
-  color: #fff;
+  color: #0f172a;
 }
 
 /* Input number spinner removal */
@@ -70,16 +72,6 @@ input[type="number"] {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 1; }
-  100% { transform: scale(1.5); opacity: 0; }
-}
-
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
@@ -88,27 +80,20 @@ input[type="number"] {
   animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-shimmer {
-  background: linear-gradient(90deg, transparent 0%, #ffffff08 50%, transparent 100%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-/* Glass morphism card */
+/* Minimalist card */
 .glass-card {
-  background: linear-gradient(135deg, #111827cc 0%, #0c1220ee 100%);
-  border: 1px solid #1e293b;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border-radius: 1rem;
 }
 
 /* Balance indicator */
 .balance-ok {
-  color: #10b981;
-  text-shadow: 0 0 12px #10b98140;
+  color: #059669;
 }
 
 .balance-error {
-  color: #ef4444;
-  text-shadow: 0 0 12px #ef444440;
+  color: #dc2626;
 }
+

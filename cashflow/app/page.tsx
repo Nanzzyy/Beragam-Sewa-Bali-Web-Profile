@@ -9,6 +9,7 @@ import TransactionModal from '../components/TransactionModal';
 import Worksheet from '../components/Worksheet';
 import ChartOfAccountsGrid from '../components/ChartOfAccountsGrid';
 import FixedAssetsGrid from '../components/FixedAssetsGrid';
+import { LayoutDashboard, BookOpen, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus } from 'lucide-react';
 
 type Tab = 'dashboard' | 'ledger' | 'neraca' | 'adjusting' | 'worksheet' | 'accounts' | 'assets';
 
@@ -28,6 +29,7 @@ export default function CashflowDashboard() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [showLogin, setShowLogin] = useState(false); // For toggling landing page to login form
 
   // Check auth
   useEffect(() => {
@@ -76,9 +78,10 @@ export default function CashflowDashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setAuthReady(false);
+    setShowLogin(false);
   };
 
-  const handleCreateTx = async (data: { description: string; date: string; entries: JournalEntryInput[] }) => {
+  const handleCreateTx = async (data: { description: string; date: string; is_adjusting?: boolean; entries: JournalEntryInput[] }) => {
     await createTransaction({ ...data }, accounts);
     await loadData();
   };
@@ -89,7 +92,6 @@ export default function CashflowDashboard() {
     await loadData();
   };
 
-  // Summary stats
   const totalAssets = trialBalance.filter(r => r.category === 'Asset').reduce((s, r) => s + r.ending_balance, 0);
   const totalLiabilities = trialBalance.filter(r => r.category === 'Liability').reduce((s, r) => s + r.ending_balance, 0);
   const totalRevenue = trialBalance.filter(r => r.category === 'Revenue').reduce((s, r) => s + r.ending_balance, 0);
@@ -100,30 +102,88 @@ export default function CashflowDashboard() {
 
   const fmtRp = (n: number) => `Rp. ${n.toLocaleString('id-ID')}`;
 
-  // Login screen
+  // Landing Page & Login
   if (!authReady && !loading) {
+    if (!showLogin) {
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800 font-sans selection:bg-emerald-100 selection:text-emerald-900">
+          <header className="px-6 py-4 flex items-center justify-between bg-white border-b border-slate-200">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center font-bold text-white shadow-sm">B</div>
+              <span className="font-bold text-lg tracking-tight">BSB Cashflow</span>
+            </div>
+            <button onClick={() => setShowLogin(true)} className="px-5 py-2.5 text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-sm flex items-center gap-2">
+              Masuk <ArrowRight className="w-4 h-4" />
+            </button>
+          </header>
+          
+          <main className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mb-8 border border-emerald-100">
+              <ShieldCheck className="w-4 h-4" /> Sistem Akuntansi Aman & Terintegrasi
+            </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
+              Kelola Keuangan dengan <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Double-Entry</span> Cerdas
+            </h1>
+            <p className="text-lg text-slate-500 mb-10 max-w-2xl leading-relaxed">
+              Platform pembukuan modern khusus PT Praven Bali Production. Pantau arus kas, catat aktiva tetap, dan buat neraca lajur dengan standar akuntansi profesional.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
+              <button onClick={() => setShowLogin(true)} className="px-8 py-4 text-base font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2">
+                Akses Dashboard
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 text-left w-full">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4"><Wallet className="w-5 h-5" /></div>
+                <h3 className="font-bold text-slate-900 mb-2">Buku Besar Akurat</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">Pencatatan mutasi transaksi dengan sistem double-entry yang menjamin neraca selalu seimbang secara otomatis.</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-4"><BarChart3 className="w-5 h-5" /></div>
+                <h3 className="font-bold text-slate-900 mb-2">Laporan Real-Time</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">Dapatkan visualisasi ringkasan laba rugi, aset, dan ekuitas terbaru setiap saat tanpa perlu rekapitulasi manual.</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4"><FileSpreadsheet className="w-5 h-5" /></div>
+                <h3 className="font-bold text-slate-900 mb-2">Ekspor Instan</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">Satu klik untuk mengunduh seluruh data dalam format Excel yang rapi, profesional, dan siap dilampirkan.</p>
+              </div>
+            </div>
+          </main>
+          
+          <footer className="py-6 text-center text-sm text-slate-400 border-t border-slate-200">
+            &copy; {new Date().getFullYear()} PT Praven Bali Production. All rights reserved.
+          </footer>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-[#06090F]">
-        <div className="w-full max-w-sm glass-card rounded-2xl p-8 animate-slide-up">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+        <div className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl p-8 shadow-xl shadow-slate-200/50 animate-slide-up">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center font-black text-black text-lg shadow-lg shadow-emerald-500/30">B</div>
-            <div><h1 className="text-base font-bold text-white">BSB CASHFLOW</h1><p className="text-[10px] text-emerald-400 font-semibold tracking-wider">DOUBLE-ENTRY LEDGER</p></div>
+            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center font-black text-white text-lg shadow-md shadow-emerald-600/20">B</div>
+            <div><h1 className="text-base font-bold text-slate-900 tracking-tight">Login Portal</h1><p className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase">BSB Cashflow</p></div>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Email</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5 tracking-wide">Alamat Email</label>
               <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" placeholder="admin@company.com" />
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" placeholder="admin@pravenbali.com" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Password</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5 tracking-wide">Kata Sandi</label>
               <input type="password" required value={loginPass} onChange={e => setLoginPass(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" placeholder="••••••••" />
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" placeholder="••••••••" />
             </div>
-            {loginError && <p className="text-xs text-rose-400 bg-rose-500/10 p-2 rounded-lg">⚠ {loginError}</p>}
+            {loginError && <p className="text-xs text-rose-600 bg-rose-50 p-3 border border-rose-100 rounded-lg flex items-center gap-2"><ShieldCheck className="w-4 h-4 shrink-0" /> {loginError}</p>}
             <button type="submit" disabled={loginLoading}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50">
-              {loginLoading ? 'Masuk...' : 'Masuk ke Sistem'}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50">
+              {loginLoading ? 'Memverifikasi...' : 'Masuk Sekarang'}
+            </button>
+            <button type="button" onClick={() => setShowLogin(false)} className="w-full text-center text-xs text-slate-500 hover:text-slate-700 font-medium pt-2">
+              Kembali ke Beranda
             </button>
           </form>
         </div>
@@ -133,133 +193,133 @@ export default function CashflowDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#06090F]">
-        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="mt-4 text-xs font-semibold text-slate-400 tracking-wider">MEMUAT DATA AKUNTANSI...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-emerald-600 rounded-full animate-spin" />
+        <p className="mt-4 text-xs font-semibold text-slate-500 tracking-widest uppercase">Sinkronisasi Data...</p>
       </div>
     );
   }
 
-  const TABS: { key: Tab; label: string; icon: string }[] = [
-    { key: 'dashboard', label: 'Ringkasan', icon: '📊' },
-    { key: 'ledger', label: 'Jurnal Umum', icon: '📒' },
-    { key: 'neraca', label: 'Neraca Saldo', icon: '📋' },
-    { key: 'adjusting', label: 'Penyesuaian', icon: '⚙️' },
-    { key: 'worksheet', label: 'Neraca Lajur', icon: '📄' },
-    { key: 'accounts', label: 'Daftar Akun', icon: '🗂️' },
-    { key: 'assets', label: 'Aktiva Tetap', icon: '🏢' },
+  const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    { key: 'dashboard', label: 'Ringkasan', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { key: 'ledger', label: 'Jurnal Umum', icon: <BookOpen className="w-4 h-4" /> },
+    { key: 'neraca', label: 'Neraca Saldo', icon: <ClipboardList className="w-4 h-4" /> },
+    { key: 'adjusting', label: 'Penyesuaian', icon: <Settings className="w-4 h-4" /> },
+    { key: 'worksheet', label: 'Neraca Lajur', icon: <FileSpreadsheet className="w-4 h-4" /> },
+    { key: 'accounts', label: 'Daftar Akun', icon: <FolderOpen className="w-4 h-4" /> },
+    { key: 'assets', label: 'Aktiva Tetap', icon: <Building2 className="w-4 h-4" /> },
   ];
 
   const categoryColors: Record<string, string> = {
-    Asset: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-    Liability: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
-    Equity: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
-    Revenue: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-    Expense: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    Asset: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    Liability: 'text-rose-700 bg-rose-50 border-rose-200',
+    Equity: 'text-violet-700 bg-violet-50 border-violet-200',
+    Revenue: 'text-blue-700 bg-blue-50 border-blue-200',
+    Expense: 'text-amber-700 bg-amber-50 border-amber-200',
   };
 
   return (
-    <div className="min-h-screen bg-[#06090F] text-slate-100 pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#06090F]/85 border-b border-slate-800/60 px-4 py-3">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center font-black text-black text-lg shadow-md shadow-emerald-500/25">B</div>
+            <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center font-black text-white text-lg shadow-sm">B</div>
             <div>
-              <h1 className="text-sm font-bold tracking-wide">BSB CASHFLOW</h1>
-              <p className="text-[9px] text-emerald-400 font-semibold tracking-widest">DOUBLE-ENTRY LEDGER · PT PRAVEN BALI</p>
+              <h1 className="text-sm font-bold tracking-tight text-slate-900">BSB Cashflow</h1>
+              <p className="text-[9px] text-slate-500 font-semibold tracking-widest uppercase">PT Praven Bali</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <ExcelExportButton trialBalance={trialBalance} />
-            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
+            <div className="hidden sm:flex items-center gap-3 text-xs text-slate-600 font-medium border-l border-slate-200 pl-4">
               <span>{userEmail}</span>
-              <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 font-semibold">Logout</button>
+              <button onClick={handleLogout} className="text-slate-400 hover:text-rose-600 transition-colors p-1" title="Logout">
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <nav className="max-w-6xl mx-auto px-4 mt-4 overflow-x-auto hide-scrollbar">
-        <div className="flex gap-1 bg-slate-900/60 border border-slate-800/60 rounded-xl p-1 min-w-max">
+      <nav className="max-w-6xl mx-auto px-4 mt-6 overflow-x-auto hide-scrollbar">
+        <div className="flex gap-1.5 p-1 min-w-max border-b border-slate-200">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`px-4 py-2.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${tab === t.key ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-slate-200'}`}>
-              <span className="mr-1.5">{t.icon}</span>{t.label}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl transition-all whitespace-nowrap border-b-2 -mb-[3px] ${tab === t.key ? 'text-emerald-700 border-emerald-600 bg-emerald-50/50' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100/50'}`}>
+              {t.icon} {t.label}
             </button>
           ))}
         </div>
       </nav>
 
       <main className="max-w-6xl mx-auto px-4 mt-6">
-        {/* ========= DASHBOARD TAB ========= */}
         {tab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: 'Total Aset', value: totalAssets, color: 'emerald' },
-                { label: 'Total Kewajiban', value: totalLiabilities, color: 'rose' },
+                { label: 'Kewajiban', value: totalLiabilities, color: 'rose' },
                 { label: 'Pendapatan', value: totalRevenue, color: 'blue' },
                 { label: 'Laba Bersih', value: netIncome, color: netIncome >= 0 ? 'emerald' : 'rose' },
               ].map((card, i) => (
-                <div key={i} className="glass-card rounded-2xl p-5 relative overflow-hidden">
-                  <div className={`absolute top-0 right-0 w-20 h-20 bg-${card.color}-500/10 rounded-full blur-2xl`} />
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{card.label}</p>
-                  <p className={`text-xl font-extrabold mt-2 text-${card.color}-400`}>{fmtRp(card.value)}</p>
+                <div key={i} className="glass-card p-5 relative overflow-hidden group">
+                  <div className={`absolute top-0 right-0 w-2 h-full bg-${card.color}-500/20 group-hover:bg-${card.color}-500/40 transition-colors`} />
+                  <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{card.label}</p>
+                  <p className={`text-2xl font-extrabold mt-2 tracking-tight text-slate-900`}>{fmtRp(card.value)}</p>
                 </div>
               ))}
             </div>
 
-            {/* Quick Action */}
             <button onClick={() => setShowModal(true)}
-              className="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-2xl text-sm transition-all shadow-xl shadow-emerald-600/20 active:scale-[0.99]">
-              + Tambah Transaksi Jurnal Baru
+              className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-sm transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-2">
+              <Plus className="w-5 h-5" /> Tambah Transaksi Jurnal Baru
             </button>
 
-            {/* Balance Check */}
-            <div className={`glass-card rounded-2xl p-5 flex items-center justify-between ${Math.abs(tbDebit - tbCredit) < 0.01 ? 'border-emerald-500/30' : 'border-rose-500/30'}`}>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance Check</p>
-                <p className={`text-sm font-bold mt-1 ${Math.abs(tbDebit - tbCredit) < 0.01 ? 'balance-ok' : 'balance-error'}`}>
-                  {Math.abs(tbDebit - tbCredit) < 0.01 ? '✓ Neraca Seimbang (Balanced)' : '✗ TIDAK SEIMBANG!'}
-                </p>
+            <div className={`glass-card p-5 flex items-center justify-between border-l-4 ${Math.abs(tbDebit - tbCredit) < 0.01 ? 'border-l-emerald-500' : 'border-l-rose-500'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${Math.abs(tbDebit - tbCredit) < 0.01 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                  {Math.abs(tbDebit - tbCredit) < 0.01 ? <ShieldCheck className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance Check</p>
+                  <p className={`text-sm font-bold mt-0.5 ${Math.abs(tbDebit - tbCredit) < 0.01 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                    {Math.abs(tbDebit - tbCredit) < 0.01 ? 'Neraca Seimbang (Balanced)' : 'TIDAK SEIMBANG!'}
+                  </p>
+                </div>
               </div>
               <div className="text-right text-xs space-y-1">
-                <p className="text-slate-400">Σ Debit: <span className="font-bold text-emerald-400">{fmtRp(tbDebit)}</span></p>
-                <p className="text-slate-400">Σ Credit: <span className="font-bold text-blue-400">{fmtRp(tbCredit)}</span></p>
+                <p className="text-slate-500">Σ Debit: <span className="font-bold text-slate-900">{fmtRp(tbDebit)}</span></p>
+                <p className="text-slate-500">Σ Credit: <span className="font-bold text-slate-900">{fmtRp(tbCredit)}</span></p>
               </div>
             </div>
 
-            {/* Recent Transactions */}
-            <div className="glass-card rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-white mb-4">Transaksi Terbaru</h3>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            <div className="glass-card p-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 className="text-sm font-bold text-slate-900">Transaksi Terbaru</h3>
+              </div>
+              <div className="p-5 space-y-4 max-h-[400px] overflow-y-auto">
                 {transactions.length === 0 ? (
-                  <p className="text-center text-xs text-slate-500 py-8">Belum ada transaksi.</p>
+                  <p className="text-center text-sm text-slate-400 py-6">Belum ada transaksi.</p>
                 ) : transactions.slice(0, 10).map(tx => (
-                  <div key={tx.id} className="p-3 bg-slate-900/50 border border-slate-800/60 rounded-xl hover:border-slate-700/60 transition-colors">
+                  <div key={tx.id} className="p-4 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500">{new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                        </div>
-                        <p className="text-xs font-semibold text-white mt-1 truncate">{tx.description}</p>
-                        <div className="mt-2 space-y-0.5">
+                        <span className="text-[11px] font-medium text-slate-500">{new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <p className="text-sm font-bold text-slate-900 mt-0.5 truncate">{tx.description}</p>
+                        <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-2">
                           {tx.journal_entries.map((je, i) => (
-                            <div key={i} className="flex items-center justify-between text-[10px]">
-                              <span className="text-slate-400">{je.account_code} · {je.account_name}</span>
+                            <div key={i} className="flex items-center justify-between text-xs">
+                              <span className="text-slate-600 font-medium"><span className="text-slate-400 font-mono mr-1">{je.account_code}</span>{je.account_name}</span>
                               <div className="flex gap-4 font-mono">
-                                <span className={je.debit > 0 ? 'text-emerald-400 font-semibold' : 'text-slate-600'}>{je.debit > 0 ? fmtRp(je.debit) : '-'}</span>
-                                <span className={je.credit > 0 ? 'text-blue-400 font-semibold' : 'text-slate-600'}>{je.credit > 0 ? fmtRp(je.credit) : '-'}</span>
+                                <span className={je.debit > 0 ? 'text-slate-900 font-semibold' : 'text-slate-300'}>{je.debit > 0 ? fmtRp(je.debit) : '-'}</span>
+                                <span className={je.credit > 0 ? 'text-slate-500' : 'text-slate-300'}>{je.credit > 0 ? fmtRp(je.credit) : '-'}</span>
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                      <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-600 hover:text-rose-400 p-1 transition-colors shrink-0" title="Hapus">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-md transition-colors shrink-0" title="Hapus">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -269,76 +329,70 @@ export default function CashflowDashboard() {
           </div>
         )}
 
-        {/* ========= WORKSHEET TAB ========= */}
         {tab === 'worksheet' && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Neraca Lajur (Worksheet)</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Neraca Lajur (Worksheet)</h2>
             </div>
             <Worksheet />
           </div>
         )}
 
-        {/* ========= ACCOUNTS TAB ========= */}
         {tab === 'accounts' && (
           <div className="space-y-4 animate-fade-in">
             <ChartOfAccountsGrid />
           </div>
         )}
 
-        {/* ========= ASSETS TAB ========= */}
         {tab === 'assets' && (
           <div className="space-y-4 animate-fade-in">
             <FixedAssetsGrid />
           </div>
         )}
 
-        {/* ========= NERACA SALDO TAB ========= */}
         {tab === 'neraca' && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Neraca Saldo (Trial Balance)</h2>
-              <p className="text-[10px] text-slate-400">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><ClipboardList className="w-5 h-5 text-emerald-600" /> Neraca Saldo (Trial Balance)</h2>
+              <p className="text-[11px] font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
-
-            {/* Table */}
-            <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="glass-card overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-800/60">
-                      <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kode</th>
-                      <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nama Akun</th>
-                      <th className="text-center px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kategori</th>
-                      <th className="text-right px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Debit</th>
-                      <th className="text-right px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Credit</th>
-                      <th className="text-right px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Saldo Akhir</th>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kode</th>
+                      <th className="text-left px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nama Akun</th>
+                      <th className="text-center px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kategori</th>
+                      <th className="text-right px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Debit</th>
+                      <th className="text-right px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Credit</th>
+                      <th className="text-right px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Saldo Akhir</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/40">
+                  <tbody className="divide-y divide-slate-100">
                     {trialBalance.map(row => (
-                      <tr key={row.account_code} className="hover:bg-slate-800/20 transition-colors">
-                        <td className="px-4 py-2.5 font-mono font-bold text-slate-300">{row.account_code}</td>
-                        <td className="px-4 py-2.5 text-slate-200">{row.account_name}</td>
-                        <td className="px-4 py-2.5 text-center">
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${categoryColors[row.category] || 'text-slate-400'}`}>
+                      <tr key={row.account_code} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-5 py-3 font-mono font-bold text-slate-600">{row.account_code}</td>
+                        <td className="px-5 py-3 text-slate-900 font-medium">{row.account_name}</td>
+                        <td className="px-5 py-3 text-center">
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md border ${categoryColors[row.category] || 'text-slate-500'}`}>
                             {row.category}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-right font-mono text-emerald-400">{row.total_debit > 0 ? fmtRp(row.total_debit) : '-'}</td>
-                        <td className="px-4 py-2.5 text-right font-mono text-blue-400">{row.total_credit > 0 ? fmtRp(row.total_credit) : '-'}</td>
-                        <td className={`px-4 py-2.5 text-right font-mono font-bold ${row.ending_balance >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                        <td className="px-5 py-3 text-right font-mono text-slate-900">{row.total_debit > 0 ? fmtRp(row.total_debit) : '-'}</td>
+                        <td className="px-5 py-3 text-right font-mono text-slate-500">{row.total_credit > 0 ? fmtRp(row.total_credit) : '-'}</td>
+                        <td className={`px-5 py-3 text-right font-mono font-bold ${row.ending_balance >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>
                           {fmtRp(row.ending_balance)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-800/40 border-t-2 border-emerald-500/30">
-                      <td colSpan={3} className="px-4 py-3 font-bold text-white text-sm">TOTAL</td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400">{fmtRp(tbDebit)}</td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-blue-400">{fmtRp(tbCredit)}</td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-white">{fmtRp(tbDebit - tbCredit)}</td>
+                    <tr className="bg-slate-50 border-t-2 border-slate-200">
+                      <td colSpan={3} className="px-5 py-4 font-bold text-slate-900 text-sm">TOTAL</td>
+                      <td className="px-5 py-4 text-right font-mono font-bold text-slate-900">{fmtRp(tbDebit)}</td>
+                      <td className="px-5 py-4 text-right font-mono font-bold text-slate-900">{fmtRp(tbCredit)}</td>
+                      <td className="px-5 py-4 text-right font-mono font-bold text-slate-900">{fmtRp(tbDebit - tbCredit)}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -347,54 +401,54 @@ export default function CashflowDashboard() {
           </div>
         )}
 
-        {/* ========= JURNAL UMUM TAB ========= */}
         {tab === 'ledger' && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Jurnal Umum (General Ledger)</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><BookOpen className="w-5 h-5 text-emerald-600" /> Jurnal Umum (General Ledger)</h2>
               <button onClick={() => setShowModal(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/20">
-                + Tambah Jurnal
+                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs transition-all shadow-sm">
+                <Plus className="w-3.5 h-3.5" /> Tambah Jurnal
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {transactions.filter(t => !t.is_adjusting).length === 0 ? (
-                <div className="glass-card rounded-2xl p-12 text-center">
-                  <p className="text-slate-500 text-sm">Belum ada transaksi yang tercatat.</p>
-                  <button onClick={() => setShowModal(true)} className="mt-4 text-emerald-400 text-sm font-semibold hover:underline">
+                <div className="glass-card p-12 text-center flex flex-col items-center">
+                  <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4"><BookOpen className="w-8 h-8" /></div>
+                  <p className="text-slate-600 text-sm font-medium">Belum ada transaksi yang tercatat.</p>
+                  <button onClick={() => setShowModal(true)} className="mt-4 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors">
                     + Buat transaksi pertama
                   </button>
                 </div>
               ) : transactions.filter(t => !t.is_adjusting).map(tx => (
-                <div key={tx.id} className="glass-card rounded-2xl p-5 hover:border-slate-700/60 transition-colors">
-                  <div className="flex items-start justify-between mb-3">
+                <div key={tx.id} className="glass-card p-0 overflow-hidden">
+                  <div className="px-5 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-500">{new Date(tx.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                      <p className="text-sm font-bold text-white mt-0.5">{tx.description}</p>
+                      <p className="text-[11px] font-semibold text-slate-500">{new Date(tx.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      <p className="text-sm font-bold text-slate-900 mt-0.5">{tx.description}</p>
                     </div>
-                    <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-600 hover:text-rose-400 p-1.5 transition-colors" title="Hapus transaksi">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="Hapus transaksi">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+                  <div className="p-5 overflow-x-auto">
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[9px] text-slate-500 uppercase">
+                        <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                           <th className="text-left pb-2 pr-2">Akun</th>
-                          <th className="text-right pb-2 px-2 w-28">Debit</th>
-                          <th className="text-right pb-2 pl-2 w-28">Credit</th>
+                          <th className="text-right pb-2 px-2 w-32">Debit</th>
+                          <th className="text-right pb-2 pl-2 w-32">Credit</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/30">
+                      <tbody className="divide-y divide-slate-50">
                         {tx.journal_entries.map((je, i) => (
-                          <tr key={i}>
-                            <td className={`py-1.5 pr-2 ${je.credit > 0 ? 'pl-6' : ''}`}>
-                              <span className="font-mono text-slate-400 mr-2">{je.account_code}</span>
-                              <span className="text-slate-200">{je.account_name}</span>
+                          <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                            <td className={`py-2 pr-2 ${je.credit > 0 ? 'pl-8' : ''}`}>
+                              <span className="font-mono font-medium text-slate-400 mr-2 text-xs">{je.account_code}</span>
+                              <span className="text-slate-800 font-medium">{je.account_name}</span>
                             </td>
-                            <td className="py-1.5 px-2 text-right font-mono text-emerald-400">{je.debit > 0 ? fmtRp(je.debit) : ''}</td>
-                            <td className="py-1.5 pl-2 text-right font-mono text-blue-400">{je.credit > 0 ? fmtRp(je.credit) : ''}</td>
+                            <td className="py-2 px-2 text-right font-mono font-medium text-slate-900">{je.debit > 0 ? fmtRp(je.debit) : ''}</td>
+                            <td className="py-2 pl-2 text-right font-mono font-medium text-slate-500">{je.credit > 0 ? fmtRp(je.credit) : ''}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -406,54 +460,54 @@ export default function CashflowDashboard() {
           </div>
         )}
 
-        {/* ========= JURNAL PENYESUAIAN TAB ========= */}
         {tab === 'adjusting' && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Jurnal Penyesuaian (Adjusting Entries)</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><Settings className="w-5 h-5 text-amber-600" /> Jurnal Penyesuaian</h2>
               <button onClick={() => setShowAdjModal(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl text-xs transition-all shadow-lg shadow-orange-600/20">
-                + Tambah Penyesuaian
+                className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg text-xs transition-all shadow-sm shadow-amber-600/20">
+                <Plus className="w-3.5 h-3.5" /> Tambah Penyesuaian
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {transactions.filter(t => t.is_adjusting).length === 0 ? (
-                <div className="glass-card rounded-2xl p-12 text-center">
-                  <p className="text-slate-500 text-sm">Belum ada jurnal penyesuaian yang tercatat.</p>
-                  <button onClick={() => setShowAdjModal(true)} className="mt-4 text-orange-400 text-sm font-semibold hover:underline">
+                <div className="glass-card p-12 text-center flex flex-col items-center">
+                  <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-4"><Settings className="w-8 h-8" /></div>
+                  <p className="text-slate-600 text-sm font-medium">Belum ada jurnal penyesuaian yang tercatat.</p>
+                  <button onClick={() => setShowAdjModal(true)} className="mt-4 px-4 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-100 transition-colors">
                     + Buat jurnal penyesuaian
                   </button>
                 </div>
               ) : transactions.filter(t => t.is_adjusting).map(tx => (
-                <div key={tx.id} className="glass-card rounded-2xl p-5 border-orange-500/10 hover:border-orange-500/40 transition-colors">
-                  <div className="flex items-start justify-between mb-3">
+                <div key={tx.id} className="glass-card p-0 overflow-hidden border-t-4 border-t-amber-400">
+                  <div className="px-5 py-3 bg-amber-50/30 border-b border-amber-100/50 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-orange-400/80">{new Date(tx.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                      <p className="text-sm font-bold text-white mt-0.5">{tx.description}</p>
+                      <p className="text-[11px] font-semibold text-amber-600/80">{new Date(tx.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      <p className="text-sm font-bold text-slate-900 mt-0.5">{tx.description}</p>
                     </div>
-                    <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-600 hover:text-rose-400 p-1.5 transition-colors" title="Hapus transaksi">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="Hapus transaksi">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+                  <div className="p-5 overflow-x-auto">
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[9px] text-slate-500 uppercase">
+                        <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                           <th className="text-left pb-2 pr-2">Akun</th>
-                          <th className="text-right pb-2 px-2 w-28">Debit</th>
-                          <th className="text-right pb-2 pl-2 w-28">Credit</th>
+                          <th className="text-right pb-2 px-2 w-32">Debit</th>
+                          <th className="text-right pb-2 pl-2 w-32">Credit</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/30">
+                      <tbody className="divide-y divide-slate-50">
                         {tx.journal_entries.map((je, i) => (
-                          <tr key={i}>
-                            <td className={`py-1.5 pr-2 ${je.credit > 0 ? 'pl-6' : ''}`}>
-                              <span className="font-mono text-slate-400 mr-2">{je.account_code}</span>
-                              <span className="text-slate-200">{je.account_name}</span>
+                          <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                            <td className={`py-2 pr-2 ${je.credit > 0 ? 'pl-8' : ''}`}>
+                              <span className="font-mono font-medium text-slate-400 mr-2 text-xs">{je.account_code}</span>
+                              <span className="text-slate-800 font-medium">{je.account_name}</span>
                             </td>
-                            <td className="py-1.5 px-2 text-right font-mono text-orange-400">{je.debit > 0 ? fmtRp(je.debit) : ''}</td>
-                            <td className="py-1.5 pl-2 text-right font-mono text-orange-400">{je.credit > 0 ? fmtRp(je.credit) : ''}</td>
+                            <td className="py-2 px-2 text-right font-mono font-medium text-slate-900">{je.debit > 0 ? fmtRp(je.debit) : ''}</td>
+                            <td className="py-2 pl-2 text-right font-mono font-medium text-slate-500">{je.credit > 0 ? fmtRp(je.credit) : ''}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -466,16 +520,14 @@ export default function CashflowDashboard() {
         )}
       </main>
 
-      {/* Mobile Logout */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-[#06090F]/95 backdrop-blur-sm border-t border-slate-800/60 px-4 py-3 flex items-center justify-between">
-        <span className="text-[10px] text-slate-500 truncate">{userEmail}</span>
-        <button onClick={handleLogout} className="text-xs text-rose-400 font-semibold">Logout</button>
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 px-4 py-3 flex items-center justify-between z-40">
+        <span className="text-xs font-medium text-slate-600 truncate mr-4">{userEmail}</span>
+        <button onClick={handleLogout} className="text-xs text-rose-600 font-bold bg-rose-50 px-3 py-1.5 rounded-md flex items-center gap-1">
+          <LogOut className="w-3.5 h-3.5" /> Keluar
+        </button>
       </div>
 
-      {/* Transaction Modal */}
       {showModal && <TransactionModal accounts={accounts} onSubmit={handleCreateTx} onClose={() => setShowModal(false)} />}
-      
-      {/* Adjusting Transaction Modal */}
       {showAdjModal && <TransactionModal accounts={accounts} onSubmit={handleCreateTx} onClose={() => setShowAdjModal(false)} isAdjustingMode />}
     </div>
   );

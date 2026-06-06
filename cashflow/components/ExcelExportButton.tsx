@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { TrialBalanceRow } from '../lib/supabase';
+import { Download, Loader2 } from 'lucide-react';
 
 interface Props {
   trialBalance: TrialBalanceRow[];
@@ -51,17 +52,14 @@ export default function ExcelExportButton({ trialBalance }: Props) {
 
       // Header row (row 4)
       const headerRow = ws.getRow(4);
-      headerRow.values = ['Kode Akun', 'Nama Akun', 'Kategori', 'Total Debit', 'Total Credit', 'Saldo Akhir'];
-      headerRow.height = 28;
+      headerRow.values = ['KODE', 'NAMA AKUN', 'KATEGORI', 'DEBIT', 'KREDIT', 'SALDO AKHIR'];
+      headerRow.height = 24;
       headerRow.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E293B' } };
-        cell.font = { name: 'Segoe UI', bold: true, color: { argb: 'FFFFFF' }, size: 10 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8FAFC' } };
+        cell.font = { name: 'Inter', bold: true, color: { argb: '475569' }, size: 9 };
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
         cell.border = {
-          top: { style: 'medium', color: { argb: '334155' } },
-          bottom: { style: 'medium', color: { argb: '334155' } },
-          left: { style: 'thin', color: { argb: '334155' } },
-          right: { style: 'thin', color: { argb: '334155' } },
+          bottom: { style: 'medium', color: { argb: 'E2E8F0' } },
         };
       });
 
@@ -75,21 +73,18 @@ export default function ExcelExportButton({ trialBalance }: Props) {
           credit: row.total_credit,
           balance: row.ending_balance,
         });
-        r.height = 24;
+        r.height = 20;
         r.eachCell((cell, colNum) => {
-          cell.font = { name: 'Segoe UI', size: 10 };
+          cell.font = { name: 'Inter', size: 9, color: { argb: '0F172A' } };
           cell.border = {
-            top: { style: 'thin', color: { argb: 'E2E8F0' } },
-            bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
-            left: { style: 'thin', color: { argb: 'E2E8F0' } },
-            right: { style: 'thin', color: { argb: 'E2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'F1F5F9' } },
           };
           if (colNum >= 4) {
             cell.alignment = { horizontal: 'right', vertical: 'middle' };
             cell.numFmt = '#,##0';
           } else if (colNum === 1) {
             cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            cell.font = { name: 'Segoe UI Semibold', size: 10, bold: true };
+            cell.font = { name: 'Inter', size: 9, bold: true, color: { argb: '64748B' } };
           } else {
             cell.alignment = { horizontal: 'left', vertical: 'middle' };
           }
@@ -109,10 +104,10 @@ export default function ExcelExportButton({ trialBalance }: Props) {
 
       for (let c = 3; c <= 6; c++) {
         const cell = sumRow.getCell(c);
-        cell.font = { name: 'Segoe UI', bold: true, size: 11, color: { argb: '1E3A8A' } };
+        cell.font = { name: 'Inter', bold: true, size: 10, color: { argb: '0F172A' } };
         cell.border = {
-          top: { style: 'double', color: { argb: '1E3A8A' } },
-          bottom: { style: 'double', color: { argb: '1E3A8A' } },
+          top: { style: 'medium', color: { argb: '94A3B8' } },
+          bottom: { style: 'double', color: { argb: '94A3B8' } },
         };
         if (c >= 4) {
           cell.numFmt = '#,##0';
@@ -138,16 +133,14 @@ export default function ExcelExportButton({ trialBalance }: Props) {
       id="btn-export-excel"
       onClick={exportToExcel}
       disabled={exporting || trialBalance.length === 0}
-      className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 text-sm"
+      className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-semibold rounded-lg shadow-sm text-xs"
     >
       {exporting ? (
-        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
       ) : (
-        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-        </svg>
+        <Download className="w-4 h-4 text-emerald-600" />
       )}
-      {exporting ? 'Mengekspor...' : 'Ekspor Excel'}
+      {exporting ? 'Mengekspor...' : 'Unduh Excel'}
     </button>
   );
 }

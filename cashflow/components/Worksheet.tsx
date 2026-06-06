@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { fetchGeneralLedger, fetchAccounts } from '../lib/accounting';
 import type { GeneralLedgerRow, Account } from '../lib/supabase';
+import { Loader2 } from 'lucide-react';
 
 export default function Worksheet() {
   const [ledger, setLedger] = useState<GeneralLedgerRow[]>([]);
@@ -28,13 +29,16 @@ export default function Worksheet() {
     loadData();
   }, []);
 
-  if (loading) return <div className="p-8 text-center text-gray-400">Memuat Neraca Lajur...</div>;
+  if (loading) return (
+    <div className="p-12 flex flex-col items-center justify-center text-slate-400">
+      <Loader2 className="w-8 h-8 animate-spin mb-4" />
+      <p className="text-sm font-medium">Memuat Neraca Lajur...</p>
+    </div>
+  );
 
-  // Aggregate Data
   const rows = accounts.map(acc => {
     const accountEntries = ledger.filter(l => l.account_code === acc.account_code);
     
-    // Normal Transactions (Unadjusted)
     const normalEntries = accountEntries.filter(l => !l.is_adjusting);
     const unadjustedDebit = normalEntries.reduce((sum, e) => sum + e.debit, 0);
     const unadjustedCredit = normalEntries.reduce((sum, e) => sum + e.credit, 0);
@@ -48,12 +52,10 @@ export default function Worksheet() {
     const unAdjD = ['Asset', 'Expense'].includes(acc.category) && unadjustedBal > 0 ? unadjustedBal : (unadjustedBal < 0 && !['Asset', 'Expense'].includes(acc.category) ? Math.abs(unadjustedBal) : 0);
     const unAdjC = ['Liability', 'Equity', 'Revenue'].includes(acc.category) && unadjustedBal > 0 ? unadjustedBal : (unadjustedBal < 0 && ['Asset', 'Expense'].includes(acc.category) ? Math.abs(unadjustedBal) : 0);
 
-    // Adjustments
     const adjEntries = accountEntries.filter(l => l.is_adjusting);
     const adjDebit = adjEntries.reduce((sum, e) => sum + e.debit, 0);
     const adjCredit = adjEntries.reduce((sum, e) => sum + e.credit, 0);
 
-    // Adjusted Balance
     const totalDebit = unadjustedDebit + adjDebit;
     const totalCredit = unadjustedCredit + adjCredit;
     let adjBal = 0;
@@ -65,12 +67,10 @@ export default function Worksheet() {
     const adjBalD = ['Asset', 'Expense'].includes(acc.category) && adjBal > 0 ? adjBal : (adjBal < 0 && !['Asset', 'Expense'].includes(acc.category) ? Math.abs(adjBal) : 0);
     const adjBalC = ['Liability', 'Equity', 'Revenue'].includes(acc.category) && adjBal > 0 ? adjBal : (adjBal < 0 && ['Asset', 'Expense'].includes(acc.category) ? Math.abs(adjBal) : 0);
 
-    // Income Statement (Laba Rugi) - Revenue & Expense
     const isIncomeStatement = ['Revenue', 'Expense'].includes(acc.category);
     const isD = isIncomeStatement ? adjBalD : 0;
     const isC = isIncomeStatement ? adjBalC : 0;
 
-    // Balance Sheet (Neraca) - Asset, Liability, Equity
     const isBalanceSheet = ['Asset', 'Liability', 'Equity'].includes(acc.category);
     const bsD = isBalanceSheet ? adjBalD : 0;
     const bsC = isBalanceSheet ? adjBalC : 0;
@@ -86,7 +86,6 @@ export default function Worksheet() {
     };
   }).filter(r => r.unAdjD || r.unAdjC || r.adjDebit || r.adjCredit || r.adjBalD || r.adjBalC);
 
-  // Totals
   const totals = rows.reduce((acc, row) => ({
     unAdjD: acc.unAdjD + row.unAdjD,
     unAdjC: acc.unAdjC + row.unAdjC,
@@ -103,75 +102,74 @@ export default function Worksheet() {
   });
 
   const netIncome = totals.isC - totals.isD;
-
   const formatCurrency = (val: number) => val === 0 ? '-' : `Rp. ${val.toLocaleString('id-ID')}`;
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
-      <table className="w-full text-sm text-left text-gray-300">
-        <thead className="text-xs uppercase bg-white/10 text-gray-200">
+    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <table className="w-full text-[11px] text-left text-slate-600">
+        <thead className="text-[10px] uppercase bg-slate-50 text-slate-500 font-bold tracking-wider">
           <tr>
-            <th rowSpan={2} className="px-4 py-3 whitespace-nowrap">Kode</th>
-            <th rowSpan={2} className="px-4 py-3 whitespace-nowrap">Nama Akun</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-white/10">Neraca Saldo (Unadjusted)</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-white/10">Penyesuaian</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-white/10">Neraca Saldo Disesuaikan</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-white/10">Laba Rugi</th>
-            <th colSpan={2} className="px-4 py-3 text-center border-l border-white/10">Neraca</th>
+            <th rowSpan={2} className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Kode</th>
+            <th rowSpan={2} className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Nama Akun</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200">Neraca Saldo (Unadjusted)</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200">Penyesuaian</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200">Neraca Saldo Disesuaikan</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200">Laba Rugi</th>
+            <th colSpan={2} className="px-4 py-3 text-center border-l border-b border-slate-200">Neraca</th>
           </tr>
           <tr>
-            <th className="px-4 py-2 text-right border-l border-white/10 border-t">Debit</th>
-            <th className="px-4 py-2 text-right border-t border-white/10">Kredit</th>
-            <th className="px-4 py-2 text-right border-l border-white/10 border-t">Debit</th>
-            <th className="px-4 py-2 text-right border-t border-white/10">Kredit</th>
-            <th className="px-4 py-2 text-right border-l border-white/10 border-t">Debit</th>
-            <th className="px-4 py-2 text-right border-t border-white/10">Kredit</th>
-            <th className="px-4 py-2 text-right border-l border-white/10 border-t">Debit</th>
-            <th className="px-4 py-2 text-right border-t border-white/10">Kredit</th>
-            <th className="px-4 py-2 text-right border-l border-white/10 border-t">Debit</th>
-            <th className="px-4 py-2 text-right border-t border-white/10">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 border-b border-slate-200">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 border-b border-slate-200">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 border-b border-slate-200">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 border-b border-slate-200">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200">Kredit</th>
+            <th className="px-4 py-2 text-right border-l border-slate-200 border-b border-slate-200">Debit</th>
+            <th className="px-4 py-2 text-right border-b border-slate-200">Kredit</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/5">
+        <tbody className="divide-y divide-slate-100">
           {rows.map(row => (
-            <tr key={row.code} className="hover:bg-white/5 transition-colors">
-              <td className="px-4 py-2 whitespace-nowrap">{row.code}</td>
-              <td className="px-4 py-2 whitespace-nowrap">{row.name}</td>
-              <td className="px-4 py-2 text-right font-mono border-l border-white/5">{formatCurrency(row.unAdjD)}</td>
-              <td className="px-4 py-2 text-right font-mono">{formatCurrency(row.unAdjC)}</td>
-              <td className="px-4 py-2 text-right font-mono border-l border-white/5">{formatCurrency(row.adjDebit)}</td>
-              <td className="px-4 py-2 text-right font-mono">{formatCurrency(row.adjCredit)}</td>
-              <td className="px-4 py-2 text-right font-mono border-l border-white/5">{formatCurrency(row.adjBalD)}</td>
-              <td className="px-4 py-2 text-right font-mono">{formatCurrency(row.adjBalC)}</td>
-              <td className="px-4 py-2 text-right font-mono border-l border-white/5 text-rose-400">{formatCurrency(row.isD)}</td>
-              <td className="px-4 py-2 text-right font-mono text-emerald-400">{formatCurrency(row.isC)}</td>
-              <td className="px-4 py-2 text-right font-mono border-l border-white/5 text-blue-400">{formatCurrency(row.bsD)}</td>
-              <td className="px-4 py-2 text-right font-mono text-purple-400">{formatCurrency(row.bsC)}</td>
+            <tr key={row.code} className="hover:bg-slate-50 transition-colors">
+              <td className="px-4 py-2.5 whitespace-nowrap font-mono font-medium text-slate-500">{row.code}</td>
+              <td className="px-4 py-2.5 whitespace-nowrap font-medium text-slate-800">{row.name}</td>
+              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100">{formatCurrency(row.unAdjD)}</td>
+              <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(row.unAdjC)}</td>
+              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 text-amber-600 font-medium">{formatCurrency(row.adjDebit)}</td>
+              <td className="px-4 py-2.5 text-right font-mono text-amber-600 font-medium">{formatCurrency(row.adjCredit)}</td>
+              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100">{formatCurrency(row.adjBalD)}</td>
+              <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(row.adjBalC)}</td>
+              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 text-rose-600">{formatCurrency(row.isD)}</td>
+              <td className="px-4 py-2.5 text-right font-mono text-emerald-600">{formatCurrency(row.isC)}</td>
+              <td className="px-4 py-2.5 text-right font-mono border-l border-slate-100 text-blue-600">{formatCurrency(row.bsD)}</td>
+              <td className="px-4 py-2.5 text-right font-mono text-purple-600">{formatCurrency(row.bsC)}</td>
             </tr>
           ))}
         </tbody>
-        <tfoot className="bg-white/10 font-bold border-t border-white/20">
+        <tfoot className="bg-slate-50 font-bold border-t-2 border-slate-200">
           <tr>
-            <td colSpan={2} className="px-4 py-3 text-right">TOTAL</td>
-            <td className="px-4 py-3 text-right font-mono border-l border-white/10">{formatCurrency(totals.unAdjD)}</td>
-            <td className="px-4 py-3 text-right font-mono">{formatCurrency(totals.unAdjC)}</td>
-            <td className="px-4 py-3 text-right font-mono border-l border-white/10">{formatCurrency(totals.adjDebit)}</td>
-            <td className="px-4 py-3 text-right font-mono">{formatCurrency(totals.adjCredit)}</td>
-            <td className="px-4 py-3 text-right font-mono border-l border-white/10">{formatCurrency(totals.adjBalD)}</td>
-            <td className="px-4 py-3 text-right font-mono">{formatCurrency(totals.adjBalC)}</td>
-            <td className="px-4 py-3 text-right font-mono border-l border-white/10 text-rose-400">{formatCurrency(totals.isD)}</td>
-            <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(totals.isC)}</td>
-            <td className="px-4 py-3 text-right font-mono border-l border-white/10 text-blue-400">{formatCurrency(totals.bsD)}</td>
-            <td className="px-4 py-3 text-right font-mono text-purple-400">{formatCurrency(totals.bsC)}</td>
+            <td colSpan={2} className="px-4 py-3.5 text-right text-slate-800">TOTAL</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200">{formatCurrency(totals.unAdjD)}</td>
+            <td className="px-4 py-3.5 text-right font-mono">{formatCurrency(totals.unAdjC)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 text-amber-700">{formatCurrency(totals.adjDebit)}</td>
+            <td className="px-4 py-3.5 text-right font-mono text-amber-700">{formatCurrency(totals.adjCredit)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200">{formatCurrency(totals.adjBalD)}</td>
+            <td className="px-4 py-3.5 text-right font-mono">{formatCurrency(totals.adjBalC)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 text-rose-700">{formatCurrency(totals.isD)}</td>
+            <td className="px-4 py-3.5 text-right font-mono text-emerald-700">{formatCurrency(totals.isC)}</td>
+            <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 text-blue-700">{formatCurrency(totals.bsD)}</td>
+            <td className="px-4 py-3.5 text-right font-mono text-purple-700">{formatCurrency(totals.bsC)}</td>
           </tr>
           {netIncome !== 0 && (
-            <tr className="bg-emerald-900/30">
-              <td colSpan={2} className="px-4 py-3 text-right">LABA BERSIH (NET INCOME)</td>
-              <td colSpan={6} className="px-4 py-3 border-l border-white/10"></td>
-              <td className="px-4 py-3 text-right font-mono border-l border-white/10">{netIncome > 0 ? formatCurrency(netIncome) : '-'}</td>
-              <td className="px-4 py-3 text-right font-mono">{netIncome < 0 ? formatCurrency(Math.abs(netIncome)) : '-'}</td>
-              <td className="px-4 py-3 text-right font-mono border-l border-white/10">{netIncome < 0 ? formatCurrency(Math.abs(netIncome)) : '-'}</td>
-              <td className="px-4 py-3 text-right font-mono">{netIncome > 0 ? formatCurrency(netIncome) : '-'}</td>
+            <tr className="bg-emerald-50 border-t border-emerald-100">
+              <td colSpan={2} className="px-4 py-3.5 text-right text-emerald-800">LABA BERSIH (NET INCOME)</td>
+              <td colSpan={6} className="px-4 py-3.5 border-l border-slate-200"></td>
+              <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 text-emerald-700">{netIncome > 0 ? formatCurrency(netIncome) : '-'}</td>
+              <td className="px-4 py-3.5 text-right font-mono text-rose-700">{netIncome < 0 ? formatCurrency(Math.abs(netIncome)) : '-'}</td>
+              <td className="px-4 py-3.5 text-right font-mono border-l border-slate-200 text-emerald-700">{netIncome > 0 ? formatCurrency(netIncome) : '-'}</td>
+              <td className="px-4 py-3.5 text-right font-mono text-rose-700">{netIncome < 0 ? formatCurrency(Math.abs(netIncome)) : '-'}</td>
             </tr>
           )}
         </tfoot>
