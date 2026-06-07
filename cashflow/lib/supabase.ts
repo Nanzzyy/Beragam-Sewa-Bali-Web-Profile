@@ -28,6 +28,8 @@ export interface FixedAsset {
   purchase_cost: number;
   useful_life: number;
   salvage_value: number;
+  expense_account_code?: string;
+  accum_account_code?: string;
   is_active: boolean;
 }
 
