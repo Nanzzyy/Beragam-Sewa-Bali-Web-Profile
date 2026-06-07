@@ -59,7 +59,7 @@ export default function FixedAssetsGrid() {
       purchase_cost: 0, useful_life: 5, salvage_value: 0, is_active: true 
     }, ...assets]);
     setEditingId(newId);
-    setEditForm({ asset_code: '', asset_name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_cost: 0, useful_life: 5, salvage_value: 0 });
+    setEditForm({ asset_code: '', asset_name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_cost: 0, useful_life: 5, salvage_value: 0, expense_account_code: '5-108', accum_account_code: '1-201' });
   };
 
   if (loading) return (
@@ -123,9 +123,9 @@ export default function FixedAssetsGrid() {
                 <tr key={asset.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors group">
                   <td className="px-4 py-2.5">
                     {isEditing ? (
-                      <div className="space-y-1">
-                        <input value={editForm.asset_code || ''} onChange={e => setEditForm({...editForm, asset_code: e.target.value})} className={inputCls} placeholder="Kode"/>
-                        <input value={editForm.asset_name || ''} onChange={e => setEditForm({...editForm, asset_name: e.target.value})} className={inputCls} placeholder="Nama"/>
+                      <div className="flex flex-col gap-1.5 w-32 md:w-40">
+                        <input value={editForm.asset_code || ''} onChange={e => setEditForm({...editForm, asset_code: e.target.value})} className={`${inputCls} font-mono`} placeholder="Kode Aset" title="Kode Aset"/>
+                        <input value={editForm.asset_name || ''} onChange={e => setEditForm({...editForm, asset_name: e.target.value})} className={`${inputCls} font-bold`} placeholder="Nama Aset" title="Nama Aset"/>
                       </div>
                     ) : (
                       <div className="flex flex-col">

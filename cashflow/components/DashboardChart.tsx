@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Bar, ComposedChart, Legend } from 'recharts';
+import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Bar, Legend } from 'recharts';
 import type { Transaction, JournalEntryWithAccount } from '../lib/supabase';
 
 type TxWithEntries = Transaction & { journal_entries: JournalEntryWithAccount[] };
@@ -44,17 +44,7 @@ export default function DashboardChart({ transactions }: Props) {
     <div className="glass-card p-5 overflow-hidden w-full h-[350px]">
       <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Grafik Arus Kas (Pendapatan vs Pengeluaran)</h3>
       <ResponsiveContainer width="100%" height="85%">
-        <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-          <defs>
-            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-            </linearGradient>
-            <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
+        <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
           <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
           <YAxis tickFormatter={fmt} tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
@@ -62,11 +52,12 @@ export default function DashboardChart({ transactions }: Props) {
             formatter={(value: any) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)}
             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc', fontSize: '12px', borderRadius: '8px' }}
             itemStyle={{ color: '#f8fafc' }}
+            cursor={{ fill: '#334155', opacity: 0.1 }}
           />
           <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-          <Area type="monotone" dataKey="Revenue" name="Pendapatan" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRev)" />
-          <Bar dataKey="Expense" name="Pengeluaran" barSize={20} fill="#f43f5e" radius={[4, 4, 0, 0]} />
-        </ComposedChart>
+          <Bar dataKey="Revenue" name="Pendapatan" barSize={30} fill="#10b981" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Expense" name="Pengeluaran" barSize={30} fill="#f43f5e" radius={[4, 4, 0, 0]} />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
