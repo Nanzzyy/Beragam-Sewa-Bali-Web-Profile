@@ -9,10 +9,12 @@ import TransactionModal from '../components/TransactionModal';
 import Worksheet from '../components/Worksheet';
 import ChartOfAccountsGrid from '../components/ChartOfAccountsGrid';
 import FixedAssetsGrid from '../components/FixedAssetsGrid';
-import { LayoutDashboard, BookOpen, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud } from 'lucide-react';
+import LedgerByAccount from '../components/LedgerByAccount';
+import DashboardChart from '../components/DashboardChart';
+import { LayoutDashboard, BookOpen, BookText, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
-type Tab = 'dashboard' | 'ledger' | 'neraca' | 'adjusting' | 'worksheet' | 'accounts' | 'assets';
+type Tab = 'dashboard' | 'ledger' | 'ledger-acc' | 'neraca' | 'adjusting' | 'worksheet' | 'accounts' | 'assets';
 
 type TxWithEntries = Transaction & { journal_entries: JournalEntryWithAccount[] };
 
@@ -239,6 +241,7 @@ export default function CashflowDashboard() {
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'dashboard', label: 'Ringkasan', icon: <LayoutDashboard className="w-4 h-4" /> },
     { key: 'ledger', label: 'Jurnal Umum', icon: <BookOpen className="w-4 h-4" /> },
+    { key: 'ledger-acc', label: 'Buku Besar', icon: <BookText className="w-4 h-4" /> },
     { key: 'neraca', label: 'Neraca Saldo', icon: <ClipboardList className="w-4 h-4" /> },
     { key: 'adjusting', label: 'Penyesuaian', icon: <Settings className="w-4 h-4" /> },
     { key: 'worksheet', label: 'Neraca Lajur', icon: <FileSpreadsheet className="w-4 h-4" /> },
@@ -334,6 +337,8 @@ export default function CashflowDashboard() {
               </div>
             </div>
 
+            <DashboardChart transactions={transactions} />
+
             <div className="glass-card p-0 overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-slate-950/50">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Transaksi Terbaru</h3>
@@ -371,12 +376,19 @@ export default function CashflowDashboard() {
         )}
 
         {tab === 'worksheet' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Neraca Lajur (Worksheet)</h2>
+          <div className="animate-fade-in">
+            <div className="glass-card p-0 overflow-hidden">
+              <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Neraca Lajur (Worksheet)</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Laporan 10 Kolom Akuntansi</p>
+              </div>
+              <Worksheet />
             </div>
-            <Worksheet />
           </div>
+        )}
+
+        {tab === 'ledger-acc' && (
+          <LedgerByAccount />
         )}
 
         {tab === 'accounts' && (
