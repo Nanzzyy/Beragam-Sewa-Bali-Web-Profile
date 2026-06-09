@@ -23,7 +23,13 @@ export default function LedgerByAccount() {
           fetchTransactionsWithEntries()
         ]);
         setAccounts(accs);
-        setTransactions(txs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+        setTransactions(txs.sort((a, b) => {
+          const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+          if (dateDiff === 0) {
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          }
+          return dateDiff;
+        }));
         if (accs.length > 0) setSelectedCode(accs[0].account_code);
       } catch (e) {
         console.error(e);

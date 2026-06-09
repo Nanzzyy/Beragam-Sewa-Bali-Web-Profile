@@ -344,9 +344,9 @@ export default function CashflowDashboard() {
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Transaksi Terbaru</h3>
               </div>
               <div className="p-5 space-y-4 max-h-[400px] overflow-y-auto">
-                {transactions.length === 0 ? (
+                {transactions.filter(t => !t.is_adjusting).length === 0 ? (
                   <p className="text-center text-sm text-slate-400 py-6">Belum ada transaksi.</p>
-                ) : transactions.slice(0, 10).map(tx => (
+                ) : transactions.filter(t => !t.is_adjusting).map(tx => (
                   <div key={tx.id} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 rounded-xl hover:border-slate-300 dark:border-slate-700 transition-colors shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
