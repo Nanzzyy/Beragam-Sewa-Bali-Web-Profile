@@ -210,9 +210,29 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                 </div>
               )}
 
-              <div className="text-xs text-slate-500">
-                Pembayaran: <span className="text-slate-300 font-medium">{job.payment_method}</span>
-                {job.cashflow_tx_id && <span className="ml-2 text-emerald-400">✓ Jurnal Tersinkron</span>}
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <div>
+                  Pembayaran: <span className="text-slate-300 font-medium">{job.payment_method}</span>
+                  {job.cashflow_tx_id && <span className="ml-2 text-emerald-400">✓ Jurnal Tersinkron</span>}
+                </div>
+                
+                {/* PDF Generation Buttons */}
+                <div className="flex gap-2">
+                  {(userRole === 'owner' || userRole === 'staff' || userRole === 'accounting') && (
+                    <button onClick={() => {
+                      import('../lib/pdf').then(({ generateSuratJalan }) => generateSuratJalan(job, items));
+                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700">
+                      <FileText className="w-3.5 h-3.5" /> Surat Jalan
+                    </button>
+                  )}
+                  {(userRole === 'owner' || userRole === 'accounting') && (
+                    <button onClick={() => {
+                      import('../lib/pdf').then(({ generateInvoice }) => generateInvoice(job, items));
+                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition border border-emerald-500/20">
+                      <FileText className="w-3.5 h-3.5" /> Invoice
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Quick Status Changes */}

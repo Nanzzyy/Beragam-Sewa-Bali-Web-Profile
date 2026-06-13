@@ -143,5 +143,5 @@ dashboard/
 4.  ✅ **RBAC Client-side**: Sidebar menu & action buttons berdasarkan role.
 5.  ✅ **Photo Proof Upload**: Upload bukti kirim/kembali ke Supabase Storage.
 6.  ✅ **TypeScript Build**: Clean compilation tanpa error.
-7.  🔲 **PDF Engine**: Generator Surat Jalan dan Invoice (tahap selanjutnya).
+7.  ✅ **PDF Engine**: Generator Surat Jalan dan Invoice terintegrasi (menggunakan jsPDF).
 8.  🔲 **Inventory & Supplier Pages**: Halaman kelola barang dan vendor.
