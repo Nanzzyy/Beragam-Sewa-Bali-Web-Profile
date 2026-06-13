@@ -433,7 +433,12 @@ export default function DashboardApp() {
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Daftar inventaris alat dan barang</p>
                   </div>
                   {canModify && (
-                    <button className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm">
+                    <button onClick={() => {
+                      const name = prompt('Nama Barang Baru:');
+                      if (!name) return;
+                      const category = prompt('Kategori Barang:');
+                      supabase.from('items').insert({ name, category_id: category }).then(() => loadData());
+                    }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
                       <Plus className="w-4 h-4" /> Tambah Barang
                     </button>
                   )}
@@ -442,20 +447,39 @@ export default function DashboardApp() {
                   {itemsList.length === 0 ? (
                     <div className="text-center py-12">
                       <Package className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-500">Belum ada barang di database.</p>
-                      <p className="text-slate-400 text-xs mt-1">(Harus ditambahkan via modul cashflow atau isi langsung di db)</p>
+                      <p className="text-slate-500 dark:text-slate-400">Belum ada barang di database.</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {itemsList.map(item => (
-                        <div key={item.id} className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                        <div key={item.id} className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition group">
                           <div className="flex items-center gap-3">
-                            <Package className="w-5 h-5 text-purple-500" />
+                            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
+                              <Package className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            </div>
                             <div>
-                              <div className="font-medium text-slate-900 dark:text-white">{item.name}</div>
+                              <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
                               <div className="text-xs text-slate-500">Kategori: {item.category_id || '-'}</div>
                             </div>
                           </div>
+                          {canModify && (
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => {
+                                const newName = prompt('Ubah Nama Barang:', item.name);
+                                if (!newName) return;
+                                supabase.from('items').update({ name: newName }).eq('id', item.id).then(() => loadData());
+                              }} className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => {
+                                if (confirm('Hapus barang ini?')) {
+                                  supabase.from('items').delete().eq('id', item.id).then(() => loadData());
+                                }
+                              }} className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -472,25 +496,60 @@ export default function DashboardApp() {
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Daftar Karyawan</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola data profil karyawan</p>
                   </div>
+                  {userRole === 'owner' && (
+                    <button onClick={() => {
+                      const email = prompt('Email Karyawan Baru:');
+                      if (!email) return;
+                      const name = prompt('Nama Karyawan:');
+                      const role = prompt('Role (owner/accounting/staff/guest):', 'staff');
+                      // Catatan: Ini hanya menambahkan ke profiles. Auth user mungkin butuh sign up.
+                      supabase.from('profiles').insert({ email, display_name: name, role }).then(() => loadData());
+                    }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
+                      <Plus className="w-4 h-4" /> Tambah Karyawan
+                    </button>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {staffList.length === 0 ? (
                     <div className="col-span-full text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl">
                       <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-500">Belum ada data karyawan.</p>
+                      <p className="text-slate-500 dark:text-slate-400">Belum ada data karyawan.</p>
                     </div>
                   ) : (
                     staffList.map(staff => (
-                      <div key={staff.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 font-bold text-lg">
-                          {(staff.display_name || staff.email || '?')[0].toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-slate-900 dark:text-white">{staff.display_name || 'Tanpa Nama'}</div>
-                          <div className="text-xs text-slate-500">{staff.email}</div>
-                          <div className="mt-1 text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md inline-block text-slate-600 dark:text-slate-300">
-                            Role: {staff.role}
+                      <div key={staff.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative group">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-lg">
+                            {(staff.display_name || staff.email || '?')[0].toUpperCase()}
                           </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-900 dark:text-white truncate">{staff.display_name || 'Tanpa Nama'}</div>
+                            <div className="text-xs text-slate-500 truncate">{staff.email}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-medium px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                            {staff.role}
+                          </div>
+                          {userRole === 'owner' && (
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                              <button onClick={() => {
+                                const newRole = prompt('Ubah Role (owner/accounting/staff/guest):', staff.role);
+                                if (newRole) {
+                                  supabase.from('profiles').update({ role: newRole }).eq('id', staff.id).then(() => loadData());
+                                }
+                              }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md">
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => {
+                                if (confirm('Hapus karyawan ini? (Hanya menghapus profil, bukan auth user)')) {
+                                  supabase.from('profiles').delete().eq('id', staff.id).then(() => loadData());
+                                }
+                              }} className="p-1.5 text-slate-400 hover:text-red-500 bg-slate-50 dark:bg-slate-800 rounded-md">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
