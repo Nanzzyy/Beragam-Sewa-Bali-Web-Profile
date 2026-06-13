@@ -120,6 +120,7 @@ export default function DashboardApp() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setAuthReady(false);
+    setShowLogin(false);
     setJobs([]);
     setStats(null);
   };
@@ -147,13 +148,21 @@ export default function DashboardApp() {
   const canModify = userRole === 'owner' || userRole === 'staff';
   const canViewAll = userRole === 'owner' || userRole === 'accounting';
 
-  // ======== LOGIN SCREEN ========
-  if (!loading && (!authReady || showLogin)) {
+  // ======== LANDING ATAU LOGIN SCREEN ========
+  if (!loading && !authReady) {
+    if (!showLogin) {
+      return <LandingPage onLoginClick={() => setShowLogin(true)} />;
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
-        <div className="glass-card p-8 w-full max-w-md animate-slide-up" style={{ background: '#1e293b', borderColor: '#334155' }}>
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="glass-card p-8 w-full max-w-md animate-slide-up relative z-10" style={{ background: '#1e293b', borderColor: '#334155' }}>
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
               <Briefcase className="w-8 h-8 text-emerald-400" />
             </div>
             <h1 className="text-2xl font-bold text-white">Beragam Sewa Bali</h1>
@@ -170,10 +179,13 @@ export default function DashboardApp() {
               <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} required
                 className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition" placeholder="••••••••" />
             </div>
-            {loginError && <p className="text-red-400 text-xs text-center">{loginError}</p>}
+            {loginError && <p className="text-red-400 text-xs text-center bg-red-500/10 py-2 rounded">{loginError}</p>}
             <button type="submit" disabled={loginLoading}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition disabled:opacity-50">
+              className="w-full py-2.5 mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition disabled:opacity-50 shadow-lg shadow-emerald-900/20">
               {loginLoading ? 'Memproses...' : 'Login ke Dashboard'}
+            </button>
+            <button type="button" onClick={() => setShowLogin(false)} className="w-full mt-4 text-xs text-slate-400 hover:text-white transition">
+              &larr; Kembali ke Beranda
             </button>
           </form>
         </div>
@@ -433,6 +445,86 @@ function StatCard({ icon: Icon, label, value, color }: { icon: React.ElementType
         <div className="text-xs text-slate-400 font-medium">{label}</div>
         <div className="text-xl font-bold text-white mt-0.5">{value}</div>
       </div>
+    </div>
+  );
+}
+
+// ======== LANDING PAGE COMPONENT ========
+function LandingPage({ onLoginClick }: { onLoginClick: () => void }) {
+  return (
+    <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30 overflow-hidden relative">
+      {/* Background Effects */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/20 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
+
+      {/* Navbar */}
+      <nav className="relative z-10 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+            <Briefcase className="w-5 h-5 text-emerald-400" />
+          </div>
+          <span className="font-bold text-xl tracking-tight">Beragam Sewa</span>
+        </div>
+        <button onClick={onLoginClick} className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition">
+          Login Staff
+        </button>
+      </nav>
+
+      {/* Hero Section */}
+      <main className="relative z-10 flex flex-col items-center justify-center text-center px-4 pt-24 pb-32 max-w-5xl mx-auto">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-8 animate-fade-in">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          Sistem ERP Terintegrasi 2026
+        </div>
+        
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 animate-slide-up" style={{ animationDelay: '100ms' }}>
+          Manajemen Rental <br className="hidden md:block" />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500">
+            Lebih Cerdas & Akurat
+          </span>
+        </h1>
+        
+        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mb-12 animate-slide-up" style={{ animationDelay: '200ms' }}>
+          Platform satu atap untuk mengelola jadwal event, persediaan alat, penjadwalan kru, dan akuntansi double-entry secara otomatis.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
+          <button onClick={onLoginClick} className="px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-900/20">
+            Masuk ke Dashboard <ChevronRight className="w-5 h-5" />
+          </button>
+          <a href="https://beragamsewabali.com" target="_blank" rel="noreferrer" className="px-8 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold flex items-center justify-center gap-2 border border-slate-700 transition">
+            Kunjungi Website Utama
+          </a>
+        </div>
+      </main>
+
+      {/* Feature Grid */}
+      <section className="relative z-10 max-w-7xl mx-auto px-6 pb-24 grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '400ms' }}>
+        <div className="glass-card p-8 bg-slate-900/50 border-slate-800 backdrop-blur-sm hover:border-emerald-500/50 transition duration-300">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20">
+            <CalendarDays className="w-6 h-6 text-emerald-400" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-3">Penjadwalan Interaktif</h3>
+          <p className="text-slate-400 text-sm leading-relaxed">Visualisasi timeline event dan setup dengan Gantt chart cerdas. Hindari bentrok jadwal penyewaan secara efektif.</p>
+        </div>
+        <div className="glass-card p-8 bg-slate-900/50 border-slate-800 backdrop-blur-sm hover:border-blue-500/50 transition duration-300">
+          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 border border-blue-500/20">
+            <Activity className="w-6 h-6 text-blue-400" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-3">Akuntansi Otomatis</h3>
+          <p className="text-slate-400 text-sm leading-relaxed">Setiap penyewaan yang selesai akan terintegrasi langsung ke sistem jurnal double-entry Cashflow Beragam Sewa Bali.</p>
+        </div>
+        <div className="glass-card p-8 bg-slate-900/50 border-slate-800 backdrop-blur-sm hover:border-amber-500/50 transition duration-300">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6 border border-amber-500/20">
+            <Users className="w-6 h-6 text-amber-400" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-3">Kolaborasi Kru</h3>
+          <p className="text-slate-400 text-sm leading-relaxed">Bagikan akses secara terstruktur (Owner, Accounting, Staff). Semua tindakan akan terekam dalam audit log.</p>
+        </div>
+      </section>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://dashboard.beragamsewabali.com'),
   title: "BSB Dashboard — Rental & Event Management | PT Praven Bali Production",
   description: "Sistem manajemen penyewaan peralatan event dan integrasi akuntansi double-entry untuk Beragam Sewa Bali.",
   keywords: "dashboard, rental, sewa peralatan, event, bali, manajemen, ERP",
