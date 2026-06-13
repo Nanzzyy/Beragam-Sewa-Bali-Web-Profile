@@ -12,6 +12,16 @@ interface JobFormModalProps {
   onSaved: () => void;
 }
 
+const InputField = ({ label, required, type = 'text', value, onChange, placeholder }: {
+  label: string; required?: boolean; type?: string; value: string; onChange: (v: string) => void; placeholder?: string;
+}) => (
+  <div>
+    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{label}{required && ' *'}</label>
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition text-sm shadow-sm" />
+  </div>
+);
+
 export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProps) {
   const isEdit = !!job;
   const [saving, setSaving] = useState(false);
@@ -28,7 +38,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
   const [status, setStatus] = useState<JobStatus>(job?.status || 'draft');
   const [totalRentalFee, setTotalRentalFee] = useState(job?.total_rental_fee?.toString() || '0');
   const [totalVendorCost, setTotalVendorCost] = useState(job?.total_vendor_cost?.toString() || '0');
-  const [paymentMethod, setPaymentMethod] = useState(job?.payment_method || 'Cash');
+  const [paymentMethod, setPaymentMethod] = useState(job?.payment_method || '1-101');
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -82,25 +92,15 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
     setSaving(false);
   };
 
-  const InputField = ({ label, required, type = 'text', value, onChange, placeholder }: {
-    label: string; required?: boolean; type?: string; value: string; onChange: (v: string) => void; placeholder?: string;
-  }) => (
-    <div>
-      <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}{required && ' *'}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition text-sm" />
-    </div>
-  );
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="glass-card w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-slide-up"
-        style={{ background: '#1e293b', borderColor: '#334155' }} onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-slide-up bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800"
+        onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 className="text-lg font-bold text-white">{isEdit ? 'Edit Job' : 'Buat Job Baru'}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-lg transition">
-            <X className="w-5 h-5 text-slate-400" />
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">{isEdit ? 'Edit Job' : 'Buat Job Baru'}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-slate-500 dark:text-slate-400">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -111,15 +111,15 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
             <InputField label="No. Telepon Client" value={clientPhone} onChange={setClientPhone} placeholder="08123456789" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField label="Email Client" type="email" value={clientEmail} onChange={setClientEmail} placeholder="client@email.com" />
+            <InputField label="Email Client (Opsional)" type="email" value={clientEmail} onChange={setClientEmail} placeholder="client@email.com" />
             <InputField label="Venue / Lokasi Event" required value={venue} onChange={setVenue} placeholder="Bali Nusa Dua Convention Center" />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Deskripsi Job</label>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Deskripsi Job</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Deskripsi event, kebutuhan alat, dll."
-              className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition text-sm resize-none" />
+              className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition text-sm resize-none shadow-sm" />
           </div>
 
           {/* Dates */}
@@ -132,36 +132,38 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
           {/* Financial */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <InputField label="Total Biaya Sewa (Rp)" required type="number" value={totalRentalFee} onChange={setTotalRentalFee} />
-            <InputField label="Total Biaya Vendor (Rp)" type="number" value={totalVendorCost} onChange={setTotalVendorCost} />
+            <InputField label="Biaya Vendor (Opsional)" type="number" value={totalVendorCost} onChange={setTotalVendorCost} />
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Metode Pembayaran *</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Akun Penerimaan (Cashflow) *</label>
               <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white outline-none focus:border-emerald-500 transition text-sm">
-                <option value="Cash">Cash (Tunai)</option>
-                <option value="BCA Transfer">BCA Transfer</option>
-                <option value="Tempo">Tempo (Piutang)</option>
+                className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white outline-none focus:border-purple-500 transition text-sm shadow-sm">
+                <option value="1-101">Kas Besar (1-101)</option>
+                <option value="1-102">Bank BCA (1-102)</option>
+                <option value="1-103">Bank Mandiri (1-103)</option>
+                <option value="1-104">Kas Kecil (1-104)</option>
+                <option value="1-105">Piutang Usaha (1-105)</option>
               </select>
             </div>
           </div>
 
           {/* Status */}
           <div className="max-w-xs">
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Status *</label>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Status *</label>
             <select value={status} onChange={e => setStatus(e.target.value as JobStatus)}
-              className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white outline-none focus:border-emerald-500 transition text-sm">
+              className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white outline-none focus:border-purple-500 transition text-sm shadow-sm">
               {(Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(s => (
                 <option key={s} value={s}>{JOB_STATUS_CONFIG[s].label}</option>
               ))}
             </select>
           </div>
 
-          {error && <p className="text-red-400 text-sm bg-red-500/10 px-4 py-2 rounded-lg">{error}</p>}
+          {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="px-5 py-2.5 text-slate-400 hover:text-white border border-slate-600 rounded-xl transition text-sm font-medium">Batal</button>
+              className="px-5 py-2.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-xl transition text-sm font-medium">Batal</button>
             <button type="submit" disabled={saving}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-sm disabled:opacity-50">
+              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition text-sm disabled:opacity-50 shadow-md shadow-purple-500/20">
               {saving ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Buat Job'}
             </button>
           </div>

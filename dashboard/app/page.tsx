@@ -155,36 +155,36 @@ export default function DashboardApp() {
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 relative overflow-hidden">
         {/* Background Effects */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-700/10 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-        <div className="glass-card p-8 w-full max-w-md animate-slide-up relative z-10" style={{ background: '#1e293b', borderColor: '#334155' }}>
+        <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-8 w-full max-w-md animate-slide-up relative z-10" >
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
-              <Briefcase className="w-8 h-8 text-emerald-400" />
+            <div className="w-16 h-16 rounded-2xl bg-purple-600/10 flex items-center justify-center mx-auto mb-4 border border-purple-600/20 shadow-lg shadow-purple-600/10">
+              <Briefcase className="w-8 h-8 text-purple-500" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Beragam Sewa Bali</h1>
-            <p className="text-slate-400 text-sm mt-1">ERP Dashboard System</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Beragam Sewa Bali</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">ERP Dashboard System</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Email</label>
               <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required
-                className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition" placeholder="email@example.com" />
+                className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition" placeholder="email@example.com" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Password</label>
               <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} required
-                className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition" placeholder="••••••••" />
+                className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition" placeholder="••••••••" />
             </div>
             {loginError && <p className="text-red-400 text-xs text-center bg-red-500/10 py-2 rounded">{loginError}</p>}
             <button type="submit" disabled={loginLoading}
-              className="w-full py-2.5 mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition disabled:opacity-50 shadow-lg shadow-emerald-900/20">
+              className="w-full py-2.5 mt-2 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-lg transition disabled:opacity-50 shadow-lg shadow-emerald-900/20">
               {loginLoading ? 'Memproses...' : 'Login ke Dashboard'}
             </button>
-            <button type="button" onClick={() => setShowLogin(false)} className="w-full mt-4 text-xs text-slate-400 hover:text-white transition">
+            <button type="button" onClick={() => setShowLogin(false)} className="w-full mt-4 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white transition">
               &larr; Kembali ke Beranda
             </button>
           </form>
@@ -196,7 +196,7 @@ export default function DashboardApp() {
   // ======== SIDEBAR ========
   const SidebarItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: Tab }) => (
     <button onClick={() => setTab(value)}
-      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === value ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === value ? 'bg-purple-600/10 text-purple-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-white dark:bg-slate-800'}`}>
       <Icon className="w-5 h-5" />
       {label}
     </button>
@@ -204,15 +204,15 @@ export default function DashboardApp() {
 
   // ======== MAIN RENDER ========
   return (
-    <div className="min-h-screen flex bg-slate-950">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-800 flex flex-col p-4 shrink-0">
+      <aside className="w-64 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 shrink-0">
         <div className="flex items-center gap-3 px-2 mb-2">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-emerald-400" />
+          <div className="w-9 h-9 rounded-xl bg-purple-600/10 flex items-center justify-center">
+            <Briefcase className="w-5 h-5 text-purple-500" />
           </div>
           <div>
-            <div className="text-sm font-bold text-white">BSB Dashboard</div>
+            <div className="text-sm font-bold text-slate-900 dark:text-white">BSB Dashboard</div>
             <div className="text-xs text-slate-500">{userRole.toUpperCase()}</div>
           </div>
         </div>
@@ -224,7 +224,7 @@ export default function DashboardApp() {
         <div className="mt-auto space-y-2">
           <div className="px-4 py-2 text-xs text-slate-500 truncate">{userEmail}</div>
           {mounted && (
-            <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-white dark:bg-slate-800 transition">
               {resolvedTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               {resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
@@ -239,7 +239,7 @@ export default function DashboardApp() {
       <main className="flex-1 overflow-auto p-6 lg:p-8">
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
@@ -248,12 +248,12 @@ export default function DashboardApp() {
               <div className="animate-fade-in space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
-                    <p className="text-slate-400 text-sm mt-1">Ringkasan operasional & keuangan</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard Overview</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Ringkasan operasional & keuangan</p>
                   </div>
                   {canModify && (
                     <button onClick={() => { setEditingJob(null); setShowJobForm(true); }}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-sm">
+                      className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm">
                       <Plus className="w-4 h-4" /> Job Baru
                     </button>
                   )}
@@ -268,34 +268,34 @@ export default function DashboardApp() {
                 </div>
 
                 {/* Status Distribution */}
-                <div className="glass-card p-6" style={{ background: '#1e293b', borderColor: '#334155' }}>
-                  <h3 className="text-white font-semibold mb-4">Distribusi Status Job</h3>
+                <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-6" >
+                  <h3 className="text-slate-900 dark:text-white font-semibold mb-4">Distribusi Status Job</h3>
                   <div className="grid grid-cols-5 gap-3">
                     {(Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(status => (
                       <div key={status} className="text-center p-3 rounded-xl" style={{ background: JOB_STATUS_CONFIG[status].bg }}>
                         <div className="text-2xl font-bold" style={{ color: JOB_STATUS_CONFIG[status].color }}>{stats.jobsByStatus[status]}</div>
-                        <div className="text-xs text-slate-400 mt-1">{JOB_STATUS_CONFIG[status].label}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{JOB_STATUS_CONFIG[status].label}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Recent Jobs */}
-                <div className="glass-card p-6" style={{ background: '#1e293b', borderColor: '#334155' }}>
+                <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-6" >
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white font-semibold">Job Terbaru</h3>
-                    <button onClick={() => setTab('jobs')} className="text-emerald-400 text-sm hover:text-emerald-300 flex items-center gap-1">
+                    <h3 className="text-slate-900 dark:text-white font-semibold">Job Terbaru</h3>
+                    <button onClick={() => setTab('jobs')} className="text-purple-500 text-sm hover:text-emerald-300 flex items-center gap-1">
                       Lihat Semua <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                   <div className="space-y-2">
                     {jobs.slice(0, 5).map(job => (
                       <div key={job.id} onClick={() => setViewingJobId(job.id)}
-                        className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/50 transition cursor-pointer group">
+                        className="flex items-center justify-between p-3 rounded-xl hover:bg-white dark:bg-slate-50 dark:bg-slate-800/50 transition cursor-pointer group">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-2 h-2 rounded-full shrink-0" style={{ background: JOB_STATUS_CONFIG[job.status].color }} />
                           <div className="min-w-0">
-                            <div className="text-sm text-white font-medium truncate">{job.client_name}</div>
+                            <div className="text-sm text-slate-900 dark:text-white font-medium truncate">{job.client_name}</div>
                             <div className="text-xs text-slate-500 truncate">{job.venue} • {formatDate(job.job_date)}</div>
                           </div>
                         </div>
@@ -303,7 +303,7 @@ export default function DashboardApp() {
                           <span className="status-badge" style={{ color: JOB_STATUS_CONFIG[job.status].color, background: JOB_STATUS_CONFIG[job.status].bg }}>
                             {JOB_STATUS_CONFIG[job.status].label}
                           </span>
-                          <Eye className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition" />
+                          <Eye className="w-4 h-4 text-slate-600 group-hover:text-purple-500 transition" />
                         </div>
                       </div>
                     ))}
@@ -318,12 +318,12 @@ export default function DashboardApp() {
               <div className="animate-fade-in space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-2xl font-bold text-white">Manajemen Job & Event</h1>
-                    <p className="text-slate-400 text-sm mt-1">Kelola penyewaan peralatan event</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Manajemen Job & Event</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola penyewaan peralatan event</p>
                   </div>
                   {canModify && (
                     <button onClick={() => { setEditingJob(null); setShowJobForm(true); }}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-sm">
+                      className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm">
                       <Plus className="w-4 h-4" /> Job Baru
                     </button>
                   )}
@@ -334,12 +334,12 @@ export default function DashboardApp() {
                   <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Cari client, venue..."
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition text-sm" />
+                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 outline-none focus:border-purple-600 transition text-sm" />
                   </div>
                   <div className="relative">
                     <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as JobStatus | '')}
-                      className="pl-10 pr-8 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500 transition text-sm appearance-none cursor-pointer">
+                      className="pl-10 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:border-purple-600 transition text-sm appearance-none cursor-pointer">
                       <option value="">Semua Status</option>
                       {(Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(s => (
                         <option key={s} value={s}>{JOB_STATUS_CONFIG[s].label}</option>
@@ -351,18 +351,18 @@ export default function DashboardApp() {
                 {/* Job Cards */}
                 <div className="space-y-3">
                   {jobs.map(job => (
-                    <div key={job.id} className="glass-card p-4 flex items-center justify-between hover:border-slate-600 transition group" style={{ background: '#1e293b', borderColor: '#334155' }}>
+                    <div key={job.id} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-4 flex items-center justify-between hover:border-slate-600 transition group" >
                       <div className="flex items-center gap-4 min-w-0 flex-1 cursor-pointer" onClick={() => setViewingJobId(job.id)}>
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: JOB_STATUS_CONFIG[job.status].bg }}>
                           <Briefcase className="w-5 h-5" style={{ color: JOB_STATUS_CONFIG[job.status].color }} />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-white font-semibold truncate">{job.client_name}</div>
-                          <div className="text-xs text-slate-400 truncate">{job.venue} • {formatDate(job.job_date)}</div>
+                          <div className="text-slate-900 dark:text-white font-semibold truncate">{job.client_name}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{job.venue} • {formatDate(job.job_date)}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0 ml-4">
-                        {canViewAll && <span className="text-emerald-400 font-semibold text-sm hidden lg:block">{formatRupiah(job.total_rental_fee)}</span>}
+                        {canViewAll && <span className="text-purple-500 font-semibold text-sm hidden lg:block">{formatRupiah(job.total_rental_fee)}</span>}
                         <select value={job.status} onChange={e => handleStatusChange(job.id, e.target.value as JobStatus)}
                           disabled={!canModify}
                           className="px-3 py-1.5 text-xs font-semibold rounded-full border-0 outline-none cursor-pointer"
@@ -372,12 +372,12 @@ export default function DashboardApp() {
                           ))}
                         </select>
                         <button onClick={() => setViewingJobId(job.id)} className="p-2 hover:bg-slate-700 rounded-lg transition" title="Lihat Detail">
-                          <Eye className="w-4 h-4 text-slate-400 hover:text-emerald-400" />
+                          <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-purple-500" />
                         </button>
                         {canModify && (
                           <>
                             <button onClick={() => { setEditingJob(job); setShowJobForm(true); }} className="p-2 hover:bg-slate-700 rounded-lg transition" title="Edit">
-                              <Edit className="w-4 h-4 text-slate-400 hover:text-blue-400" />
+                              <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-blue-400" />
                             </button>
                             {userRole === 'owner' && (
                               <button onClick={() => handleDeleteJob(job.id)} className="p-2 hover:bg-red-500/10 rounded-lg transition" title="Hapus">
@@ -392,7 +392,7 @@ export default function DashboardApp() {
                   {jobs.length === 0 && (
                     <div className="text-center py-16">
                       <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-400">Tidak ada job ditemukan.</p>
+                      <p className="text-slate-500 dark:text-slate-400">Tidak ada job ditemukan.</p>
                     </div>
                   )}
                 </div>
@@ -403,8 +403,8 @@ export default function DashboardApp() {
             {tab === 'schedule' && (
               <div className="animate-fade-in space-y-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-white">Schedule Timeline</h1>
-                  <p className="text-slate-400 text-sm mt-1">Visualisasi jadwal setup, event, dan bongkar</p>
+                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Schedule Timeline</h1>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Visualisasi jadwal setup, event, dan bongkar</p>
                 </div>
                 <GanttScheduler jobs={jobs} onJobClick={(id) => setViewingJobId(id)} />
               </div>
@@ -437,13 +437,13 @@ export default function DashboardApp() {
 // ======== STAT CARD COMPONENT ========
 function StatCard({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: string; color: string }) {
   return (
-    <div className="glass-card p-5 flex items-center gap-4" style={{ background: '#1e293b', borderColor: '#334155' }}>
+    <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-5 flex items-center gap-4" >
       <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
         <Icon className="w-6 h-6" style={{ color }} />
       </div>
       <div>
-        <div className="text-xs text-slate-400 font-medium">{label}</div>
-        <div className="text-xl font-bold text-white mt-0.5">{value}</div>
+        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</div>
+        <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{value}</div>
       </div>
     </div>
   );
@@ -452,50 +452,50 @@ function StatCard({ icon: Icon, label, value, color }: { icon: React.ElementType
 // ======== LANDING PAGE COMPONENT ========
 function LandingPage({ onLoginClick }: { onLoginClick: () => void }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30 overflow-hidden relative">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white selection:bg-purple-600/30 overflow-hidden relative">
       {/* Background Effects */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/20 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-700/20 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
 
       {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
-            <Briefcase className="w-5 h-5 text-emerald-400" />
+          <div className="w-10 h-10 rounded-xl bg-purple-600/10 flex items-center justify-center border border-purple-600/20 shadow-lg shadow-purple-600/10">
+            <Briefcase className="w-5 h-5 text-purple-500" />
           </div>
           <span className="font-bold text-xl tracking-tight">Beragam Sewa</span>
         </div>
-        <button onClick={onLoginClick} className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition">
+        <button onClick={onLoginClick} className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 transition">
           Login Staff
         </button>
       </nav>
 
       {/* Hero Section */}
       <main className="relative z-10 flex flex-col items-center justify-center text-center px-4 pt-24 pb-32 max-w-5xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-8 animate-fade-in">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-600/10 border border-purple-600/20 text-purple-500 text-xs font-semibold mb-8 animate-fade-in">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-500 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-600"></span>
           </span>
           Sistem ERP Terintegrasi 2026
         </div>
         
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 animate-slide-up" style={{ animationDelay: '100ms' }}>
           Manajemen Rental <br className="hidden md:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">
             Lebih Cerdas & Akurat
           </span>
         </h1>
         
-        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mb-12 animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mb-12 animate-slide-up" style={{ animationDelay: '200ms' }}>
           Platform satu atap untuk mengelola jadwal event, persediaan alat, penjadwalan kru, dan akuntansi double-entry secara otomatis.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
-          <button onClick={onLoginClick} className="px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-900/20">
+          <button onClick={onLoginClick} className="px-8 py-4 rounded-xl bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-900/20">
             Masuk ke Dashboard <ChevronRight className="w-5 h-5" />
           </button>
-          <a href="https://beragamsewabali.com" target="_blank" rel="noreferrer" className="px-8 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold flex items-center justify-center gap-2 border border-slate-700 transition">
+          <a href="https://beragamsewabali.com" target="_blank" rel="noreferrer" className="px-8 py-4 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-white font-semibold flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 transition">
             Kunjungi Website Utama
           </a>
         </div>
@@ -503,26 +503,26 @@ function LandingPage({ onLoginClick }: { onLoginClick: () => void }) {
 
       {/* Feature Grid */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 pb-24 grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '400ms' }}>
-        <div className="glass-card p-8 bg-slate-900/50 border-slate-800 backdrop-blur-sm hover:border-emerald-500/50 transition duration-300">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20">
-            <CalendarDays className="w-6 h-6 text-emerald-400" />
+        <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-8 bg-slate-900/50 border-slate-200 dark:border-slate-800 backdrop-blur-sm hover:border-purple-600/50 transition duration-300">
+          <div className="w-12 h-12 rounded-2xl bg-purple-600/10 flex items-center justify-center mb-6 border border-purple-600/20">
+            <CalendarDays className="w-6 h-6 text-purple-500" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-3">Penjadwalan Interaktif</h3>
-          <p className="text-slate-400 text-sm leading-relaxed">Visualisasi timeline event dan setup dengan Gantt chart cerdas. Hindari bentrok jadwal penyewaan secara efektif.</p>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Penjadwalan Interaktif</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">Visualisasi timeline event dan setup dengan Gantt chart cerdas. Hindari bentrok jadwal penyewaan secara efektif.</p>
         </div>
-        <div className="glass-card p-8 bg-slate-900/50 border-slate-800 backdrop-blur-sm hover:border-blue-500/50 transition duration-300">
+        <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-8 bg-slate-900/50 border-slate-200 dark:border-slate-800 backdrop-blur-sm hover:border-blue-500/50 transition duration-300">
           <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 border border-blue-500/20">
             <Activity className="w-6 h-6 text-blue-400" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-3">Akuntansi Otomatis</h3>
-          <p className="text-slate-400 text-sm leading-relaxed">Setiap penyewaan yang selesai akan terintegrasi langsung ke sistem jurnal double-entry Cashflow Beragam Sewa Bali.</p>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Akuntansi Otomatis</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">Setiap penyewaan yang selesai akan terintegrasi langsung ke sistem jurnal double-entry Cashflow Beragam Sewa Bali.</p>
         </div>
-        <div className="glass-card p-8 bg-slate-900/50 border-slate-800 backdrop-blur-sm hover:border-amber-500/50 transition duration-300">
+        <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-8 bg-slate-900/50 border-slate-200 dark:border-slate-800 backdrop-blur-sm hover:border-amber-500/50 transition duration-300">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6 border border-amber-500/20">
             <Users className="w-6 h-6 text-amber-400" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-3">Kolaborasi Kru</h3>
-          <p className="text-slate-400 text-sm leading-relaxed">Bagikan akses secara terstruktur (Owner, Accounting, Staff). Semua tindakan akan terekam dalam audit log.</p>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Kolaborasi Kru</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">Bagikan akses secara terstruktur (Owner, Accounting, Staff). Semua tindakan akan terekam dalam audit log.</p>
         </div>
       </section>
     </div>

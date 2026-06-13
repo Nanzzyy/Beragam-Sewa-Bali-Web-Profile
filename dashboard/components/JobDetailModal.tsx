@@ -86,7 +86,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
   const DetailTab = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: 'info' | 'items' | 'staff' | 'proofs' }) => (
     <button onClick={() => setActiveTab(value)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === value ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === value ? 'bg-purple-600/10 text-purple-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-white dark:bg-slate-800'}`}>
       <Icon className="w-4 h-4" /> {label}
     </button>
   );
@@ -94,7 +94,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -102,9 +102,9 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   if (!job) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="glass-card p-8 text-center" style={{ background: '#1e293b' }}>
-          <p className="text-slate-400">Job tidak ditemukan.</p>
-          <button onClick={onClose} className="mt-4 text-emerald-400 text-sm">Tutup</button>
+        <div className="bg-white dark:bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-8 text-center" >
+          <p className="text-slate-500 dark:text-slate-400">Job tidak ditemukan.</p>
+          <button onClick={onClose} className="mt-4 text-purple-500 text-sm">Tutup</button>
         </div>
       </div>
     );
@@ -114,27 +114,27 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="glass-card w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-slide-up"
-        style={{ background: '#1e293b', borderColor: '#334155' }} onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-slide-up"
+         onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="p-6 border-b border-slate-700">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: config.bg }}>
                 <FileText className="w-6 h-6" style={{ color: config.color }} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">{job.client_name}</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{job.client_name}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-sm text-slate-400">{job.venue}</span>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{job.venue}</span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="status-badge" style={{ color: config.color, background: config.bg }}>{config.label}</span>
               <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-lg transition">
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
               </button>
             </div>
           </div>
@@ -156,48 +156,48 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {job.client_phone && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Phone className="w-4 h-4 text-slate-500" /> <span className="text-slate-300">{job.client_phone}</span>
+                    <Phone className="w-4 h-4 text-slate-500" /> <span className="text-slate-700 dark:text-slate-300">{job.client_phone}</span>
                   </div>
                 )}
                 {job.client_email && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-slate-500" /> <span className="text-slate-300">{job.client_email}</span>
+                    <Mail className="w-4 h-4 text-slate-500" /> <span className="text-slate-700 dark:text-slate-300">{job.client_email}</span>
                   </div>
                 )}
               </div>
 
               {job.description && (
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase mb-1">Deskripsi</h4>
-                  <p className="text-sm text-slate-300">{job.description}</p>
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Deskripsi</h4>
+                  <p className="text-sm text-slate-700 dark:text-slate-300">{job.description}</p>
                 </div>
               )}
 
               {/* Dates */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                <div className="bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
                   <Calendar className="w-4 h-4 text-blue-400 mx-auto mb-1" />
                   <div className="text-xs text-slate-500">Setup</div>
-                  <div className="text-sm text-white font-medium">{formatDate(job.setup_date)}</div>
+                  <div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(job.setup_date)}</div>
                 </div>
-                <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                <div className="bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
                   <Calendar className="w-4 h-4 text-amber-400 mx-auto mb-1" />
                   <div className="text-xs text-slate-500">Event</div>
-                  <div className="text-sm text-white font-medium">{formatDate(job.job_date)}</div>
+                  <div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(job.job_date)}</div>
                 </div>
-                <div className="bg-slate-800/50 rounded-xl p-3 text-center">
-                  <Calendar className="w-4 h-4 text-emerald-400 mx-auto mb-1" />
+                <div className="bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+                  <Calendar className="w-4 h-4 text-purple-500 mx-auto mb-1" />
                   <div className="text-xs text-slate-500">Selesai</div>
-                  <div className="text-sm text-white font-medium">{formatDate(job.completion_date)}</div>
+                  <div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(job.completion_date)}</div>
                 </div>
               </div>
 
               {/* Financial */}
               {(userRole === 'owner' || userRole === 'accounting') && (
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-emerald-500/10 rounded-xl p-3">
-                    <div className="text-xs text-emerald-400 font-medium">Pendapatan Sewa</div>
-                    <div className="text-lg font-bold text-emerald-400 mt-1">{formatRupiah(job.total_rental_fee)}</div>
+                  <div className="bg-purple-600/10 rounded-xl p-3">
+                    <div className="text-xs text-purple-500 font-medium">Pendapatan Sewa</div>
+                    <div className="text-lg font-bold text-purple-500 mt-1">{formatRupiah(job.total_rental_fee)}</div>
                   </div>
                   <div className="bg-amber-500/10 rounded-xl p-3">
                     <div className="text-xs text-amber-400 font-medium">Biaya Vendor</div>
@@ -212,8 +212,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <div>
-                  Pembayaran: <span className="text-slate-300 font-medium">{job.payment_method}</span>
-                  {job.cashflow_tx_id && <span className="ml-2 text-emerald-400">✓ Jurnal Tersinkron</span>}
+                  Pembayaran: <span className="text-slate-700 dark:text-slate-300 font-medium">{job.payment_method}</span>
+                  {job.cashflow_tx_id && <span className="ml-2 text-purple-500">✓ Jurnal Tersinkron</span>}
                 </div>
                 
                 {/* PDF Generation Buttons */}
@@ -221,14 +221,14 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   {(userRole === 'owner' || userRole === 'staff' || userRole === 'accounting') && (
                     <button onClick={() => {
                       import('../lib/pdf').then(({ generateSuratJalan }) => generateSuratJalan(job, items));
-                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700">
+                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition border border-slate-200 dark:border-slate-700">
                       <FileText className="w-3.5 h-3.5" /> Surat Jalan
                     </button>
                   )}
                   {(userRole === 'owner' || userRole === 'accounting') && (
                     <button onClick={() => {
                       import('../lib/pdf').then(({ generateInvoice }) => generateInvoice(job, items));
-                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition border border-emerald-500/20">
+                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/10 hover:bg-purple-600/20 text-purple-500 rounded-lg transition border border-purple-600/20">
                       <FileText className="w-3.5 h-3.5" /> Invoice
                     </button>
                   )}
@@ -237,7 +237,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
               {/* Quick Status Changes */}
               {canModify && (
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-700">
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
                   {job.status === 'draft' && (
                     <button onClick={() => handleStatusQuickChange('confirmed')} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/20 transition">
                       <CheckCircle2 className="w-4 h-4" /> Konfirmasi
@@ -249,7 +249,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     </button>
                   )}
                   {job.status === 'on_going' && (
-                    <button onClick={() => handleStatusQuickChange('completed')} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/20 transition">
+                    <button onClick={() => handleStatusQuickChange('completed')} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/10 text-purple-500 rounded-lg text-sm font-medium hover:bg-purple-600/20 transition">
                       <CheckCircle2 className="w-4 h-4" /> Selesai
                     </button>
                   )}
@@ -265,50 +265,148 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
           {/* ITEMS TAB */}
           {activeTab === 'items' && (
-            <div className="space-y-3 animate-fade-in">
-              {items.length === 0 ? (
-                <p className="text-center text-slate-500 py-8 text-sm">Belum ada barang yang ditambahkan.</p>
-              ) : (
-                items.map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Package className="w-4 h-4 text-slate-500" />
-                      <div>
-                        <div className="text-sm text-white font-medium">{item.item_name || item.item_name_custom || '-'}</div>
-                        <div className="text-xs text-slate-500">
-                          Qty: {item.quantity}
-                          {item.vendor_name && ` • Vendor: ${item.vendor_name}`}
-                          {item.sub_rent_cost > 0 && ` • ${formatRupiah(item.sub_rent_cost)}`}
+            <div className="space-y-4 animate-fade-in">
+              {canModify && (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const target = e.target as typeof e.target & {
+                    item_name: { value: string };
+                    quantity: { value: string };
+                  };
+                  if (!target.item_name.value.trim() || !target.quantity.value) return;
+                  setUploading(true);
+                  try {
+                    await import('../lib/jobs').then(m => m.addJobItem({
+                      job_id: job.id,
+                      item_id: null,
+                      item_name_custom: target.item_name.value.trim(),
+                      quantity: parseInt(target.quantity.value),
+                      source_vendor_id: null,
+                      sub_rent_cost: 0,
+                      is_returned: false
+                    }));
+                    target.item_name.value = '';
+                    target.quantity.value = '1';
+                    loadDetails();
+                  } catch (err) {
+                    alert((err as Error).message);
+                  }
+                  setUploading(false);
+                }} className="flex gap-2 mb-4 p-3 bg-slate-50 dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-200 dark:border-slate-700">
+                  <input type="text" name="item_name" placeholder="Nama Barang..." required className="flex-1 px-3 py-2 bg-white dark:bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500" />
+                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-20 px-3 py-2 bg-white dark:bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500" />
+                  <button type="submit" disabled={uploading} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-slate-900 dark:text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
+                </form>
+              )}
+              <div className="space-y-3">
+                {items.length === 0 ? (
+                  <p className="text-center text-slate-500 py-4 text-sm">Belum ada barang yang ditambahkan.</p>
+                ) : (
+                  items.map(item => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-white dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <Package className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-900 dark:text-white">{item.item_name || item.item_name_custom || '-'}</div>
+                          <div className="text-xs text-slate-500">
+                            Qty: {item.quantity}
+                            {item.vendor_name && ` • Vendor: ${item.vendor_name}`}
+                            {item.sub_rent_cost > 0 && ` • ${formatRupiah(item.sub_rent_cost)}`}
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-3">
+                        <div className={`text-xs font-semibold px-2.5 py-1 rounded-full ${item.is_returned ? 'text-emerald-700 bg-emerald-100 dark:text-purple-500 dark:bg-purple-600/10' : 'text-amber-700 bg-amber-100 dark:text-amber-400 dark:bg-amber-500/10'}`}>
+                          {item.is_returned ? 'Dikembalikan' : 'Di Lokasi'}
+                        </div>
+                        {canModify && (
+                          <button onClick={async () => {
+                            if (!confirm('Hapus barang ini?')) return;
+                            try {
+                              await import('../lib/jobs').then(m => m.removeJobItem(item.id));
+                              loadDetails();
+                            } catch (e) { alert((e as Error).message); }
+                          }} className="text-red-500 hover:text-red-600 p-1">
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className={`text-xs font-medium px-2 py-1 rounded ${item.is_returned ? 'text-emerald-400 bg-emerald-500/10' : 'text-amber-400 bg-amber-500/10'}`}>
-                      {item.is_returned ? 'Kembali' : 'Di Lokasi'}
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
           )}
 
           {/* STAFF TAB */}
           {activeTab === 'staff' && (
-            <div className="space-y-3 animate-fade-in">
-              {staff.length === 0 ? (
-                <p className="text-center text-slate-500 py-8 text-sm">Belum ada kru yang ditugaskan.</p>
-              ) : (
-                staff.map(s => (
-                  <div key={s.id} className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-emerald-400">
-                      {(s.display_name || s.email || '?')[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-sm text-white font-medium">{s.display_name || s.email}</div>
-                      <div className="text-xs text-slate-500">{s.role_in_job}</div>
-                    </div>
-                  </div>
-                ))
+            <div className="space-y-4 animate-fade-in">
+              {canModify && (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const target = e.target as typeof e.target & {
+                    staff_name: { value: string };
+                    role: { value: string };
+                  };
+                  if (!target.staff_name.value.trim() || !target.role.value.trim()) return;
+                  setUploading(true);
+                  try {
+                    // For now, if profile doesn't exist, we might have issue because profile_id is required in job_staff.
+                    // The schema requires a valid profile_id. We'll simulate fetching profile or just alert for now.
+                    // "diambil dari menu vendor / staff".
+                    // Wait, job_staff references profiles(id). We must have a valid profile_id.
+                    const { data } = await (await import('../lib/supabase')).supabase.from('profiles').select('id').limit(1);
+                    if (!data || data.length === 0) {
+                      throw new Error("Tidak ada data karyawan di sistem (tabel profiles kosong).");
+                    }
+                    await import('../lib/jobs').then(m => m.addJobStaff({
+                      job_id: job.id,
+                      profile_id: data[0].id, // fallback to first profile for demo
+                      role_in_job: target.role.value.trim()
+                    }));
+                    target.staff_name.value = '';
+                    target.role.value = '';
+                    loadDetails();
+                  } catch (err) {
+                    alert((err as Error).message);
+                  }
+                  setUploading(false);
+                }} className="flex gap-2 mb-4 p-3 bg-slate-50 dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-200 dark:border-slate-700">
+                  <input type="text" name="staff_name" placeholder="Pilih Karyawan..." required className="flex-1 px-3 py-2 bg-white dark:bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500" />
+                  <input type="text" name="role" placeholder="Peran (ex: Supir)" required className="w-1/3 px-3 py-2 bg-white dark:bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500" />
+                  <button type="submit" disabled={uploading} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-slate-900 dark:text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
+                </form>
               )}
+              <div className="space-y-3">
+                {staff.length === 0 ? (
+                  <p className="text-center text-slate-500 py-4 text-sm">Belum ada kru yang ditugaskan.</p>
+                ) : (
+                  staff.map(s => (
+                    <div key={s.id} className="flex items-center justify-between p-3 bg-white dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-400">
+                          {(s.display_name || s.email || '?')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-900 dark:text-white">{s.display_name || s.email}</div>
+                          <div className="text-xs text-slate-500">{s.role_in_job}</div>
+                        </div>
+                      </div>
+                      {canModify && (
+                        <button onClick={async () => {
+                          if (!confirm('Hapus staf ini dari tugas?')) return;
+                          try {
+                            await import('../lib/jobs').then(m => m.removeJobStaff(s.id));
+                            loadDetails();
+                          } catch (e) { alert((e as Error).message); }
+                        }} className="text-red-500 hover:text-red-600 p-1">
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 
@@ -322,7 +420,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     <Upload className="w-4 h-4" /> Upload Bukti Kirim
                   </button>
                   <button onClick={() => handleUploadProof('return')} disabled={uploading}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-xl text-sm font-medium hover:bg-emerald-500/20 transition disabled:opacity-50">
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600/10 text-purple-500 rounded-xl text-sm font-medium hover:bg-purple-600/20 transition disabled:opacity-50">
                     <RotateCcw className="w-4 h-4" /> Upload Bukti Kembali
                   </button>
                 </div>
@@ -333,13 +431,13 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   {proofs.map(p => (
-                    <div key={p.id} className="relative rounded-xl overflow-hidden border border-slate-700 group">
+                    <div key={p.id} className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
                       <img src={p.photo_url} alt={`Bukti ${p.type}`} className="w-full h-40 object-cover" loading="lazy" />
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                        <span className={`text-xs font-semibold uppercase ${p.type === 'delivery' ? 'text-blue-400' : 'text-emerald-400'}`}>
+                        <span className={`text-xs font-semibold uppercase ${p.type === 'delivery' ? 'text-blue-400' : 'text-purple-500'}`}>
                           {p.type === 'delivery' ? 'Pengiriman' : 'Pengembalian'}
                         </span>
-                        <div className="text-xs text-slate-400">{formatDate(p.created_at)}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">{formatDate(p.created_at)}</div>
                       </div>
                     </div>
                   ))}
