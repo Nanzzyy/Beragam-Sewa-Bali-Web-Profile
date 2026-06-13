@@ -6,10 +6,10 @@ import { fetchJobs, fetchDashboardStats, createJob, updateJob, updateJobStatus, 
 import JobDetailModal from '../components/JobDetailModal';
 import JobFormModal from '../components/JobFormModal';
 import GanttScheduler from '../components/GanttScheduler';
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
-type Tab = 'dashboard' | 'jobs' | 'schedule';
+type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'staff';
 
 export default function DashboardApp() {
   const [tab, setTab] = useState<Tab>('dashboard');
@@ -36,6 +36,10 @@ export default function DashboardApp() {
   const [showJobForm, setShowJobForm] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [viewingJobId, setViewingJobId] = useState<string | null>(null);
+
+  // Inventories & Staff Lists
+  const [itemsList, setItemsList] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -94,6 +98,13 @@ export default function DashboardApp() {
       ]);
       setJobs(jobsData);
       setStats(statsData);
+
+      // Fetch items and staff simply for display
+      const { data: iData } = await supabase.from('items').select('*').order('name');
+      if (iData) setItemsList(iData);
+      const { data: sData } = await supabase.from('profiles').select('*').order('display_name');
+      if (sData) setStaffList(sData);
+
     } catch (e) {
       console.error('Failed to load data:', e);
     }
@@ -220,6 +231,9 @@ export default function DashboardApp() {
           <SidebarItem icon={LayoutDashboard} label="Overview" value="dashboard" />
           <SidebarItem icon={Briefcase} label="Jobs & Events" value="jobs" />
           <SidebarItem icon={CalendarDays} label="Schedule" value="schedule" />
+          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Master Data</div>
+          <SidebarItem icon={Package} label="Menu Barang" value="inventory" />
+          <SidebarItem icon={Users} label="Daftar Karyawan" value="staff" />
         </div>
         <div className="mt-auto space-y-2">
           <div className="px-4 py-2 text-xs text-slate-500 truncate">{userEmail}</div>
@@ -407,6 +421,81 @@ export default function DashboardApp() {
                   <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Visualisasi jadwal setup, event, dan bongkar</p>
                 </div>
                 <GanttScheduler jobs={jobs} onJobClick={(id) => setViewingJobId(id)} />
+              </div>
+            )}
+
+            {/* === INVENTORY TAB === */}
+            {tab === 'inventory' && (
+              <div className="animate-fade-in space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Menu Barang</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Daftar inventaris alat dan barang</p>
+                  </div>
+                  {canModify && (
+                    <button className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm">
+                      <Plus className="w-4 h-4" /> Tambah Barang
+                    </button>
+                  )}
+                </div>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-4">
+                  {itemsList.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Package className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-500">Belum ada barang di database.</p>
+                      <p className="text-slate-400 text-xs mt-1">(Harus ditambahkan via modul cashflow atau isi langsung di db)</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {itemsList.map(item => (
+                        <div key={item.id} className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                          <div className="flex items-center gap-3">
+                            <Package className="w-5 h-5 text-purple-500" />
+                            <div>
+                              <div className="font-medium text-slate-900 dark:text-white">{item.name}</div>
+                              <div className="text-xs text-slate-500">Kategori: {item.category_id || '-'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* === STAFF TAB === */}
+            {tab === 'staff' && (
+              <div className="animate-fade-in space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Daftar Karyawan</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola data profil karyawan</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {staffList.length === 0 ? (
+                    <div className="col-span-full text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl">
+                      <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-500">Belum ada data karyawan.</p>
+                    </div>
+                  ) : (
+                    staffList.map(staff => (
+                      <div key={staff.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 font-bold text-lg">
+                          {(staff.display_name || staff.email || '?')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-900 dark:text-white">{staff.display_name || 'Tanpa Nama'}</div>
+                          <div className="text-xs text-slate-500">{staff.email}</div>
+                          <div className="mt-1 text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md inline-block text-slate-600 dark:text-slate-300">
+                            Role: {staff.role}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </>
