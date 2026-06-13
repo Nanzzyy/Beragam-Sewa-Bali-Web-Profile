@@ -7,7 +7,12 @@ import { Loader2, Search, BookText } from 'lucide-react';
 
 type TxWithEntries = Transaction & { journal_entries: JournalEntryWithAccount[] };
 
-export default function LedgerByAccount() {
+interface LedgerByAccountProps {
+  userRole?: string;
+  currentUserId?: string;
+}
+
+export default function LedgerByAccount({ userRole = 'guest', currentUserId = '' }: LedgerByAccountProps) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<TxWithEntries[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +28,13 @@ export default function LedgerByAccount() {
           fetchTransactionsWithEntries()
         ]);
         setAccounts(accs);
-        setTransactions(txs.sort((a, b) => {
+
+        let filteredTxs = txs;
+        if (userRole === 'guest' && currentUserId) {
+          filteredTxs = txs.filter(tx => tx.created_by === currentUserId);
+        }
+
+        setTransactions(filteredTxs.sort((a, b) => {
           const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
           if (dateDiff === 0) {
             return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -37,7 +48,7 @@ export default function LedgerByAccount() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [userRole, currentUserId]);
 
   if (loading) return (
     <div className="p-12 flex flex-col items-center justify-center text-slate-400">

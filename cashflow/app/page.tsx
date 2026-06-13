@@ -26,6 +26,8 @@ export default function CashflowDashboard() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showAdjModal, setShowAdjModal] = useState(false);
+  const [userRole, setUserRole] = useState<string>('guest');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   const [authReady, setAuthReady] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
@@ -59,38 +61,136 @@ export default function CashflowDashboard() {
 
   // Check auth
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) { setAuthReady(true); setUserEmail(session.user.email || ''); }
-      else setAuthReady(false);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        setAuthReady(true);
+        setUserEmail(session.user.email || '');
+        setCurrentUserId(session.user.id);
+        
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          if (data && !error) {
+            setUserRole(data.role);
+          } else {
+            setUserRole('guest');
+          }
+        } catch (e) {
+          console.error('Error fetching role:', e);
+          setUserRole('guest');
+        }
+      } else {
+        setAuthReady(false);
+        setCurrentUserId('');
+        setUserRole('guest');
+      }
       setLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
-      if (session?.user) { setAuthReady(true); setUserEmail(session.user.email || ''); }
-      else { setAuthReady(false); setUserEmail(''); }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_ev, session) => {
+      if (session?.user) {
+        setAuthReady(true);
+        setUserEmail(session.user.email || '');
+        setCurrentUserId(session.user.id);
+        
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          if (data && !error) {
+            setUserRole(data.role);
+          } else {
+            setUserRole('guest');
+          }
+        } catch (e) {
+          setUserRole('guest');
+        }
+      } else {
+        setAuthReady(false);
+        setUserEmail('');
+        setCurrentUserId('');
+        setUserRole('guest');
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
 
   const loadData = useCallback(async () => {
-    if (!authReady) return;
+    if (!authReady || !currentUserId) return;
     setLoading(true);
     try {
+      let activeRole = userRole;
+      if (!activeRole) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUserId)
+          .single();
+        activeRole = data?.role || 'guest';
+      }
+
       const [accs, tb, txs] = await Promise.all([
         fetchAccounts(),
         fetchTrialBalance(),
-        fetchTransactionsWithEntries({ limit: 50 }),
+        fetchTransactionsWithEntries({ limit: 100 }),
       ]);
       setAccounts(accs);
-      setTrialBalance(tb);
-      setTransactions(txs);
+
+      if (activeRole === 'guest') {
+        const filteredTxs = txs.filter(tx => tx.created_by === currentUserId);
+        setTransactions(filteredTxs);
+
+        const localTB = accs.map(acc => {
+          let totalDebit = 0;
+          let totalCredit = 0;
+          
+          filteredTxs.forEach(tx => {
+            tx.journal_entries.forEach(je => {
+              if (je.account_code === acc.account_code) {
+                totalDebit += je.debit;
+                totalCredit += je.credit;
+              }
+            });
+          });
+          
+          const endingBalance = ['Asset', 'Expense'].includes(acc.category)
+            ? totalDebit - totalCredit
+            : totalCredit - totalDebit;
+            
+          return {
+            account_code: acc.account_code,
+            account_name: acc.account_name,
+            category: acc.category,
+            normal_balance: acc.normal_balance,
+            total_debit: totalDebit,
+            total_credit: totalCredit,
+            ending_balance: endingBalance
+          };
+        });
+        setTrialBalance(localTB);
+      } else {
+        setTransactions(txs);
+        setTrialBalance(tb);
+      }
     } catch (err) {
       console.error('Load error:', err);
     } finally {
       setLoading(false);
     }
-  }, [authReady]);
+  }, [authReady, currentUserId, userRole]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (userRole === 'guest' && !['dashboard', 'ledger', 'ledger-acc', 'accounts'].includes(tab)) {
+      setTab('dashboard');
+    }
+  }, [userRole, tab]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,7 +338,7 @@ export default function CashflowDashboard() {
     );
   }
 
-  const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+  const ALL_TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'dashboard', label: 'Ringkasan', icon: <LayoutDashboard className="w-4 h-4" /> },
     { key: 'ledger', label: 'Jurnal Umum', icon: <BookOpen className="w-4 h-4" /> },
     { key: 'ledger-acc', label: 'Buku Besar', icon: <BookText className="w-4 h-4" /> },
@@ -248,6 +348,8 @@ export default function CashflowDashboard() {
     { key: 'accounts', label: 'Daftar Akun', icon: <FolderOpen className="w-4 h-4" /> },
     { key: 'assets', label: 'Aktiva Tetap', icon: <Building2 className="w-4 h-4" /> },
   ];
+
+  const TABS = ALL_TABS.filter(t => userRole !== 'guest' || ['dashboard', 'ledger', 'ledger-acc', 'accounts'].includes(t.key));
 
   const categoryColors: Record<string, string> = {
     Asset: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200',
@@ -274,7 +376,7 @@ export default function CashflowDashboard() {
                 {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </button>
             )}
-            <ExcelExportButton trialBalance={trialBalance} />
+            <ExcelExportButton trialBalance={trialBalance} userRole={userRole} currentUserId={currentUserId} />
             <div className="hidden sm:flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-800/60 pl-4">
               <span>{userEmail}</span>
               <button onClick={handleLogout} className="text-slate-400 hover:text-rose-600 dark:text-rose-400 transition-colors p-1" title="Logout">
@@ -388,7 +490,7 @@ export default function CashflowDashboard() {
         )}
 
         {tab === 'ledger-acc' && (
-          <LedgerByAccount />
+          <LedgerByAccount userRole={userRole} currentUserId={currentUserId} />
         )}
 
         {tab === 'accounts' && (

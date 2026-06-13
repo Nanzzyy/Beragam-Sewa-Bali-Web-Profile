@@ -237,11 +237,11 @@ RETURNS app_role AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- === ACCOUNTS (COA) Policies ===
--- Read: Owner + Accounting
+-- Read: Owner + Accounting + Guest
 DROP POLICY IF EXISTS "accounts_select_policy" ON public.accounts;
 CREATE POLICY "accounts_select_policy"
 ON public.accounts FOR SELECT TO authenticated
-USING (public.get_user_role() IN ('owner', 'accounting'));
+USING (public.get_user_role() IN ('owner', 'accounting', 'guest'));
 
 -- Write: Owner + Accounting
 DROP POLICY IF EXISTS "accounts_insert_policy" ON public.accounts;
@@ -286,39 +286,77 @@ USING (public.get_user_role() IN ('owner', 'accounting'));
 DROP POLICY IF EXISTS "transactions_select_policy" ON public.transactions;
 CREATE POLICY "transactions_select_policy"
 ON public.transactions FOR SELECT TO authenticated
-USING (public.get_user_role() IN ('owner', 'accounting'));
+USING (
+  public.get_user_role() IN ('owner', 'accounting')
+  OR
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+);
 
 DROP POLICY IF EXISTS "transactions_insert_policy" ON public.transactions;
 CREATE POLICY "transactions_insert_policy"
 ON public.transactions FOR INSERT TO authenticated
-WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
+WITH CHECK (
+  public.get_user_role() IN ('owner', 'accounting')
+  OR
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+);
 
 DROP POLICY IF EXISTS "transactions_update_policy" ON public.transactions;
 CREATE POLICY "transactions_update_policy"
 ON public.transactions FOR UPDATE TO authenticated
-USING (public.get_user_role() IN ('owner', 'accounting'))
-WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
+USING (
+  public.get_user_role() IN ('owner', 'accounting')
+  OR
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+)
+WITH CHECK (
+  public.get_user_role() IN ('owner', 'accounting')
+  OR
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+);
 
 DROP POLICY IF EXISTS "transactions_delete_policy" ON public.transactions;
 CREATE POLICY "transactions_delete_policy"
 ON public.transactions FOR DELETE TO authenticated
-USING (public.get_user_role() = 'owner');
+USING (
+  public.get_user_role() = 'owner'
+  OR
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+);
 
 -- === JOURNAL ENTRIES Policies ===
 DROP POLICY IF EXISTS "journal_entries_select_policy" ON public.journal_entries;
 CREATE POLICY "journal_entries_select_policy"
 ON public.journal_entries FOR SELECT TO authenticated
-USING (public.get_user_role() IN ('owner', 'accounting'));
+USING (
+  public.get_user_role() IN ('owner', 'accounting')
+  OR
+  (public.get_user_role() = 'guest' AND transaction_id IN (
+    SELECT id FROM public.transactions WHERE created_by = auth.uid()
+  ))
+);
 
 DROP POLICY IF EXISTS "journal_entries_insert_policy" ON public.journal_entries;
 CREATE POLICY "journal_entries_insert_policy"
 ON public.journal_entries FOR INSERT TO authenticated
-WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
+WITH CHECK (
+  public.get_user_role() IN ('owner', 'accounting')
+  OR
+  (public.get_user_role() = 'guest' AND transaction_id IN (
+    SELECT id FROM public.transactions WHERE created_by = auth.uid()
+  ))
+);
 
 DROP POLICY IF EXISTS "journal_entries_delete_policy" ON public.journal_entries;
 CREATE POLICY "journal_entries_delete_policy"
 ON public.journal_entries FOR DELETE TO authenticated
-USING (public.get_user_role() = 'owner');
+USING (
+  public.get_user_role() = 'owner'
+  OR
+  (public.get_user_role() = 'guest' AND transaction_id IN (
+    SELECT id FROM public.transactions WHERE created_by = auth.uid()
+  ))
+);
 
 -- ============================================================
 -- 8. SEED DATA: Default Chart of Accounts (COA)

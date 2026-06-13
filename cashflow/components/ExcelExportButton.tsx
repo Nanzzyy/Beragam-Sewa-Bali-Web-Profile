@@ -9,9 +9,11 @@ import { Download, Loader2 } from 'lucide-react';
 
 interface Props {
   trialBalance: TrialBalanceRow[];
+  userRole?: string;
+  currentUserId?: string;
 }
 
-export default function ExcelExportButton({ trialBalance }: Props) {
+export default function ExcelExportButton({ trialBalance, userRole = 'guest', currentUserId = '' }: Props) {
   const [exporting, setExporting] = useState(false);
 
   const exportToExcel = async () => {
@@ -19,11 +21,16 @@ export default function ExcelExportButton({ trialBalance }: Props) {
 
     try {
       // Fetch all required data for other sheets
-      const [transactions, accounts, fixedAssets] = await Promise.all([
+      let [transactions, accounts, fixedAssets] = await Promise.all([
         fetchTransactionsWithEntries(),
         fetchAccounts(),
         fetchFixedAssets()
       ]);
+
+      if (userRole === 'guest' && currentUserId) {
+        transactions = transactions.filter(tx => tx.created_by === currentUserId);
+        fixedAssets = [];
+      }
 
       const wb = new ExcelJS.Workbook();
       wb.creator = 'BSB Cashflow — PT Praven Bali Production';
