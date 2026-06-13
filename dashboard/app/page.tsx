@@ -6,7 +6,7 @@ import { fetchJobs, fetchDashboardStats, createJob, updateJob, updateJobStatus, 
 import JobDetailModal from '../components/JobDetailModal';
 import JobFormModal from '../components/JobFormModal';
 import GanttScheduler from '../components/GanttScheduler';
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'staff';
@@ -40,6 +40,18 @@ export default function DashboardApp() {
   // Inventories & Staff Lists
   const [itemsList, setItemsList] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
+
+  // Item Modal State
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [itemModalData, setItemModalData] = useState<{ id?: string; name: string; category_id: string } | null>(null);
+
+  // Staff Modal State
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [staffModalData, setStaffModalData] = useState<{ id?: string; email: string; display_name: string; role: string } | null>(null);
+
+  // Confirm Modal State
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmModalConfig, setConfirmModalConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -434,11 +446,9 @@ export default function DashboardApp() {
                   </div>
                   {canModify && (
                     <button onClick={() => {
-                      const name = prompt('Nama Barang Baru:');
-                      if (!name) return;
-                      const category = prompt('Kategori Barang:');
-                      supabase.from('items').insert({ name, category_id: category }).then(() => loadData());
-                    }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
+                      setItemModalData({ name: '', category_id: '' });
+                      setItemModalOpen(true);
+                    }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
                       <Plus className="w-4 h-4" /> Tambah Barang
                     </button>
                   )}
@@ -465,16 +475,23 @@ export default function DashboardApp() {
                           {canModify && (
                             <div className="flex items-center gap-2">
                               <button onClick={() => {
-                                const newName = prompt('Ubah Nama Barang:', item.name);
-                                if (!newName) return;
-                                supabase.from('items').update({ name: newName }).eq('id', item.id).then(() => loadData());
+                                setItemModalData({ id: item.id, name: item.name, category_id: item.category_id || '' });
+                                setItemModalOpen(true);
                               }} className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                                 <Edit className="w-4 h-4" />
                               </button>
                               <button onClick={() => {
-                                if (confirm('Hapus barang ini?')) {
-                                  supabase.from('items').delete().eq('id', item.id).then(() => loadData());
-                                }
+                                setConfirmModalConfig({
+                                  title: 'Hapus Barang',
+                                  message: `Apakah Anda yakin ingin menghapus barang "${item.name}" dari inventaris?`,
+                                  onConfirm: () => {
+                                    supabase.from('items').delete().eq('id', item.id).then(() => {
+                                      loadData();
+                                      setConfirmModalOpen(false);
+                                    });
+                                  }
+                                });
+                                setConfirmModalOpen(true);
                               }} className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -498,13 +515,9 @@ export default function DashboardApp() {
                   </div>
                   {userRole === 'owner' && (
                     <button onClick={() => {
-                      const email = prompt('Email Karyawan Baru:');
-                      if (!email) return;
-                      const name = prompt('Nama Karyawan:');
-                      const role = prompt('Role (owner/accounting/staff/guest):', 'staff');
-                      // Catatan: Ini hanya menambahkan ke profiles. Auth user mungkin butuh sign up.
-                      supabase.from('profiles').insert({ email, display_name: name, role }).then(() => loadData());
-                    }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
+                      setStaffModalData({ email: '', display_name: '', role: 'staff' });
+                      setStaffModalOpen(true);
+                    }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
                       <Plus className="w-4 h-4" /> Tambah Karyawan
                     </button>
                   )}
@@ -534,17 +547,23 @@ export default function DashboardApp() {
                           {userRole === 'owner' && (
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                               <button onClick={() => {
-                                const newRole = prompt('Ubah Role (owner/accounting/staff/guest):', staff.role);
-                                if (newRole) {
-                                  supabase.from('profiles').update({ role: newRole }).eq('id', staff.id).then(() => loadData());
-                                }
+                                setStaffModalData({ id: staff.id, email: staff.email || '', display_name: staff.display_name || '', role: staff.role || 'staff' });
+                                setStaffModalOpen(true);
                               }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md">
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
                               <button onClick={() => {
-                                if (confirm('Hapus karyawan ini? (Hanya menghapus profil, bukan auth user)')) {
-                                  supabase.from('profiles').delete().eq('id', staff.id).then(() => loadData());
-                                }
+                                setConfirmModalConfig({
+                                  title: 'Hapus Karyawan',
+                                  message: `Apakah Anda yakin ingin menghapus karyawan "${staff.display_name || staff.email}"? Ini hanya akan menghapus profil mereka dari database.`,
+                                  onConfirm: () => {
+                                    supabase.from('profiles').delete().eq('id', staff.id).then(() => {
+                                      loadData();
+                                      setConfirmModalOpen(false);
+                                    });
+                                  }
+                                });
+                                setConfirmModalOpen(true);
                               }} className="p-1.5 text-slate-400 hover:text-red-500 bg-slate-50 dark:bg-slate-800 rounded-md">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -577,6 +596,141 @@ export default function DashboardApp() {
           onClose={() => setViewingJobId(null)}
           onStatusChange={(id, status) => { handleStatusChange(id, status); }}
         />
+      )}
+
+      {/* Item Add/Edit Modal */}
+      {itemModalOpen && itemModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-6 w-full max-w-md relative animate-slide-up">
+            <button onClick={() => setItemModalOpen(false)} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+              {itemModalData.id ? 'Edit Barang' : 'Tambah Barang Baru'}
+            </h3>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const target = e.target as typeof e.target & {
+                name: { value: string };
+                category_id: { value: string };
+              };
+              const payload = {
+                name: target.name.value.trim(),
+                category_id: target.category_id.value.trim() || null
+              };
+              try {
+                if (itemModalData.id) {
+                  await supabase.from('items').update(payload).eq('id', itemModalData.id);
+                } else {
+                  await supabase.from('items').insert(payload);
+                }
+                loadData();
+                setItemModalOpen(false);
+              } catch (err) {
+                alert((err as Error).message);
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider animate-fade-in">Nama Barang</label>
+                <input type="text" name="name" defaultValue={itemModalData.name} required placeholder="Contoh: Sound System 1000W" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Kategori</label>
+                <input type="text" name="category_id" defaultValue={itemModalData.category_id} placeholder="Contoh: Audio, Lighting, General" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition text-sm" />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setItemModalOpen(false)} className="px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                  Batal
+                </button>
+                <button type="submit" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-purple-500/10">
+                  Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Add/Edit Modal */}
+      {staffModalOpen && staffModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-6 w-full max-w-md relative animate-slide-up">
+            <button onClick={() => setStaffModalOpen(false)} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+              {staffModalData.id ? 'Edit Karyawan' : 'Tambah Karyawan Baru'}
+            </h3>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const target = e.target as typeof e.target & {
+                email: { value: string };
+                display_name: { value: string };
+                role: { value: string };
+              };
+              const payload = {
+                email: target.email.value.trim(),
+                display_name: target.display_name.value.trim(),
+                role: target.role.value
+              };
+              try {
+                if (staffModalData.id) {
+                  await supabase.from('profiles').update(payload).eq('id', staffModalData.id);
+                } else {
+                  await supabase.from('profiles').insert(payload);
+                }
+                loadData();
+                setStaffModalOpen(false);
+              } catch (err) {
+                alert((err as Error).message);
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Nama Lengkap</label>
+                <input type="text" name="display_name" defaultValue={staffModalData.display_name} required placeholder="Contoh: Budi Santoso" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Alamat Email</label>
+                <input type="email" name="email" defaultValue={staffModalData.email} required placeholder="budi@example.com" disabled={!!staffModalData.id} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition text-sm disabled:opacity-50" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Role Hak Akses</label>
+                <select name="role" defaultValue={staffModalData.role} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-purple-600 outline-none transition text-sm">
+                  <option value="staff">Staff (Lapangan & Logistik)</option>
+                  <option value="accounting">Accounting (Keuangan)</option>
+                  <option value="owner">Owner (Pemilik Toko)</option>
+                  <option value="guest">Guest (Tamu)</option>
+                </select>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setStaffModalOpen(false)} className="px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                  Batal
+                </button>
+                <button type="submit" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-purple-500/10">
+                  Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmModalOpen && confirmModalConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-6 w-full max-w-sm relative animate-slide-up">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{confirmModalConfig.title}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">{confirmModalConfig.message}</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmModalOpen(false)} className="px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                Batal
+              </button>
+              <button onClick={confirmModalConfig.onConfirm} className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-red-500/10">
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
