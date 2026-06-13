@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'screens/dashboard_page.dart';
+import 'screens/job_list_page.dart';
+import 'screens/job_detail_page.dart';
+import 'screens/job_form_page.dart';
 
 // ==========================================
 // 1. APP ROLES & PERMISSIONS DEFINITION
 // ==========================================
-enum AppRole { owner, accounting, staff }
+enum AppRole { owner, accounting, staff, guest }
 
 AppRole parseRole(String? role) {
-  if (role == null) return AppRole.staff;
+  if (role == null) return AppRole.guest;
   switch (role.toLowerCase()) {
     case 'owner':
       return AppRole.owner;
     case 'accounting':
       return AppRole.accounting;
-    default:
+    case 'staff':
       return AppRole.staff;
+    case 'guest':
+      return AppRole.guest;
+    default:
+      return AppRole.guest; // Default to guest role for safety
   }
 }
 
@@ -37,7 +47,11 @@ void main() async {
     ),
   );
 
-  runApp(const BeragamSewaBaliApp());
+  runApp(
+    const ProviderScope(
+      child: BeragamSewaBaliApp(),
+    ),
+  );
 }
 
 class BeragamSewaBaliApp extends StatelessWidget {
@@ -51,7 +65,7 @@ class BeragamSewaBaliApp extends StatelessWidget {
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
-        primaryColor: const Color(0xFF1B5E20),
+        primaryColor: const Color(0xFF10B981),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF10B981), // Premium Emerald green accent
           secondary: Color(0xFF34D399),
@@ -112,6 +126,12 @@ final GoRouter _router = GoRouter(
       }
     }
 
+    if (path.startsWith('/suppliers') || path.startsWith('/inventory')) {
+      if (role == AppRole.guest) {
+        return '/unauthorized';
+      }
+    }
+
     return null;
   },
   routes: [
@@ -129,6 +149,22 @@ final GoRouter _router = GoRouter(
         GoRoute(
           path: '/dashboard',
           builder: (context, state) => const DashboardOverviewPage(),
+        ),
+        GoRoute(
+          path: '/jobs',
+          builder: (context, state) => const JobListPage(),
+        ),
+        GoRoute(
+          path: '/jobs/new',
+          builder: (context, state) => const JobFormPage(),
+        ),
+        GoRoute(
+          path: '/jobs/edit/:id',
+          builder: (context, state) => JobFormPage(jobId: state.pathParameters['id']),
+        ),
+        GoRoute(
+          path: '/jobs/:id',
+          builder: (context, state) => JobDetailPage(jobId: state.pathParameters['id'] ?? ''),
         ),
         GoRoute(
           path: '/suppliers',
@@ -350,29 +386,36 @@ class DashboardLayout extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 // Sidebar items based on Role
-                _SidebarMenuItem(
+                const _SidebarMenuItem(
                   icon: Icons.dashboard_rounded,
-                  label: 'Dashboard',
+                  label: 'Overview',
                   route: '/dashboard',
                 ),
-                _SidebarMenuItem(
-                  icon: Icons.people_rounded,
-                  label: 'Suppliers',
-                  route: '/suppliers',
+                const _SidebarMenuItem(
+                  icon: Icons.assignment_rounded,
+                  label: 'Jobs & Events',
+                  route: '/jobs',
                 ),
-                _SidebarMenuItem(
-                  icon: Icons.inventory_2_rounded,
-                  label: 'Inventory',
-                  route: '/inventory',
-                ),
+                if (role != AppRole.guest) ...[
+                  const _SidebarMenuItem(
+                    icon: Icons.people_rounded,
+                    label: 'Suppliers',
+                    route: '/suppliers',
+                  ),
+                  const _SidebarMenuItem(
+                    icon: Icons.inventory_2_rounded,
+                    label: 'Inventory',
+                    route: '/inventory',
+                  ),
+                ],
                 if (role == AppRole.owner || role == AppRole.accounting)
-                  _SidebarMenuItem(
+                  const _SidebarMenuItem(
                     icon: Icons.monetization_on_rounded,
                     label: 'Cashflow Ledger',
                     route: '/cashflow',
                   ),
                 if (role == AppRole.owner)
-                  _SidebarMenuItem(
+                  const _SidebarMenuItem(
                     icon: Icons.history_rounded,
                     label: 'Audit Logs',
                     route: '/audit-logs',
@@ -438,93 +481,6 @@ class _SidebarMenuItem extends StatelessWidget {
         leading: Icon(icon, color: isSelected ? const Color(0xFF10B981) : Colors.white70),
         title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
         onTap: () => context.go(route),
-      ),
-    );
-  }
-}
-
-// --- DASHBOARD OVERVIEW PAGE ---
-class DashboardOverviewPage extends StatelessWidget {
-  const DashboardOverviewPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Dashboard Overview', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 28)),
-            const SizedBox(height: 8),
-            const Text('Welcome to Beragam Sewa Bali management ecosystem.', style: TextStyle(color: Colors.white54)),
-            const SizedBox(height: 32),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 3,
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 24,
-                children: const [
-                  _MetricCard(
-                    title: 'Ready Stock Items',
-                    value: '142',
-                    icon: Icons.check_circle_outline_rounded,
-                    color: Color(0xFF10B981),
-                  ),
-                  _MetricCard(
-                    title: 'Active Rent Outs',
-                    value: '58',
-                    icon: Icons.shopping_bag_outlined,
-                    color: Colors.blueAccent,
-                  ),
-                  _MetricCard(
-                    title: 'Maintenance Cost (MTD)',
-                    value: 'Rp 4.500.000',
-                    icon: Icons.build_circle_outlined,
-                    color: Colors.orangeAccent,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _MetricCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: const TextStyle(color: Colors.white54, fontSize: 16)),
-                Icon(icon, color: color, size: 28),
-              ],
-            ),
-            Text(value, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
-          ],
-        ),
       ),
     );
   }
