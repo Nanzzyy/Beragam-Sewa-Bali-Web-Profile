@@ -77,6 +77,24 @@ function closeModal() {
     if (modal) modal.style.display = 'none';
 }
 
+function openMobileDrawer() {
+    const drawer = el('mobile-menu-drawer');
+    const content = el('mobile-menu-content');
+    if (drawer && content) {
+        drawer.classList.remove('pointer-events-none', 'opacity-0');
+        content.classList.remove('-translate-x-full');
+    }
+}
+
+function closeMobileDrawer() {
+    const drawer = el('mobile-menu-drawer');
+    const content = el('mobile-menu-content');
+    if (drawer && content) {
+        drawer.classList.add('pointer-events-none', 'opacity-0');
+        content.classList.add('-translate-x-full');
+    }
+}
+
 // ── Data Loading ──────────────────────────────────────────────
 async function loadSection(section) {
     try {
@@ -179,10 +197,13 @@ document.addEventListener('click', async (e) => {
 
     const tabBtn = t.closest('.tab-btn');
     if (tabBtn) {
+        const targetSelector = tabBtn.getAttribute('data-target');
+        const target = targetSelector.substring(1);
+        
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll(`.tab-btn[data-target="${targetSelector}"]`).forEach(b => b.classList.add('active'));
+        
         document.querySelectorAll('.tab-content-pane').forEach(p => p.classList.remove('active'));
-        tabBtn.classList.add('active');
-        const target = tabBtn.dataset.target.substring(1);
         el(target).classList.add('active');
         
         const listMap = {
@@ -195,6 +216,16 @@ document.addEventListener('click', async (e) => {
         if (listMap[target]) {
             loadSection(listMap[target]);
         }
+        closeMobileDrawer();
+        return;
+    }
+
+    if (t.id === 'menu-toggle-btn' || t.closest('#menu-toggle-btn')) {
+        openMobileDrawer();
+        return;
+    }
+    if (t.id === 'close-drawer-btn' || t.closest('#close-drawer-btn') || t.id === 'mobile-menu-drawer') {
+        closeMobileDrawer();
         return;
     }
 
