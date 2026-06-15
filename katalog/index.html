@@ -517,6 +517,24 @@
 
     // ── Fetch ──
     async function loadCatalog() {
+        // Try to load from cache first for instant load
+        const cached = localStorage.getItem('bsb_catalog_cache');
+        if (cached) {
+            try {
+                const data = JSON.parse(cached);
+                if (data && Array.isArray(data.allItems)) {
+                    allItems = data.allItems;
+                    applyFilters();
+                    if (data.siteLogo) {
+                        const logo = document.getElementById('nav-logo');
+                        if (logo) logo.src = data.siteLogo;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to parse catalog cache', e);
+            }
+        }
+
         try {
             const [srvRes, pkgRes, contentRes] = await Promise.all([
                 fetch(`${API_BASE}/catalog/services`),
@@ -530,10 +548,11 @@
                 contentRes.ok ? contentRes.json() : {}
             ]);
 
-            // Update logo if available
+            let siteLogo = '';
             if (content.site_logo) {
                 const logo = document.getElementById('nav-logo');
                 if (logo) logo.src = content.site_logo;
+                siteLogo = content.site_logo;
             }
 
             const srvMapped = (services || []).map(i => ({ ...i, _type: 'service', name: i.name || i.title }));
@@ -541,10 +560,19 @@
 
             allItems = [...srvMapped, ...pkgMapped];
             applyFilters();
+
+            // Save new data to cache
+            localStorage.setItem('bsb_catalog_cache', JSON.stringify({
+                allItems: allItems,
+                siteLogo: siteLogo,
+                timestamp: Date.now()
+            }));
         } catch (err) {
-            document.getElementById('catalogGrid').innerHTML =
-                `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Gagal memuat katalog. Silakan coba lagi.</p></div>`;
-            document.getElementById('resultsInfo').textContent = 'Terjadi kesalahan.';
+            if (allItems.length === 0) {
+                document.getElementById('catalogGrid').innerHTML =
+                    `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Gagal memuat katalog. Silakan coba lagi.</p></div>`;
+                document.getElementById('resultsInfo').textContent = 'Terjadi kesalahan.';
+            }
         }
     }
 
