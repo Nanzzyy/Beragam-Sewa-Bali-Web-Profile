@@ -49,7 +49,8 @@
                 <button class="tab-btn active" data-target="#hero-content">Hero Assets</button>
                 <button class="tab-btn" data-target="#about-content">Company Story</button>
                 <button class="tab-btn" data-target="#services-content">Our Services</button>
-                <button class="tab-btn" data-target="#packages-content">Tour Packages</button>
+                <button class="tab-btn" data-target="#packages-content">Package</button>
+                <button class="tab-btn" data-target="#katalog-content">Katalog</button>
                 <button class="tab-btn" data-target="#gallery-content">Media Gallery</button>
             </div>
 
@@ -125,10 +126,20 @@
                 <!-- PACKAGES SECTION -->
                 <div id="packages-content" class="tab-content-pane">
                     <div class="flex items-center justify-between mb-10">
-                        <h3 class="text-2xl font-black">Tour Package Offers</h3>
+                        <h3 class="text-2xl font-black">Manage Package</h3>
                         <button id="add-package-btn" class="btn-main btn-success px-8 shadow-emerald-100"><i class="fa-solid fa-plus"></i> New Package Card</button>
                     </div>
                     <div id="packages-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"></div>
+                </div>
+
+                <!-- KATALOG SECTION -->
+                <div id="katalog-content" class="tab-content-pane">
+                    <div class="flex items-center justify-between mb-10">
+                        <h3 class="text-2xl font-black">Katalog Produk</h3>
+                        <button id="add-katalog-btn" class="btn-main btn-success px-8 shadow-emerald-100"><i class="fa-solid fa-plus"></i> New Katalog Item</button>
+                    </div>
+                    <p class="text-gray-500 mb-6 text-sm">Daftar item di bawah ini hanya akan ditampilkan di halaman Katalog (katalog.beragamsewabali.com).</p>
+                    <div id="katalog-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"></div>
                 </div>
 
                 <!-- GALLERY SECTION -->
@@ -168,9 +179,12 @@
                     <label class="input-label">Detailed Description (for Detail Page)</label>
                     <textarea id="modal-long-text-input" class="input-control" rows="6" required placeholder="Complete detailed specs and info..."></textarea>
                 </div>
-                <div class="mb-6 flex items-center gap-3">
-                    <input type="checkbox" id="modal-catalog-only-input" class="w-5 h-5 rounded border-gray-300 text-brand-red focus:ring-brand-red">
-                    <label for="modal-catalog-only-input" class="input-label !mb-0 cursor-pointer">Hanya Tampilkan di Katalog (Sembunyikan dari Landing Page)</label>
+                <div class="mb-6" id="modal-katalog-type-container" style="display: none;">
+                    <label class="input-label">Jenis Item Katalog</label>
+                    <select id="modal-katalog-type-input" class="input-control">
+                        <option value="catalog_service">Service</option>
+                        <option value="catalog_package">Package</option>
+                    </select>
                 </div>
                 <div class="mb-10">
                     <label class="input-label">Display Media</label>

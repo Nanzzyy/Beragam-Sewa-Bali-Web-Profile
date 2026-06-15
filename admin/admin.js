@@ -24,9 +24,19 @@ function openModal(type, item = null) {
         el('modal-title-input').value = item.title || item.name || '';
         el('modal-text-input').value = item.text || item.description || '';
         el('modal-long-text-input').value = item.long_text || '';
-        if (el('modal-catalog-only-input')) el('modal-catalog-only-input').checked = (item.section_key === 'catalog_service' || item.section_key === 'catalog_package');
+        if (type === 'katalog' && el('modal-katalog-type-input')) {
+            el('modal-katalog-type-input').value = item.section_key || 'catalog_service';
+        }
     } else {
-        if (el('modal-catalog-only-input')) el('modal-catalog-only-input').checked = false;
+        if (type === 'katalog' && el('modal-katalog-type-input')) {
+            el('modal-katalog-type-input').value = 'catalog_service';
+        }
+    }
+
+    if (type === 'katalog') {
+        if(el('modal-katalog-type-container')) el('modal-katalog-type-container').style.display = 'block';
+    } else {
+        if(el('modal-katalog-type-container')) el('modal-katalog-type-container').style.display = 'none';
     }
     
     modal.style.display = 'flex';
@@ -56,6 +66,9 @@ async function loadSection(section) {
         } else if (section === 'package') {
             const pkg = await fetch(`${API_URL}/packages`, FETCH_OPTS).then(r => r.json());
             renderCards('packages-list', pkg, 'package');
+        } else if (section === 'katalog') {
+            const kat = await fetch(`${API_URL}/katalogs`, FETCH_OPTS).then(r => r.json());
+            renderCards('katalog-list', kat, 'katalog');
         } else if (section === 'gallery') {
             const gal = await fetch(`${API_URL}/gallery`, FETCH_OPTS).then(r => r.json());
             renderCards('gallery-list', gal, 'gallery');
@@ -79,6 +92,7 @@ async function loadAll() {
             loadSection('about'),
             loadSection('service'),
             loadSection('package'),
+            loadSection('katalog'),
             loadSection('gallery'),
             loadSection('content')
         ]);
@@ -148,6 +162,7 @@ document.addEventListener('click', async (e) => {
 
     if (t.id === 'add-service-btn') return openModal('service');
     if (t.id === 'add-package-btn') return openModal('package');
+    if (t.id === 'add-katalog-btn') return openModal('katalog');
     if (t.closest('.close-modal-btn')) return closeModal();
 
     const delBtn = t.closest('.btn-delete');
@@ -230,8 +245,8 @@ document.addEventListener('submit', async (e) => {
             fd.append('title', el('modal-title-input').value);
             fd.append('text', el('modal-text-input').value);
             fd.append('long_text', el('modal-long-text-input').value);
-            if (el('modal-catalog-only-input')) {
-                fd.append('is_catalog_only', el('modal-catalog-only-input').checked ? 'true' : 'false');
+            if (type === 'katalog' && el('modal-katalog-type-input')) {
+                fd.append('item_type', el('modal-katalog-type-input').value);
             }
             if(el('modal-image-input').files[0]) fd.append('image', el('modal-image-input').files[0]);
             await fetch(id ? `${API_URL}/${type}s/${id}` : `${API_URL}/${type}s`, { ...FETCH_OPTS, method: id ? 'PUT' : 'POST', body: fd });

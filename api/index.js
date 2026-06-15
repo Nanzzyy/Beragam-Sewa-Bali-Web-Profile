@@ -306,7 +306,7 @@ app.delete('/api/about/image/:id', requireAdmin, async (req, res) => {
 // GET /api/services
 app.get('/api/services', async (req, res) => {
     try {
-        const r = await db.query("SELECT * FROM section_images WHERE section_key IN ('service', 'catalog_service') ORDER BY id DESC");
+        const r = await db.query("SELECT * FROM section_images WHERE section_key='service' ORDER BY id DESC");
         res.json(r.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -328,10 +328,9 @@ app.post('/api/services', requireAdmin, async (req, res) => {
         let url = null;
         const file = files.find(f => f.fieldname === 'image');
         if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'services');
-        const sectionKey = fields.is_catalog_only === 'true' ? 'catalog_service' : 'service';
         await db.query(
-            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES($1,$2,$3,$4,$5)",
-            [sectionKey, fields.title, fields.text, fields.long_text, url]
+            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES('service',$1,$2,$3,$4)",
+            [fields.title, fields.text, fields.long_text, url]
         );
         res.json({ message: 'Created' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -344,11 +343,10 @@ app.put('/api/services/:id', requireAdmin, async (req, res) => {
         let url = null;
         const file = files.find(f => f.fieldname === 'image');
         if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'services');
-        const sectionKey = fields.is_catalog_only === 'true' ? 'catalog_service' : 'service';
         const query = url
-            ? 'UPDATE section_images SET section_key=$1,title=$2,text=$3,long_text=$4,image_url=$5 WHERE id=$6'
-            : 'UPDATE section_images SET section_key=$1,title=$2,text=$3,long_text=$4 WHERE id=$5';
-        const params = url ? [sectionKey, fields.title, fields.text, fields.long_text, url, req.params.id] : [sectionKey, fields.title, fields.text, fields.long_text, req.params.id];
+            ? 'UPDATE section_images SET title=$1,text=$2,long_text=$3,image_url=$4 WHERE id=$5'
+            : 'UPDATE section_images SET title=$1,text=$2,long_text=$3 WHERE id=$4';
+        const params = url ? [fields.title, fields.text, fields.long_text, url, req.params.id] : [fields.title, fields.text, fields.long_text, req.params.id];
         await db.query(query, params);
         res.json({ message: 'Updated' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -365,7 +363,7 @@ app.delete('/api/services/:id', requireAdmin, async (req, res) => {
 // GET /api/packages
 app.get('/api/packages', async (req, res) => {
     try {
-        const r = await db.query("SELECT * FROM section_images WHERE section_key IN ('package', 'catalog_package') ORDER BY id DESC");
+        const r = await db.query("SELECT * FROM section_images WHERE section_key='package' ORDER BY id DESC");
         res.json(r.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -387,10 +385,9 @@ app.post('/api/packages', requireAdmin, async (req, res) => {
         let url = null;
         const file = files.find(f => f.fieldname === 'image');
         if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'packages');
-        const sectionKey = fields.is_catalog_only === 'true' ? 'catalog_package' : 'package';
         await db.query(
-            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES($1,$2,$3,$4,$5)",
-            [sectionKey, fields.title, fields.text, fields.long_text, url]
+            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES('package',$1,$2,$3,$4)",
+            [fields.title, fields.text, fields.long_text, url]
         );
         res.json({ message: 'Created' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -403,7 +400,65 @@ app.put('/api/packages/:id', requireAdmin, async (req, res) => {
         let url = null;
         const file = files.find(f => f.fieldname === 'image');
         if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'packages');
-        const sectionKey = fields.is_catalog_only === 'true' ? 'catalog_package' : 'package';
+        const query = url
+            ? 'UPDATE section_images SET title=$1,text=$2,long_text=$3,image_url=$4 WHERE id=$5'
+            : 'UPDATE section_images SET title=$1,text=$2,long_text=$3 WHERE id=$4';
+        const params = url ? [fields.title, fields.text, fields.long_text, url, req.params.id] : [fields.title, fields.text, fields.long_text, req.params.id];
+        await db.query(query, params);
+        res.json({ message: 'Updated' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/packages/:id
+app.delete('/api/packages/:id', requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM section_images WHERE id=$1', [req.params.id]);
+        res.json({ message: 'Deleted' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/katalogs
+app.get('/api/katalogs', async (req, res) => {
+    try {
+        const r = await db.query("SELECT * FROM section_images WHERE section_key IN ('catalog_service', 'catalog_package') ORDER BY id DESC");
+        res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/katalogs/:id
+app.get('/api/katalogs/:id', async (req, res) => {
+    try {
+        const r = await db.query('SELECT * FROM section_images WHERE id=$1', [req.params.id]);
+        if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });
+        const row = r.rows[0];
+        res.json({ id: row.id, name: row.title, description: row.text, long_text: row.long_text, image_url: row.image_url, section_key: row.section_key });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/katalogs
+app.post('/api/katalogs', requireAdmin, async (req, res) => {
+    try {
+        const { fields, files } = await parseMultipart(req);
+        let url = null;
+        const file = files.find(f => f.fieldname === 'image');
+        if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'katalogs');
+        const sectionKey = fields.item_type || 'catalog_service';
+        await db.query(
+            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES($1,$2,$3,$4,$5)",
+            [sectionKey, fields.title, fields.text, fields.long_text, url]
+        );
+        res.json({ message: 'Created' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/katalogs/:id
+app.put('/api/katalogs/:id', requireAdmin, async (req, res) => {
+    try {
+        const { fields, files } = await parseMultipart(req);
+        let url = null;
+        const file = files.find(f => f.fieldname === 'image');
+        if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'katalogs');
+        const sectionKey = fields.item_type || 'catalog_service';
         const query = url
             ? 'UPDATE section_images SET section_key=$1,title=$2,text=$3,long_text=$4,image_url=$5 WHERE id=$6'
             : 'UPDATE section_images SET section_key=$1,title=$2,text=$3,long_text=$4 WHERE id=$5';
@@ -413,8 +468,8 @@ app.put('/api/packages/:id', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// DELETE /api/packages/:id
-app.delete('/api/packages/:id', requireAdmin, async (req, res) => {
+// DELETE /api/katalogs/:id
+app.delete('/api/katalogs/:id', requireAdmin, async (req, res) => {
     try {
         await db.query('DELETE FROM section_images WHERE id=$1', [req.params.id]);
         res.json({ message: 'Deleted' });
