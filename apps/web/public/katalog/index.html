@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Katalog Lengkap Beragam Sewa Bali — Temukan semua unit sewa beserta harga terbaik kami.">
+    <meta name="theme-color" content="#e63946">
+    <title>Katalog — Beragam Sewa Bali</title>
+
+    <link rel="icon" type="image/png" id="favicon" href="/favicon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --red: #e63946;
+            --red-dark: #c1121f;
+            --dark: #0f0f0f;
+            --surface: #ffffff;
+            --bg: #f8f8f8;
+            --text: #1a1a1a;
+            --muted: #6b7280;
+            --border: rgba(0,0,0,0.07);
+            --radius: 20px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.08);
+            --shadow-lg: 0 12px 48px rgba(0,0,0,0.14);
+        }
+
+        html.dark {
+            --surface: #1c1c1e;
+            --bg: #111113;
+            --text: #f2f2f7;
+            --muted: #8e8e93;
+            --border: rgba(255,255,255,0.08);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ── Navbar ── */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 50;
+            padding: 14px 24px;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            transition: all .3s;
+        }
+        html.dark nav { background: rgba(17,17,19,0.88); }
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 800; font-size: 1.05rem;
+            color: var(--text); text-decoration: none;
+        }
+        .nav-brand img { width: 36px; height: 36px; border-radius: 10px; }
+        .nav-right { display: flex; align-items: center; gap: 12px; }
+        .theme-btn {
+            width: 38px; height: 38px;
+            border-radius: 50%; border: none;
+            background: var(--border);
+            color: var(--text); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+        }
+        .theme-btn:hover { background: var(--red); color: #fff; }
+        .wa-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 18px; border-radius: 100px;
+            background: var(--red); color: #fff;
+            font-weight: 700; font-size: 0.85rem;
+            text-decoration: none; border: none; cursor: pointer;
+            transition: all .2s;
+        }
+        .wa-btn:hover { background: var(--red-dark); transform: translateY(-1px); }
+
+        /* ── Hero Banner ── */
+        .hero-banner {
+            margin-top: 68px;
+            background: linear-gradient(135deg, #e63946 0%, #c1121f 60%, #7b0d1e 100%);
+            padding: 72px 24px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-banner::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='10'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .hero-banner h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 900; color: #fff;
+            position: relative; margin-bottom: 12px;
+        }
+        .hero-banner p {
+            color: rgba(255,255,255,0.82);
+            font-size: 1.05rem;
+            position: relative;
+        }
+
+        /* ── Filter Bar ── */
+        .filter-bar {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+        .filter-search {
+            flex: 1; min-width: 220px;
+            position: relative;
+        }
+        .filter-search input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color .2s;
+        }
+        .filter-search input:focus { border-color: var(--red); }
+        .filter-search i {
+            position: absolute; left: 15px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+        }
+        .filter-tabs {
+            display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .filter-tab {
+            padding: 10px 20px;
+            border-radius: 100px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--muted);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600; font-size: 0.88rem;
+            cursor: pointer; transition: all .2s;
+        }
+        .filter-tab.active, .filter-tab:hover {
+            background: var(--red); color: #fff;
+            border-color: var(--red);
+        }
+        .sort-select {
+            padding: 11px 16px;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.88rem;
+            outline: none; cursor: pointer;
+        }
+
+        /* ── Results Info ── */
+        .results-info {
+            max-width: 1400px;
+            margin: 20px auto 0;
+            padding: 0 24px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        /* ── Grid ── */
+        .catalog-grid {
+            max-width: 1400px;
+            margin: 20px auto 60px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        /* ── Card ── */
+        .catalog-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform .35s, box-shadow .35s;
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+        .catalog-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+        }
+        .card-badge {
+            position: absolute; top: 14px; left: 14px;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.72rem; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            z-index: 2;
+        }
+        .badge-service { background: rgba(230,57,70,.9); color: #fff; }
+        .badge-package { background: rgba(14,165,233,.9); color: #fff; }
+        .card-img {
+            width: 100%; aspect-ratio: 16/10;
+            object-fit: cover;
+            transition: transform .6s;
+        }
+        .catalog-card:hover .card-img { transform: scale(1.06); }
+        .card-img-wrap { overflow: hidden; position: relative; }
+        .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+        .card-type {
+            font-size: 0.72rem; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--red); margin-bottom: 6px;
+        }
+        .card-title {
+            font-size: 1.05rem; font-weight: 800;
+            color: var(--text); margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        .card-desc {
+            font-size: 0.85rem; color: var(--muted);
+            line-height: 1.55; flex: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .card-footer {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .card-price {
+            font-size: 1.15rem; font-weight: 900;
+            color: var(--red);
+        }
+        .card-price small {
+            font-size: 0.7rem; font-weight: 500;
+            color: var(--muted);
+        }
+        .card-cta {
+            display: flex; align-items: center; gap: 6px;
+            padding: 9px 16px;
+            border-radius: 12px;
+            background: var(--red);
+            color: #fff; font-weight: 700;
+            font-size: 0.8rem; text-decoration: none;
+            transition: background .2s, transform .2s;
+        }
+        .card-cta:hover { background: var(--red-dark); transform: scale(1.04); }
+
+        /* ── Empty State ── */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 24px;
+            color: var(--muted);
+        }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: .4; }
+        .empty-state p { font-size: 1rem; }
+
+        /* ── Skeleton ── */
+        .skeleton {
+            background: linear-gradient(90deg, var(--border) 25%, rgba(0,0,0,0.04) 50%, var(--border) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 12px;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        .sk-card { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+        .sk-img { height: 175px; }
+        .sk-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .sk-line { height: 14px; border-radius: 8px; }
+        .sk-line.short { width: 55%; }
+        .sk-price { height: 22px; width: 40%; margin-top: 10px; border-radius: 8px; }
+
+        /* ── Footer ── */
+        footer {
+            background: var(--dark);
+            color: rgba(255,255,255,0.55);
+            text-align: center;
+            padding: 28px 24px;
+            font-size: 0.85rem;
+        }
+        footer a { color: var(--red); text-decoration: none; }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            .filter-bar { flex-direction: column; align-items: stretch; }
+            .filter-search { min-width: 100%; }
+            .filter-tabs { width: 100%; }
+            .sort-select { width: 100%; }
+            .nav-brand span { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav>
+    <div class="nav-inner">
+        <a href="https://beragamsewabali.com" class="nav-brand">
+            <img src="/src/assets/images/logos.png" alt="Logo" id="nav-logo">
+            <span>Beragam Sewa Bali</span>
+        </a>
+        <div class="nav-right">
+            <button class="theme-btn" id="themeBtn" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+            <a href="https://wa.me/6281338277098" target="_blank" rel="noopener" class="wa-btn">
+                <i class="fa-brands fa-whatsapp"></i>
+                <span>WhatsApp</span>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Banner -->
+<div class="hero-banner">
+    <h1>Katalog Lengkap</h1>
+    <p>Temukan unit & paket sewa terbaik kami beserta harga transparan</p>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <div class="filter-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Cari unit atau paket...">
+    </div>
+    <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">Semua</button>
+        <button class="filter-tab" data-filter="service">Layanan</button>
+        <button class="filter-tab" data-filter="package">Paket</button>
+    </div>
+    <select class="sort-select" id="sortSelect">
+        <option value="default">Urutkan: Default</option>
+        <option value="price-asc">Harga: Terendah</option>
+        <option value="price-desc">Harga: Tertinggi</option>
+        <option value="name-asc">Nama: A–Z</option>
+    </select>
+</div>
+
+<div class="results-info" id="resultsInfo">Memuat katalog...</div>
+
+<!-- Catalog Grid -->
+<div class="catalog-grid" id="catalogGrid">
+    <!-- Skeleton placeholders -->
+    <div class="sk-card"><div class="sk-img skeleton"></div><div class="sk-body"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-price skeleton"></div></div></div>
+    <div class="sk-card"><div class="sk-img skeleton"></div><div class="sk-body"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-price skeleton"></div></div></div>
+    <div class="sk-card"><div class="sk-img skeleton"></div><div class="sk-body"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-price skeleton"></div></div></div>
+    <div class="sk-card"><div class="sk-img skeleton"></div><div class="sk-body"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-price skeleton"></div></div></div>
+    <div class="sk-card"><div class="sk-img skeleton"></div><div class="sk-body"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-price skeleton"></div></div></div>
+    <div class="sk-card"><div class="sk-img skeleton"></div><div class="sk-body"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-price skeleton"></div></div></div>
+</div>
+
+<footer>
+    &copy; <span id="footerYear"></span> <strong style="color:#fff">Beragam Sewa Bali</strong>.
+    Kunjungi <a href="https://beragamsewabali.com">website utama</a> kami.
+</footer>
+
+<script>
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+    // ── Theme ──
+    const themeBtn = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        themeIcon.className = 'fa-solid fa-sun';
+    }
+    themeBtn.addEventListener('click', () => {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        themeIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    });
+
+    // ── Data ──
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3000/api'
+        : '/api';
+
+    let allItems = [];
+    let activeFilter = 'all';
+    let activeSort = 'default';
+    let searchQuery = '';
+
+    function formatPrice(price) {
+        if (!price && price !== 0) return null;
+        const num = parseFloat(price);
+        if (isNaN(num)) return null;
+        if (num >= 1000000) return 'Rp ' + (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1) + 'Jt';
+        if (num >= 1000) return 'Rp ' + (num / 1000).toFixed(0) + 'K';
+        return 'Rp ' + num.toLocaleString('id-ID');
+    }
+
+    function buildPriceLabel(item) {
+        const p = formatPrice(item.price);
+        if (!p) return '';
+        const suffix = item.price_unit || '/hari';
+        return `<div class="card-price">${p} <small>${suffix}</small></div>`;
+    }
+
+    function renderGrid(items) {
+        const grid = document.getElementById('catalogGrid');
+        const info = document.getElementById('resultsInfo');
+        info.textContent = `Menampilkan ${items.length} item`;
+
+        if (items.length === 0) {
+            grid.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-open"></i><p>Tidak ada item yang cocok.</p></div>`;
+            return;
+        }
+
+        grid.innerHTML = items.map(item => {
+            const type = item._type;
+            const badgeClass = type === 'service' ? 'badge-service' : 'badge-package';
+            const badgeLabel = type === 'service' ? 'Layanan' : 'Paket';
+            const priceHTML = buildPriceLabel(item);
+            const waMsg = encodeURIComponent(`Halo, saya tertarik dengan ${item.name || item.title || 'unit ini'}. Bisa info lebih lanjut?`);
+            const detailUrl = `https://beragamsewabali.com/detail.html?type=${type}&id=${item.id}`;
+            const imgSrc = item.image_url || 'https://picsum.photos/seed/' + item.id + '/600/375';
+
+            return `
+            <div class="catalog-card" data-type="${type}" data-name="${(item.name || item.title || '').toLowerCase()}">
+                <div class="card-img-wrap">
+                    <span class="card-badge ${badgeClass}">${badgeLabel}</span>
+                    <img src="${imgSrc}" class="card-img" alt="${item.name || item.title || ''}" loading="lazy">
+                </div>
+                <div class="card-body">
+                    <div class="card-type">${badgeLabel}</div>
+                    <div class="card-title">${item.name || item.title || 'Untitled'}</div>
+                    <div class="card-desc">${item.description || item.text || ''}</div>
+                    <div class="card-footer">
+                        ${priceHTML || '<div></div>'}
+                        <a href="${detailUrl}" class="card-cta" target="_blank" rel="noopener">
+                            <i class="fa-solid fa-eye"></i> Detail
+                        </a>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function applyFilters() {
+        let filtered = [...allItems];
+
+        if (activeFilter !== 'all') {
+            filtered = filtered.filter(i => i._type === activeFilter);
+        }
+
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter(i =>
+                (i.name || i.title || '').toLowerCase().includes(q) ||
+                (i.description || i.text || '').toLowerCase().includes(q)
+            );
+        }
+
+        if (activeSort === 'price-asc') {
+            filtered.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+        } else if (activeSort === 'price-desc') {
+            filtered.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
+        } else if (activeSort === 'name-asc') {
+            filtered.sort((a, b) => (a.name || a.title || '').localeCompare(b.name || b.title || ''));
+        }
+
+        renderGrid(filtered);
+    }
+
+    // ── Filter tab clicks ──
+    document.querySelectorAll('.filter-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeFilter = btn.dataset.filter;
+            applyFilters();
+        });
+    });
+
+    // ── Search ──
+    document.getElementById('searchInput').addEventListener('input', e => {
+        searchQuery = e.target.value.trim();
+        applyFilters();
+    });
+
+    // ── Sort ──
+    document.getElementById('sortSelect').addEventListener('change', e => {
+        activeSort = e.target.value;
+        applyFilters();
+    });
+
+    // ── Fetch ──
+    async function loadCatalog() {
+        try {
+            const [srvRes, pkgRes, contentRes] = await Promise.all([
+                fetch(`${API_BASE}/catalog/services`),
+                fetch(`${API_BASE}/catalog/packages`),
+                fetch(`${API_BASE}/content`)
+            ]);
+
+            const [services, packages, content] = await Promise.all([
+                srvRes.ok ? srvRes.json() : [],
+                pkgRes.ok ? pkgRes.json() : [],
+                contentRes.ok ? contentRes.json() : {}
+            ]);
+
+            // Update logo if available
+            if (content.site_logo) {
+                const logo = document.getElementById('nav-logo');
+                if (logo) logo.src = content.site_logo;
+            }
+
+            const srvMapped = (services || []).map(i => ({ ...i, _type: 'service', name: i.name || i.title }));
+            const pkgMapped = (packages || []).map(i => ({ ...i, _type: 'package', name: i.name || i.title }));
+
+            allItems = [...srvMapped, ...pkgMapped];
+            applyFilters();
+        } catch (err) {
+            document.getElementById('catalogGrid').innerHTML =
+                `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Gagal memuat katalog. Silakan coba lagi.</p></div>`;
+            document.getElementById('resultsInfo').textContent = 'Terjadi kesalahan.';
+        }
+    }
+
+    loadCatalog();
+</script>
+</body>
+</html>
