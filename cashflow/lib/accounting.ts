@@ -318,6 +318,98 @@ export async function createTransaction(
 }
 
 /**
+ * UPDATE an existing double-entry transaction.
+ * 
+ * Process:
+ * 1. Validate entries (balance check, account existence)
+ * 2. Update transaction header
+ * 3. Delete existing journal entries for this transaction
+ * 4. Insert new journal entries
+ * 5. Verify final balance from DB
+ */
+export async function updateTransaction(
+  transactionId: string,
+  input: TransactionInput,
+  accounts: Account[]
+): Promise<void> {
+  // Step 1: Validate
+  const validation = validateJournalEntries(input.entries, accounts);
+  if (!validation.valid) {
+    throw new AccountingError(validation.error!, 'VALIDATION_FAILED');
+  }
+
+  // Step 2: Update transaction header
+  const { error: txError } = await supabase
+    .from('transactions')
+    .update({
+      description: input.description.trim(),
+      date: input.date,
+      receipt_url: input.receipt_url || null,
+      is_adjusting: input.is_adjusting || false,
+    })
+    .eq('id', transactionId);
+
+  if (txError) {
+    throw new AccountingError(
+      `Gagal memperbarui transaksi: ${txError.message}`,
+      'TX_UPDATE_FAILED'
+    );
+  }
+
+  // Step 3: Delete old journal entries
+  const { error: deleteError } = await supabase
+    .from('journal_entries')
+    .delete()
+    .eq('transaction_id', transactionId);
+
+  if (deleteError) {
+    throw new AccountingError(
+      `Gagal membersihkan jurnal lama: ${deleteError.message}`,
+      'JE_DELETE_FAILED'
+    );
+  }
+
+  // Step 4: Insert new journal entries
+  const journalRows = input.entries.map(e => ({
+    transaction_id: transactionId,
+    account_code: e.account_code,
+    debit: e.debit,
+    credit: e.credit,
+  }));
+
+  const { error: jeError } = await supabase
+    .from('journal_entries')
+    .insert(journalRows);
+
+  if (jeError) {
+    throw new AccountingError(
+      `Gagal menyimpan jurnal baru: ${jeError.message}`,
+      'JE_INSERT_FAILED'
+    );
+  }
+
+  // Step 5: Final verification
+  const { data: verifyData, error: verifyError } = await supabase
+    .from('journal_entries')
+    .select('debit, credit')
+    .eq('transaction_id', transactionId);
+
+  if (verifyError || !verifyData) {
+    throw new AccountingError('Gagal memverifikasi saldo jurnal setelah pembaruan.', 'VERIFY_FAILED');
+  }
+
+  const dbDebit = verifyData.reduce((s, r) => s + Number(r.debit), 0);
+  const dbCredit = verifyData.reduce((s, r) => s + Number(r.credit), 0);
+
+  if (Math.abs(dbDebit - dbCredit) > 0.001) {
+    throw new AccountingError(
+      `CRITICAL: Saldo jurnal tidak seimbang setelah update. D=${dbDebit}, C=${dbCredit}`,
+      'BALANCE_MISMATCH'
+    );
+  }
+}
+
+/**
  * DELETE a transaction and all its journal entries (cascade)
  */
 export async function deleteTransaction(transactionId: string): Promise<void> {

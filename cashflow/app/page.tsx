@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Account, TrialBalanceRow, Transaction, JournalEntryWithAccount, JournalEntryInput } from '../lib/supabase';
 import { supabase } from '../lib/supabase';
-import { fetchAccounts, fetchTrialBalance, fetchTransactionsWithEntries, createTransaction, deleteTransaction } from '../lib/accounting';
+import { fetchAccounts, fetchTrialBalance, fetchTransactionsWithEntries, createTransaction, deleteTransaction, updateTransaction } from '../lib/accounting';
 import ExcelExportButton from '../components/ExcelExportButton';
 import TransactionModal from '../components/TransactionModal';
 import Worksheet from '../components/Worksheet';
@@ -11,7 +11,7 @@ import ChartOfAccountsGrid from '../components/ChartOfAccountsGrid';
 import FixedAssetsGrid from '../components/FixedAssetsGrid';
 import LedgerByAccount from '../components/LedgerByAccount';
 import DashboardChart from '../components/DashboardChart';
-import { LayoutDashboard, BookOpen, BookText, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud } from 'lucide-react';
+import { LayoutDashboard, BookOpen, BookText, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud, Pencil } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 type Tab = 'dashboard' | 'ledger' | 'ledger-acc' | 'neraca' | 'adjusting' | 'worksheet' | 'accounts' | 'assets';
@@ -26,6 +26,7 @@ export default function CashflowDashboard() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showAdjModal, setShowAdjModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<TxWithEntries | null>(null);
   const [userRole, setUserRole] = useState<string>('guest');
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [authReady, setAuthReady] = useState(false);
@@ -209,6 +210,13 @@ export default function CashflowDashboard() {
 
   const handleCreateTx = async (data: { description: string; date: string; is_adjusting?: boolean; entries: JournalEntryInput[] }) => {
     await createTransaction({ ...data }, accounts);
+    await loadData();
+  };
+
+  const handleUpdateTx = async (data: { description: string; date: string; is_adjusting?: boolean; entries: JournalEntryInput[] }) => {
+    if (!editingTransaction) return;
+    await updateTransaction(editingTransaction.id, { ...data }, accounts);
+    setEditingTransaction(null);
     await loadData();
   };
 
@@ -466,9 +474,14 @@ export default function CashflowDashboard() {
                           ))}
                         </div>
                       </div>
-                      <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:bg-rose-500/10 p-1.5 rounded-md transition-colors shrink-0" title="Hapus">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <button onClick={() => setEditingTransaction(tx)} className="text-slate-400 hover:text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-500/10 p-1.5 rounded-md transition-colors" title="Ubah">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:bg-rose-500/10 p-1.5 rounded-md transition-colors" title="Hapus">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -582,9 +595,14 @@ export default function CashflowDashboard() {
                       <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{new Date(tx.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
                       <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{tx.description}</p>
                     </div>
-                    <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:bg-rose-500/10 p-2 rounded-lg transition-colors" title="Hapus transaksi">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setEditingTransaction(tx)} className="text-slate-400 hover:text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-500/10 p-2 rounded-lg transition-colors" title="Ubah transaksi">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:bg-rose-500/10 p-2 rounded-lg transition-colors" title="Hapus transaksi">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="p-5 overflow-x-auto">
                     <table className="w-full text-sm">
@@ -641,9 +659,14 @@ export default function CashflowDashboard() {
                       <p className="text-[11px] font-semibold text-amber-600/80">{new Date(tx.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
                       <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{tx.description}</p>
                     </div>
-                    <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:bg-rose-500/10 p-2 rounded-lg transition-colors" title="Hapus transaksi">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setEditingTransaction(tx)} className="text-slate-400 hover:text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-500/10 p-2 rounded-lg transition-colors" title="Ubah transaksi">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteTx(tx.id)} className="text-slate-400 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:bg-rose-500/10 p-2 rounded-lg transition-colors" title="Hapus transaksi">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="p-5 overflow-x-auto">
                     <table className="w-full text-sm">
@@ -684,6 +707,25 @@ export default function CashflowDashboard() {
 
       {showModal && <TransactionModal accounts={accounts} onSubmit={handleCreateTx} onClose={() => setShowModal(false)} />}
       {showAdjModal && <TransactionModal accounts={accounts} onSubmit={handleCreateTx} onClose={() => setShowAdjModal(false)} isAdjustingMode />}
+      {editingTransaction && (
+        <TransactionModal
+          accounts={accounts}
+          initialData={{
+            id: editingTransaction.id,
+            description: editingTransaction.description,
+            date: editingTransaction.date,
+            is_adjusting: editingTransaction.is_adjusting,
+            entries: editingTransaction.journal_entries.map(je => ({
+              account_code: je.account_code,
+              debit: je.debit,
+              credit: je.credit
+            }))
+          }}
+          onSubmit={handleUpdateTx}
+          onClose={() => setEditingTransaction(null)}
+          isAdjustingMode={editingTransaction.is_adjusting}
+        />
+      )}
     </div>
   );
 }

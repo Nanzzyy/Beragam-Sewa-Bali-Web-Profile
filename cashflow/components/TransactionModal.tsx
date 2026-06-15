@@ -10,17 +10,26 @@ interface Props {
   onSubmit: (data: { description: string; date: string; is_adjusting?: boolean; entries: JournalEntryInput[] }) => Promise<void>;
   onClose: () => void;
   isAdjustingMode?: boolean;
+  initialData?: {
+    id: string;
+    description: string;
+    date: string;
+    is_adjusting?: boolean;
+    entries: JournalEntryInput[];
+  };
 }
 
 const EMPTY_ENTRY: JournalEntryInput = { account_code: '', debit: 0, credit: 0 };
 
-export default function TransactionModal({ accounts, onSubmit, onClose, isAdjustingMode = false }: Props) {
-  const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [entries, setEntries] = useState<JournalEntryInput[]>([
-    { ...EMPTY_ENTRY },
-    { ...EMPTY_ENTRY },
-  ]);
+export default function TransactionModal({ accounts, onSubmit, onClose, isAdjustingMode = false, initialData }: Props) {
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [date, setDate] = useState(initialData?.date ? initialData.date.substring(0, 10) : new Date().toISOString().split('T')[0]);
+  const [entries, setEntries] = useState<JournalEntryInput[]>(
+    initialData?.entries || [
+      { ...EMPTY_ENTRY },
+      { ...EMPTY_ENTRY },
+    ]
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -91,7 +100,11 @@ export default function TransactionModal({ accounts, onSubmit, onClose, isAdjust
       >
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/50">
           <div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg">{isAdjustingMode ? 'Jurnal Penyesuaian Baru' : 'Jurnal Umum Baru'}</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">
+              {initialData 
+                ? (isAdjustingMode ? 'Edit Jurnal Penyesuaian' : 'Edit Jurnal Umum') 
+                : (isAdjustingMode ? 'Jurnal Penyesuaian Baru' : 'Jurnal Umum Baru')}
+            </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Double-entry — Debit harus sama dengan Credit</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg transition-colors">

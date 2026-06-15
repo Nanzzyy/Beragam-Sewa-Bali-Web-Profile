@@ -319,7 +319,7 @@ DROP POLICY IF EXISTS "transactions_delete_policy" ON public.transactions;
 CREATE POLICY "transactions_delete_policy"
 ON public.transactions FOR DELETE TO authenticated
 USING (
-  public.get_user_role() = 'owner'
+  public.get_user_role() IN ('owner', 'accounting')
   OR
   (public.get_user_role() = 'guest' AND created_by = auth.uid())
 );
@@ -351,7 +351,7 @@ DROP POLICY IF EXISTS "journal_entries_delete_policy" ON public.journal_entries;
 CREATE POLICY "journal_entries_delete_policy"
 ON public.journal_entries FOR DELETE TO authenticated
 USING (
-  public.get_user_role() = 'owner'
+  public.get_user_role() IN ('owner', 'accounting')
   OR
   (public.get_user_role() = 'guest' AND transaction_id IN (
     SELECT id FROM public.transactions WHERE created_by = auth.uid()
