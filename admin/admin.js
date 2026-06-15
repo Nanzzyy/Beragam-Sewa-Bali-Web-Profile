@@ -81,6 +81,9 @@ function openMobileDrawer() {
     const drawer = el('mobile-menu-drawer');
     const content = el('mobile-menu-content');
     if (drawer && content) {
+        drawer.style.display = 'block';
+        // Force reflow to allow transition to run
+        drawer.offsetHeight;
         drawer.classList.remove('pointer-events-none', 'opacity-0');
         content.classList.remove('-translate-x-full');
     }
@@ -92,6 +95,11 @@ function closeMobileDrawer() {
     if (drawer && content) {
         drawer.classList.add('pointer-events-none', 'opacity-0');
         content.classList.add('-translate-x-full');
+        setTimeout(() => {
+            if (drawer.classList.contains('opacity-0')) {
+                drawer.style.display = 'none';
+            }
+        }, 300);
     }
 }
 
@@ -173,7 +181,7 @@ function renderCards(id, items, section) {
             <!-- Kotak Preview Kartu Seragam -->
             <div class="relative aspect-video overflow-hidden bg-gray-100">
                 <img src="${item.image_url}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
-                <div class="absolute inset-0 bg-brand-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <div class="absolute inset-0 bg-brand-dark/40 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-center justify-center gap-3">
                     ${section !== 'gallery' ? `<button type="button" class="btn-edit w-10 h-10 bg-white text-blue-600 rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform" data-id="${item.id}" data-section="${section}"><i class="fa-solid fa-pen-to-square"></i></button>` : ''}
                     <button type="button" class="btn-delete w-10 h-10 bg-white text-brand-red rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform" data-id="${item.id}" data-section="${section}"><i class="fa-solid fa-trash"></i></button>
                 </div>
@@ -184,7 +192,13 @@ function renderCards(id, items, section) {
                     ${section !== 'gallery' && (item.section_key === 'catalog_service' || item.section_key === 'catalog_package') ? '<span class="text-[9px] bg-brand-red/10 text-brand-red px-2 py-0.5 rounded font-bold whitespace-nowrap ml-2">Katalog Only</span>' : ''}
                 </div>
                 ${section !== 'gallery' ? `<p class="text-[10px] text-gray-400 line-clamp-1 italic mb-1">${item.text || item.description || ''}</p>` : ''}
-                ${section !== 'gallery' && item.price ? `<p class="text-[11px] font-bold text-brand-red">${window.formatPriceLabel ? window.formatPriceLabel(item.price) : item.price} <span class="text-[9px] text-gray-500">${item.price_unit || ''}</span></p>` : ''}
+                ${section !== 'gallery' && item.price ? `<p class="text-[11px] font-bold text-brand-red mb-2">${window.formatPriceLabel ? window.formatPriceLabel(item.price) : item.price} <span class="text-[9px] text-gray-500">${item.price_unit || ''}</span></p>` : ''}
+                
+                <!-- Action row always visible on mobile, hidden on desktop -->
+                <div class="flex items-center gap-2 mt-3 md:hidden border-t border-black/5 pt-3">
+                    ${section !== 'gallery' ? `<button type="button" class="btn-edit flex-1 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center gap-1.5 text-[10px] font-bold transition-all" data-id="${item.id}" data-section="${section}"><i class="fa-solid fa-pen-to-square"></i> Edit</button>` : ''}
+                    <button type="button" class="btn-delete flex-1 py-2 px-3 bg-red-50 hover:bg-red-100 text-brand-red rounded-xl flex items-center justify-center gap-1.5 text-[10px] font-bold transition-all" data-id="${item.id}" data-section="${section}"><i class="fa-solid fa-trash"></i> Hapus</button>
+                </div>
             </div>
         `;
         list.appendChild(d);
