@@ -12,6 +12,21 @@ async function loadDetail() {
     const params = new URLSearchParams(window.location.search);
     const type = params.get('type'); // service | package
     const id = params.get('id');
+    const source = params.get('source'); // home | katalog
+
+    const backBtn = document.getElementById('back-btn');
+    const backText = document.getElementById('back-text');
+    if (backBtn && backText) {
+        if (source === 'katalog') {
+            backBtn.href = 'https://katalog.beragamsewabali.com';
+            backText.textContent = 'Kembali ke Katalog';
+            backText.setAttribute('data-i18n', 'back_to_catalog');
+        } else {
+            backBtn.href = '/';
+            backText.textContent = 'Kembali ke Beranda';
+            backText.setAttribute('data-i18n', 'back_to_home');
+        }
+    }
 
     const skeleton = document.getElementById('detail-skeleton');
     const content = document.getElementById('detail-content');

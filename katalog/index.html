@@ -443,7 +443,7 @@
             const badgeLabel = type === 'service' ? 'Layanan' : 'Paket';
             const priceHTML = buildPriceLabel(item);
             const waMsg = encodeURIComponent(`Halo, saya tertarik dengan ${item.name || item.title || 'unit ini'}. Bisa info lebih lanjut?`);
-            const detailUrl = `https://beragamsewabali.com/detail.html?type=${type}&id=${item.id}`;
+            const detailUrl = `https://beragamsewabali.com/detail.html?type=${type}&id=${item.id}&source=katalog`;
             const imgSrc = item.image_url || 'https://picsum.photos/seed/' + item.id + '/600/375';
 
             return `
