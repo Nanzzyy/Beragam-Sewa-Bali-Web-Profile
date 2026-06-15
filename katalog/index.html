@@ -536,27 +536,19 @@
         }
 
         try {
-            const [srvRes, pkgRes, contentRes] = await Promise.all([
-                fetch(`${API_BASE}/catalog/services`),
-                fetch(`${API_BASE}/catalog/packages`),
-                fetch(`${API_BASE}/content`)
-            ]);
-
-            const [services, packages, content] = await Promise.all([
-                srvRes.ok ? srvRes.json() : [],
-                pkgRes.ok ? pkgRes.json() : [],
-                contentRes.ok ? contentRes.json() : {}
-            ]);
+            const res = await fetch(`${API_BASE}/catalog/data`);
+            if (!res.ok) throw new Error('Network response was not ok');
+            const data = await res.json();
 
             let siteLogo = '';
-            if (content.site_logo) {
+            if (data.site_logo) {
                 const logo = document.getElementById('nav-logo');
-                if (logo) logo.src = content.site_logo;
-                siteLogo = content.site_logo;
+                if (logo) logo.src = data.site_logo;
+                siteLogo = data.site_logo;
             }
 
-            const srvMapped = (services || []).map(i => ({ ...i, _type: 'service', name: i.name || i.title }));
-            const pkgMapped = (packages || []).map(i => ({ ...i, _type: 'package', name: i.name || i.title }));
+            const srvMapped = (data.services || []).map(i => ({ ...i, _type: 'service', name: i.name || i.title }));
+            const pkgMapped = (data.packages || []).map(i => ({ ...i, _type: 'package', name: i.name || i.title }));
 
             allItems = [...srvMapped, ...pkgMapped];
             applyFilters();

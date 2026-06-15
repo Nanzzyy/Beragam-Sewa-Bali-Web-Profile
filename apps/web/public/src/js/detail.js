@@ -44,7 +44,7 @@ async function loadDetail() {
 
         // Load Global Content for Logo
         try {
-            const contentRes = await fetch(`${API_BASE}/content`);
+            const contentRes = await fetch(`${API_BASE}/site/logo`);
             if (contentRes.ok) {
                 const contentData = await contentRes.json();
                 if (contentData.site_logo) {
@@ -57,7 +57,7 @@ async function loadDetail() {
                     }
                 }
             }
-        } catch (e) { console.warn('Global content fetch failed'); }
+        } catch (e) { console.warn('Logo fetch failed'); }
 
         renderData(data, type);
     } catch (err) {

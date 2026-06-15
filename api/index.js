@@ -591,20 +591,52 @@ app.get('/api/catalog/services', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/catalog/packages — semua paket + harga untuk halaman katalog
-app.get('/api/catalog/packages', async (req, res) => {
+// GET /api/catalog/data — gabungan layanan, paket, dan logo dalam satu request
+app.get('/api/catalog/data', async (req, res) => {
     try {
-        const r = await db.query(
-            `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
-                    cp.price, cp.price_unit
-             FROM section_images si
-             LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'package'
-             WHERE si.section_key IN ('package', 'catalog_package')
-             ORDER BY si.id DESC`
-        );
+        const [servicesRes, packagesRes, logoRes] = await Promise.all([
+            db.query(
+                `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
+                        cp.price, cp.price_unit
+                 FROM section_images si
+                 LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'service'
+                 WHERE si.section_key IN ('service', 'catalog_service')
+                 ORDER BY si.id DESC`
+            ),
+            db.query(
+                `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
+                        cp.price, cp.price_unit
+                 FROM section_images si
+                 LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'package'
+                 WHERE si.section_key IN ('package', 'catalog_package')
+                 ORDER BY si.id DESC`
+            ),
+            db.query("SELECT content_value FROM site_content WHERE content_key = 'site_logo' LIMIT 1")
+        ]);
+
+        const logoUrl = logoRes.rows.length > 0 ? logoRes.rows[0].content_value : '';
+
         res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+        res.json({
+            services: servicesRes.rows,
+            packages: packagesRes.rows,
+            site_logo: logoUrl
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// GET /api/site/logo — hanya mengambil logo tanpa data content yang besar
+app.get('/api/site/logo', async (req, res) => {
+    try {
+        const result = await db.query("SELECT content_value FROM site_content WHERE content_key = 'site_logo' LIMIT 1");
+        const logoUrl = result.rows.length > 0 ? result.rows[0].content_value : '';
+        res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+        res.json({ site_logo: logoUrl });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // ── Admin: Set/Update harga item katalog ──────────────────────────────────────
