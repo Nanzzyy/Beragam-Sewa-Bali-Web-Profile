@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@source "../**/*.html";
+@source "../**/*.js";
+@source "../../apps/web/public/**/*.html";
+@source "../../apps/web/public/**/*.js";
 
 @custom-variant dark (&:is(.dark *));
 
