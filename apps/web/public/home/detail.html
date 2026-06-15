@@ -10,6 +10,44 @@
     <link rel="stylesheet" href="./src/style/output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Instant Site Logo & Favicon Loader (from Supabase via Cache) -->
+    <script>
+        (function() {
+            const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : '';
+            const cachedLogo = localStorage.getItem('bsb_site_logo');
+            if (cachedLogo) applyLogo(cachedLogo);
+            fetch(API + '/api/site/logo')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.site_logo) {
+                        localStorage.setItem('bsb_site_logo', data.site_logo);
+                        applyLogo(data.site_logo);
+                    }
+                })
+                .catch(err => console.warn('Failed to load site logo', err));
+            function applyLogo(url) {
+                const logoUrl = url + '?t=' + new Date().getDate();
+                let favicon = document.getElementById('favicon');
+                if (!favicon) {
+                    favicon = document.createElement('link');
+                    favicon.id = 'favicon';
+                    favicon.rel = 'icon';
+                    favicon.type = 'image/png';
+                    document.head.appendChild(favicon);
+                }
+                if (favicon.href !== logoUrl) favicon.href = logoUrl;
+                const updateDOM = () => {
+                    ['login-logo', 'nav-logo', 'footer-logo', 'admin-site-logo-preview'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && el.src !== url) el.src = url;
+                    });
+                };
+                if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateDOM);
+                else updateDOM();
+            }
+        })();
+    </script>
 </head>
 <body class="font-outfit bg-bg-base text-text-body antialiased">
 
