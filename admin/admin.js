@@ -24,6 +24,9 @@ function openModal(type, item = null) {
         el('modal-title-input').value = item.title || item.name || '';
         el('modal-text-input').value = item.text || item.description || '';
         el('modal-long-text-input').value = item.long_text || '';
+        if (el('modal-catalog-only-input')) el('modal-catalog-only-input').checked = (item.section_key === 'catalog_service' || item.section_key === 'catalog_package');
+    } else {
+        if (el('modal-catalog-only-input')) el('modal-catalog-only-input').checked = false;
     }
     
     modal.style.display = 'flex';
@@ -35,37 +38,50 @@ function closeModal() {
 }
 
 // ── Data Loading ──────────────────────────────────────────────
+async function loadSection(section) {
+    try {
+        if (section === 'hero') {
+            const hero = await fetch(`${API_URL}/hero`, FETCH_OPTS).then(r => r.json());
+            if(el('hero-title-input')) el('hero-title-input').value = hero.title || '';
+            if(el('hero-subtitle-input')) el('hero-subtitle-input').value = hero.subtitle || '';
+            renderImages('hero-slider-list', hero.images, 'hero');
+        } else if (section === 'about') {
+            const about = await fetch(`${API_URL}/about`, FETCH_OPTS).then(r => r.json());
+            if(el('about-title-input')) el('about-title-input').value = about.title || '';
+            if(el('about-text-input')) el('about-text-input').value = about.text || '';
+            renderImages('about-carousel-list', about.images, 'about');
+        } else if (section === 'service') {
+            const srv = await fetch(`${API_URL}/services`, FETCH_OPTS).then(r => r.json());
+            renderCards('services-list', srv, 'service');
+        } else if (section === 'package') {
+            const pkg = await fetch(`${API_URL}/packages`, FETCH_OPTS).then(r => r.json());
+            renderCards('packages-list', pkg, 'package');
+        } else if (section === 'gallery') {
+            const gal = await fetch(`${API_URL}/gallery`, FETCH_OPTS).then(r => r.json());
+            renderCards('gallery-list', gal, 'gallery');
+        } else if (section === 'content') {
+            const content = await fetch(`${API_URL}/content`, FETCH_OPTS).then(r => r.json());
+            if (content.site_logo) {
+                const logoUrl = content.site_logo + '?t=' + new Date().getTime();
+                if (el('admin-site-logo-preview')) el('admin-site-logo-preview').src = content.site_logo;
+                if (el('login-logo')) el('login-logo').src = content.site_logo;
+                if (el('nav-logo')) el('nav-logo').src = content.site_logo;
+                if (el('favicon')) el('favicon').href = logoUrl;
+            }
+        }
+    } catch (e) { console.error(`Error loading section ${section}:`, e); }
+}
+
 async function loadAll() {
     try {
-        const [hero, about, srv, pkg, gal, content] = await Promise.all([
-            fetch(`${API_URL}/hero`, FETCH_OPTS).then(r => r.json()),
-            fetch(`${API_URL}/about`, FETCH_OPTS).then(r => r.json()),
-            fetch(`${API_URL}/services`, FETCH_OPTS).then(r => r.json()),
-            fetch(`${API_URL}/packages`, FETCH_OPTS).then(r => r.json()),
-            fetch(`${API_URL}/gallery`, FETCH_OPTS).then(r => r.json()),
-            fetch(`${API_URL}/content`, FETCH_OPTS).then(r => r.json())
+        await Promise.all([
+            loadSection('hero'),
+            loadSection('about'),
+            loadSection('service'),
+            loadSection('package'),
+            loadSection('gallery'),
+            loadSection('content')
         ]);
-
-        if(el('hero-title-input')) el('hero-title-input').value = hero.title || '';
-        if(el('hero-subtitle-input')) el('hero-subtitle-input').value = hero.subtitle || '';
-        renderImages('hero-slider-list', hero.images, 'hero');
-
-        if(el('about-title-input')) el('about-title-input').value = about.title || '';
-        if(el('about-text-input')) el('about-text-input').value = about.text || '';
-        renderImages('about-carousel-list', about.images, 'about');
-
-        renderCards('services-list', srv, 'service');
-        renderCards('packages-list', pkg, 'package');
-        renderCards('gallery-list', gal, 'gallery');
-
-        if (content.site_logo) {
-            const logoUrl = content.site_logo + '?t=' + new Date().getTime();
-            if (el('admin-site-logo-preview')) el('admin-site-logo-preview').src = content.site_logo;
-            if (el('login-logo')) el('login-logo').src = content.site_logo;
-            if (el('nav-logo')) el('nav-logo').src = content.site_logo;
-            if (el('favicon')) el('favicon').href = logoUrl;
-        }
-
     } catch (e) { console.error('Data Sync Error'); }
 }
 
@@ -106,7 +122,10 @@ function renderCards(id, items, section) {
                 </div>
             </div>
             <div class="p-5">
-                <h6 class="font-bold text-gray-800 text-xs truncate mb-1">${item.title || item.name || 'Untitled'}</h6>
+                <div class="flex justify-between items-center mb-1">
+                    <h6 class="font-bold text-gray-800 text-xs truncate flex-1">${item.title || item.name || 'Untitled'}</h6>
+                    ${section !== 'gallery' && (item.section_key === 'catalog_service' || item.section_key === 'catalog_package') ? '<span class="text-[9px] bg-brand-red/10 text-brand-red px-2 py-0.5 rounded font-bold whitespace-nowrap ml-2">Katalog Only</span>' : ''}
+                </div>
                 ${section !== 'gallery' ? `<p class="text-[10px] text-gray-400 line-clamp-1 italic">${item.text || item.description || ''}</p>` : ''}
             </div>
         `;
@@ -136,7 +155,7 @@ document.addEventListener('click', async (e) => {
         const { id, section } = delBtn.dataset;
         if (!confirm('Hapus item ini selamanya?')) return;
         await fetch(section === 'hero' ? `${API_URL}/hero/image/${id}` : section === 'about' ? `${API_URL}/about/image/${id}` : section === 'gallery' ? `${API_URL}/gallery/${id}` : `${API_URL}/${section}s/${id}`, { ...FETCH_OPTS, method: 'DELETE' });
-        loadAll();
+        loadSection(section);
         return;
     }
 
@@ -167,7 +186,7 @@ document.addEventListener('click', async (e) => {
             tBtn.textContent = 'Upload Success';
             setTimeout(() => {
                 tBtn.textContent = tBtn.id === 'btn-upload-logo' ? 'Update Site Logo' : (tBtn.id === 'btn-upload-hero' ? 'Update Hero Image' : 'Update About Image');
-                loadAll();
+                loadSection(tBtn.id === 'btn-upload-logo' ? 'content' : (tBtn.id === 'btn-upload-hero' ? 'hero' : 'about'));
             }, 2000);
         } catch (err) {
             alert(err.message);
@@ -187,7 +206,7 @@ document.addEventListener('click', async (e) => {
         t.disabled = true; t.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading';
         await fetch(`${API_URL}/gallery`, { ...FETCH_OPTS, method: 'POST', body: fd });
         el('gallery-image-upload').value = ''; t.disabled = false; t.textContent = 'Upload Success';
-        loadAll();
+        loadSection('gallery');
     }
 });
 
@@ -211,10 +230,13 @@ document.addEventListener('submit', async (e) => {
             fd.append('title', el('modal-title-input').value);
             fd.append('text', el('modal-text-input').value);
             fd.append('long_text', el('modal-long-text-input').value);
+            if (el('modal-catalog-only-input')) {
+                fd.append('is_catalog_only', el('modal-catalog-only-input').checked ? 'true' : 'false');
+            }
             if(el('modal-image-input').files[0]) fd.append('image', el('modal-image-input').files[0]);
             await fetch(id ? `${API_URL}/${type}s/${id}` : `${API_URL}/${type}s`, { ...FETCH_OPTS, method: id ? 'PUT' : 'POST', body: fd });
             closeModal();
-            loadAll();
+            loadSection(type);
         }
     } catch (e) { alert('Operation Failed'); }
     if(btn) btn.disabled = false;

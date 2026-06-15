@@ -176,6 +176,7 @@ app.get('/api/content', async (req, res) => {
         const siteContent = texts.rows.reduce((a, r) => ({ ...a, [r.content_key]: r.content_value }), {});
         const groupedImages = images.rows.reduce((acc, img) => {
             let key = img.section_key;
+            if (key === 'catalog_service' || key === 'catalog_package') return acc;
             if (key === 'service' || key === 'package') key = `${key}s`;
             if (!acc[key]) acc[key] = [];
             acc[key].push(key.endsWith('s')
@@ -305,7 +306,7 @@ app.delete('/api/about/image/:id', requireAdmin, async (req, res) => {
 // GET /api/services
 app.get('/api/services', async (req, res) => {
     try {
-        const r = await db.query("SELECT * FROM section_images WHERE section_key='service' ORDER BY id DESC");
+        const r = await db.query("SELECT * FROM section_images WHERE section_key IN ('service', 'catalog_service') ORDER BY id DESC");
         res.json(r.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -316,7 +317,7 @@ app.get('/api/services/:id', async (req, res) => {
         const r = await db.query('SELECT * FROM section_images WHERE id=$1', [req.params.id]);
         if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });
         const row = r.rows[0];
-        res.json({ id: row.id, name: row.title, description: row.text, long_text: row.long_text, image_url: row.image_url });
+        res.json({ id: row.id, name: row.title, description: row.text, long_text: row.long_text, image_url: row.image_url, section_key: row.section_key });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -327,9 +328,10 @@ app.post('/api/services', requireAdmin, async (req, res) => {
         let url = null;
         const file = files.find(f => f.fieldname === 'image');
         if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'services');
+        const sectionKey = fields.is_catalog_only === 'true' ? 'catalog_service' : 'service';
         await db.query(
-            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES('service',$1,$2,$3,$4)",
-            [fields.title, fields.text, fields.long_text, url]
+            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES($1,$2,$3,$4,$5)",
+            [sectionKey, fields.title, fields.text, fields.long_text, url]
         );
         res.json({ message: 'Created' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -342,10 +344,11 @@ app.put('/api/services/:id', requireAdmin, async (req, res) => {
         let url = null;
         const file = files.find(f => f.fieldname === 'image');
         if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'services');
+        const sectionKey = fields.is_catalog_only === 'true' ? 'catalog_service' : 'service';
         const query = url
-            ? 'UPDATE section_images SET title=$1,text=$2,long_text=$3,image_url=$4 WHERE id=$5'
-            : 'UPDATE section_images SET title=$1,text=$2,long_text=$3 WHERE id=$4';
-        const params = url ? [fields.title, fields.text, fields.long_text, url, req.params.id] : [fields.title, fields.text, fields.long_text, req.params.id];
+            ? 'UPDATE section_images SET section_key=$1,title=$2,text=$3,long_text=$4,image_url=$5 WHERE id=$6'
+            : 'UPDATE section_images SET section_key=$1,title=$2,text=$3,long_text=$4 WHERE id=$5';
+        const params = url ? [sectionKey, fields.title, fields.text, fields.long_text, url, req.params.id] : [sectionKey, fields.title, fields.text, fields.long_text, req.params.id];
         await db.query(query, params);
         res.json({ message: 'Updated' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -362,7 +365,7 @@ app.delete('/api/services/:id', requireAdmin, async (req, res) => {
 // GET /api/packages
 app.get('/api/packages', async (req, res) => {
     try {
-        const r = await db.query("SELECT * FROM section_images WHERE section_key='package' ORDER BY id DESC");
+        const r = await db.query("SELECT * FROM section_images WHERE section_key IN ('package', 'catalog_package') ORDER BY id DESC");
         res.json(r.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -373,7 +376,7 @@ app.get('/api/packages/:id', async (req, res) => {
         const r = await db.query('SELECT * FROM section_images WHERE id=$1', [req.params.id]);
         if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });
         const row = r.rows[0];
-        res.json({ id: row.id, name: row.title, description: row.text, long_text: row.long_text, image_url: row.image_url });
+        res.json({ id: row.id, name: row.title, description: row.text, long_text: row.long_text, image_url: row.image_url, section_key: row.section_key });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -384,9 +387,10 @@ app.post('/api/packages', requireAdmin, async (req, res) => {
         let url = null;
         const file = files.find(f => f.fieldname === 'image');
         if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'packages');
+        const sectionKey = fields.is_catalog_only === 'true' ? 'catalog_package' : 'package';
         await db.query(
-            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES('package',$1,$2,$3,$4)",
-            [fields.title, fields.text, fields.long_text, url]
+            "INSERT INTO section_images(section_key,title,text,long_text,image_url) VALUES($1,$2,$3,$4,$5)",
+            [sectionKey, fields.title, fields.text, fields.long_text, url]
         );
         res.json({ message: 'Created' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -399,10 +403,11 @@ app.put('/api/packages/:id', requireAdmin, async (req, res) => {
         let url = null;
         const file = files.find(f => f.fieldname === 'image');
         if (file) url = await uploadToSupabase(file.buffer, file.mimetype, 'packages');
+        const sectionKey = fields.is_catalog_only === 'true' ? 'catalog_package' : 'package';
         const query = url
-            ? 'UPDATE section_images SET title=$1,text=$2,long_text=$3,image_url=$4 WHERE id=$5'
-            : 'UPDATE section_images SET title=$1,text=$2,long_text=$3 WHERE id=$4';
-        const params = url ? [fields.title, fields.text, fields.long_text, url, req.params.id] : [fields.title, fields.text, fields.long_text, req.params.id];
+            ? 'UPDATE section_images SET section_key=$1,title=$2,text=$3,long_text=$4,image_url=$5 WHERE id=$6'
+            : 'UPDATE section_images SET section_key=$1,title=$2,text=$3,long_text=$4 WHERE id=$5';
+        const params = url ? [sectionKey, fields.title, fields.text, fields.long_text, url, req.params.id] : [sectionKey, fields.title, fields.text, fields.long_text, req.params.id];
         await db.query(query, params);
         res.json({ message: 'Updated' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -462,7 +467,7 @@ app.get('/api/catalog/services', async (req, res) => {
                     cp.price, cp.price_unit
              FROM section_images si
              LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'service'
-             WHERE si.section_key = 'service'
+             WHERE si.section_key IN ('service', 'catalog_service')
              ORDER BY si.id DESC`
         );
         res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
@@ -478,7 +483,7 @@ app.get('/api/catalog/packages', async (req, res) => {
                     cp.price, cp.price_unit
              FROM section_images si
              LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'package'
-             WHERE si.section_key = 'package'
+             WHERE si.section_key IN ('package', 'catalog_package')
              ORDER BY si.id DESC`
         );
         res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');

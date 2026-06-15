@@ -131,11 +131,17 @@ async function initializePage() {
                             <div class="p-8">
                                 <h5 class="text-xl font-bold text-brand-dark mb-3 group-hover:text-brand-red transition-colors">${item.name || ''}</h5>
                                 <p class="text-sm text-text-muted leading-relaxed mb-8 line-clamp-2">${item.description || ''}</p>
-                                <a href="detail.html?type=${type}&id=${item.id}" 
-                                   class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-red group/btn">
-                                    <span data-i18n="btn_details">Details Explore</span>
-                                    <i class="fa-solid fa-arrow-right-long transition-transform group-hover/btn:translate-x-1"></i>
-                                </a>
+                                <div class="flex items-center justify-between mt-4">
+                                    <a href="detail.html?type=${type}&id=${item.id}" 
+                                       class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-red group/btn">
+                                        <span data-i18n="btn_details">Details Explore</span>
+                                        <i class="fa-solid fa-arrow-right-long transition-transform group-hover/btn:translate-x-1"></i>
+                                    </a>
+                                    <a href="https://katalog.beragamsewabali.com" target="_blank"
+                                       class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-text-primary hover:text-brand-red transition-colors">
+                                        <span>Jelajahi Katalog</span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
