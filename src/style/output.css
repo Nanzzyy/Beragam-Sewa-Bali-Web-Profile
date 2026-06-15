@@ -506,6 +506,9 @@
   .mx-auto {
     margin-inline: auto;
   }
+  .my-8 {
+    margin-block: calc(var(--spacing) * 8);
+  }
   .mt-0\.5 {
     margin-top: calc(var(--spacing) * 0.5);
   }
@@ -3297,6 +3300,11 @@
       line-height: var(--tw-leading, var(--text-xl--line-height));
     }
   }
+  .md\:my-0 {
+    @media (width >= 48rem) {
+      margin-block: calc(var(--spacing) * 0);
+    }
+  }
   .md\:mb-10 {
     @media (width >= 48rem) {
       margin-bottom: calc(var(--spacing) * 10);
@@ -4318,8 +4326,9 @@
     inset: calc(var(--spacing) * 0);
     z-index: 9999;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    overflow-y: auto;
     background-color: color-mix(in srgb, #1a1a2e 70%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-brand-dark) 70%, transparent);
@@ -4328,8 +4337,15 @@
     --tw-backdrop-blur: blur(var(--blur-md));
     -webkit-backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
     backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+    @media (width >= 48rem) {
+      align-items: center;
+    }
+    @media (width >= 48rem) {
+      padding: calc(var(--spacing) * 10);
+    }
   }
   .modal-box {
+    margin-block: calc(var(--spacing) * 8);
     width: 100%;
     max-width: var(--container-lg);
     animation: var(--animate-fade-in);
@@ -4338,6 +4354,9 @@
     background-color: var(--color-white);
     --tw-shadow: 0 25px 50px -12px var(--tw-shadow-color, rgb(0 0 0 / 0.25));
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    @media (width >= 48rem) {
+      margin-block: calc(var(--spacing) * 0);
+    }
   }
   .detail-card {
     overflow: hidden;
