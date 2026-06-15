@@ -186,6 +186,16 @@
                         <option value="catalog_package">Package</option>
                     </select>
                 </div>
+                <div class="mb-6 flex flex-col sm:flex-row gap-6">
+                    <div class="flex-1">
+                        <label class="input-label">Harga Item (Opsional)</label>
+                        <input type="text" id="modal-price-input" class="input-control" placeholder="Rp 1.000.000" oninput="formatRupiah(this)">
+                    </div>
+                    <div class="flex-1">
+                        <label class="input-label">Satuan Harga (Opsional)</label>
+                        <input type="text" id="modal-price-unit-input" class="input-control" placeholder="Misal: / hari">
+                    </div>
+                </div>
                 <div class="mb-10">
                     <label class="input-label">Display Media</label>
                     <input type="file" id="modal-image-input" class="block w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-brand-dark">

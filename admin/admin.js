@@ -24,10 +24,25 @@ function openModal(type, item = null) {
         el('modal-title-input').value = item.title || item.name || '';
         el('modal-text-input').value = item.text || item.description || '';
         el('modal-long-text-input').value = item.long_text || '';
+        
+        if (item.price) {
+            el('modal-price-input').value = item.price.toString();
+            if (window.formatRupiah) window.formatRupiah(el('modal-price-input'));
+        } else {
+            el('modal-price-input').value = '';
+        }
+        el('modal-price-unit-input').value = item.price_unit || '';
+
         if (type === 'katalog' && el('modal-katalog-type-input')) {
             el('modal-katalog-type-input').value = item.section_key || 'catalog_service';
         }
     } else {
+        el('modal-title-input').value = '';
+        el('modal-text-input').value = '';
+        el('modal-long-text-input').value = '';
+        if(el('modal-price-input')) el('modal-price-input').value = '';
+        if(el('modal-price-unit-input')) el('modal-price-unit-input').value = '';
+
         if (type === 'katalog' && el('modal-katalog-type-input')) {
             el('modal-katalog-type-input').value = 'catalog_service';
         }
@@ -245,6 +260,9 @@ document.addEventListener('submit', async (e) => {
             fd.append('title', el('modal-title-input').value);
             fd.append('text', el('modal-text-input').value);
             fd.append('long_text', el('modal-long-text-input').value);
+            if(el('modal-price-input')) fd.append('price', el('modal-price-input').value);
+            if(el('modal-price-unit-input')) fd.append('price_unit', el('modal-price-unit-input').value);
+
             if (type === 'katalog' && el('modal-katalog-type-input')) {
                 fd.append('item_type', el('modal-katalog-type-input').value);
             }
@@ -259,3 +277,19 @@ document.addEventListener('submit', async (e) => {
 
 window.initAdmin = loadAll;
 window.loadAllData = loadAll;
+
+window.formatRupiah = function(input) {
+    let value = input.value.replace(/[^,\d]/g, '').toString();
+    let split = value.split(',');
+    let sisa = split[0].length % 3;
+    let rupiah = split[0].substr(0, sisa);
+    let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+    if (ribuan) {
+        let separator = sisa ? '.' : '';
+        rupiah += separator + ribuan.join('.');
+    }
+
+    rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+    input.value = rupiah ? 'Rp ' + rupiah : '';
+};

@@ -417,8 +417,6 @@
         if (!price && price !== 0) return null;
         const num = parseFloat(price);
         if (isNaN(num)) return null;
-        if (num >= 1000000) return 'Rp ' + (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1) + 'Jt';
-        if (num >= 1000) return 'Rp ' + (num / 1000).toFixed(0) + 'K';
         return 'Rp ' + num.toLocaleString('id-ID');
     }
 
