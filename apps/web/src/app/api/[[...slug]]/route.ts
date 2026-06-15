@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_KEY || ''
-);
+export const dynamic = 'force-dynamic';
+
+const supabaseUrl = process.env.SUPABASE_URL || 'https://xyz.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || 'dummy';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function upsertContent(key: string, value: string) {
     const upd = await db.query(
@@ -38,9 +39,10 @@ function requireAdmin(req: NextRequest) {
     }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug?: string[] }> }) {
     try {
-        const slug = params.slug || [];
+        const resolvedParams = await params;
+        const slug = resolvedParams.slug || [];
         const path = '/' + slug.join('/');
 
         if (path === '/health') {
@@ -156,9 +158,10 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
     }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ slug?: string[] }> }) {
     try {
-        const slug = params.slug || [];
+        const resolvedParams = await params;
+        const slug = resolvedParams.slug || [];
         const path = '/' + slug.join('/');
 
         if (path === '/admin/login') {
@@ -281,9 +284,10 @@ export async function POST(req: NextRequest, { params }: { params: { slug?: stri
     }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ slug?: string[] }> }) {
     try {
-        const slug = params.slug || [];
+        const resolvedParams = await params;
+        const slug = resolvedParams.slug || [];
         const path = '/' + slug.join('/');
         requireAdmin(req);
 
@@ -334,9 +338,10 @@ export async function PUT(req: NextRequest, { params }: { params: { slug?: strin
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ slug?: string[] }> }) {
     try {
-        const slug = params.slug || [];
+        const resolvedParams = await params;
+        const slug = resolvedParams.slug || [];
         const path = '/' + slug.join('/');
         requireAdmin(req);
 
