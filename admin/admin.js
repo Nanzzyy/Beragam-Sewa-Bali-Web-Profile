@@ -31,7 +31,21 @@ function openModal(type, item = null) {
         } else {
             el('modal-price-input').value = '';
         }
-        el('modal-price-unit-input').value = item.price_unit || '';
+        
+        if (item.price_unit) {
+            const match = item.price_unit.match(/\/ (\d+) (Day|Hour)s?/i);
+            if (match) {
+                el('modal-duration-amount').value = match[1];
+                el('modal-duration-type').value = match[2].charAt(0).toUpperCase() + match[2].slice(1).toLowerCase();
+            } else {
+                const low = item.price_unit.toLowerCase();
+                el('modal-duration-amount').value = '1';
+                el('modal-duration-type').value = low.includes('hour') ? 'Hour' : 'Day';
+            }
+        } else {
+            el('modal-duration-amount').value = '';
+            el('modal-duration-type').value = 'Day';
+        }
 
         if (type === 'katalog' && el('modal-katalog-type-input')) {
             el('modal-katalog-type-input').value = item.section_key || 'catalog_service';
@@ -41,7 +55,8 @@ function openModal(type, item = null) {
         el('modal-text-input').value = '';
         el('modal-long-text-input').value = '';
         if(el('modal-price-input')) el('modal-price-input').value = '';
-        if(el('modal-price-unit-input')) el('modal-price-unit-input').value = '';
+        if(el('modal-duration-amount')) el('modal-duration-amount').value = '';
+        if(el('modal-duration-type')) el('modal-duration-type').value = 'Day';
 
         if (type === 'katalog' && el('modal-katalog-type-input')) {
             el('modal-katalog-type-input').value = 'catalog_service';
@@ -104,11 +119,6 @@ async function loadAll() {
     try {
         await Promise.all([
             loadSection('hero'),
-            loadSection('about'),
-            loadSection('service'),
-            loadSection('package'),
-            loadSection('katalog'),
-            loadSection('gallery'),
             loadSection('content')
         ]);
     } catch (e) { console.error('Data Sync Error'); }
@@ -144,7 +154,7 @@ function renderCards(id, items, section) {
         d.innerHTML = `
             <!-- Kotak Preview Kartu Seragam -->
             <div class="relative aspect-video overflow-hidden bg-gray-100">
-                <img src="${item.image_url}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                <img src="${item.image_url}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
                 <div class="absolute inset-0 bg-brand-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     ${section !== 'gallery' ? `<button type="button" class="btn-edit w-10 h-10 bg-white text-blue-600 rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform" data-id="${item.id}" data-section="${section}"><i class="fa-solid fa-pen-to-square"></i></button>` : ''}
                     <button type="button" class="btn-delete w-10 h-10 bg-white text-brand-red rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform" data-id="${item.id}" data-section="${section}"><i class="fa-solid fa-trash"></i></button>
@@ -155,7 +165,8 @@ function renderCards(id, items, section) {
                     <h6 class="font-bold text-gray-800 text-xs truncate flex-1">${item.title || item.name || 'Untitled'}</h6>
                     ${section !== 'gallery' && (item.section_key === 'catalog_service' || item.section_key === 'catalog_package') ? '<span class="text-[9px] bg-brand-red/10 text-brand-red px-2 py-0.5 rounded font-bold whitespace-nowrap ml-2">Katalog Only</span>' : ''}
                 </div>
-                ${section !== 'gallery' ? `<p class="text-[10px] text-gray-400 line-clamp-1 italic">${item.text || item.description || ''}</p>` : ''}
+                ${section !== 'gallery' ? `<p class="text-[10px] text-gray-400 line-clamp-1 italic mb-1">${item.text || item.description || ''}</p>` : ''}
+                ${section !== 'gallery' && item.price ? `<p class="text-[11px] font-bold text-brand-red">${window.formatPriceLabel ? window.formatPriceLabel(item.price) : item.price} <span class="text-[9px] text-gray-500">${item.price_unit || ''}</span></p>` : ''}
             </div>
         `;
         list.appendChild(d);
@@ -171,7 +182,19 @@ document.addEventListener('click', async (e) => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content-pane').forEach(p => p.classList.remove('active'));
         tabBtn.classList.add('active');
-        el(tabBtn.dataset.target.substring(1)).classList.add('active');
+        const target = tabBtn.dataset.target.substring(1);
+        el(target).classList.add('active');
+        
+        const listMap = {
+            'about-content': 'about',
+            'services-content': 'service',
+            'packages-content': 'package',
+            'katalog-content': 'katalog',
+            'gallery-content': 'gallery'
+        };
+        if (listMap[target]) {
+            loadSection(listMap[target]);
+        }
         return;
     }
 
@@ -261,7 +284,13 @@ document.addEventListener('submit', async (e) => {
             fd.append('text', el('modal-text-input').value);
             fd.append('long_text', el('modal-long-text-input').value);
             if(el('modal-price-input')) fd.append('price', el('modal-price-input').value);
-            if(el('modal-price-unit-input')) fd.append('price_unit', el('modal-price-unit-input').value);
+            
+            if (el('modal-duration-amount') && el('modal-duration-amount').value) {
+                const amount = el('modal-duration-amount').value;
+                const unitType = el('modal-duration-type').value;
+                const unitStr = amount == 1 ? `/ ${amount} ${unitType}` : `/ ${amount} ${unitType}s`;
+                fd.append('price_unit', unitStr);
+            }
 
             if (type === 'katalog' && el('modal-katalog-type-input')) {
                 fd.append('item_type', el('modal-katalog-type-input').value);
@@ -292,4 +321,11 @@ window.formatRupiah = function(input) {
 
     rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
     input.value = rupiah ? 'Rp ' + rupiah : '';
+};
+
+window.formatPriceLabel = function(price) {
+    if (!price && price !== 0) return '';
+    const num = parseFloat(price);
+    if (isNaN(num)) return '';
+    return 'Rp ' + num.toLocaleString('id-ID');
 };
