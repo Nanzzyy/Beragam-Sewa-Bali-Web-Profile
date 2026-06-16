@@ -182,6 +182,18 @@ export default function DashboardApp() {
         if (landData) setLandingList(landData);
       }
 
+      // Update Favicon based on site_logo
+      const { data: contentData } = await supabase.from('content').select('site_logo').single();
+      if (contentData?.site_logo && typeof document !== 'undefined') {
+        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = contentData.site_logo + '?t=' + new Date().getTime();
+      }
+
     } catch (e) {
       console.error('Failed to load data:', e);
     }

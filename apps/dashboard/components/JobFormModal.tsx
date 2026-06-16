@@ -36,9 +36,19 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
   const [jobDate, setJobDate] = useState(job?.job_date || '');
   const [completionDate, setCompletionDate] = useState(job?.completion_date || '');
   const [status, setStatus] = useState<JobStatus>(job?.status || 'draft');
-  const [totalRentalFee, setTotalRentalFee] = useState(job?.total_rental_fee?.toString() || '0');
-  const [totalVendorCost, setTotalVendorCost] = useState(job?.total_vendor_cost?.toString() || '0');
+  const formatCurrencyString = (num: number) => num ? 'Rp. ' + new Intl.NumberFormat('id-ID').format(num) : '';
+  const [totalRentalFee, setTotalRentalFee] = useState(formatCurrencyString(job?.total_rental_fee || 0));
+  const [totalVendorCost, setTotalVendorCost] = useState(formatCurrencyString(job?.total_vendor_cost || 0));
   const [paymentMethod, setPaymentMethod] = useState(job?.payment_method || '1-101');
+
+  const handleCurrencyChange = (val: string, setter: (v: string) => void) => {
+    const numeric = val.replace(/[^0-9]/g, '');
+    if (!numeric) {
+      setter('');
+      return;
+    }
+    setter('Rp. ' + new Intl.NumberFormat('id-ID').format(parseInt(numeric, 10)));
+  };
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -75,8 +85,8 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
         job_date: jobDate,
         completion_date: completionDate,
         status,
-        total_rental_fee: parseFloat(totalRentalFee) || 0,
-        total_vendor_cost: parseFloat(totalVendorCost) || 0,
+        total_rental_fee: parseInt(totalRentalFee.replace(/[^0-9]/g, ''), 10) || 0,
+        total_vendor_cost: parseInt(totalVendorCost.replace(/[^0-9]/g, ''), 10) || 0,
         payment_method: paymentMethod,
       };
 
@@ -131,8 +141,8 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
 
           {/* Financial */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InputField label="Total Biaya Sewa (Rp)" required type="number" value={totalRentalFee} onChange={setTotalRentalFee} />
-            <InputField label="Biaya Vendor (Opsional)" type="number" value={totalVendorCost} onChange={setTotalVendorCost} />
+            <InputField label="Total Biaya Sewa (Rp)" required type="text" value={totalRentalFee} onChange={v => handleCurrencyChange(v, setTotalRentalFee)} placeholder="Rp. 0" />
+            <InputField label="Biaya Vendor (Opsional)" type="text" value={totalVendorCost} onChange={v => handleCurrencyChange(v, setTotalVendorCost)} placeholder="Rp. 0" />
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Akun Penerimaan (Cashflow) *</label>
               <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
