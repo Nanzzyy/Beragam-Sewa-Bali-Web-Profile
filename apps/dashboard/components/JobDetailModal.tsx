@@ -23,6 +23,10 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   const [activeTab, setActiveTab] = useState<'info' | 'items' | 'staff' | 'proofs'>('info');
   const [uploading, setUploading] = useState(false);
 
+  // Lists of all available items and staff for the dropdowns
+  const [availableItems, setAvailableItems] = useState<{ id: string; name: string }[]>([]);
+  const [availableStaff, setAvailableStaff] = useState<{ id: string; email: string }[]>([]);
+
   const canModify = userRole === 'owner' || userRole === 'staff';
 
   const loadDetails = useCallback(async () => {
@@ -38,6 +42,15 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
       setItems(itemsData);
       setStaff(staffData);
       setProofs(proofsData);
+
+      // Fetch all items and employee profiles
+      const { supabase: sbClient } = await import('../lib/supabase');
+      const [iRes, sRes] = await Promise.all([
+        sbClient.from('items').select('id, name').order('name'),
+        sbClient.from('profiles').select('id, email').order('email')
+      ]);
+      if (iRes.data) setAvailableItems(iRes.data);
+      if (sRes.data) setAvailableStaff(sRes.data);
     } catch (e) {
       console.error('Failed to load job details:', e);
     }
@@ -270,32 +283,37 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                 <form onSubmit={async (e) => {
                   e.preventDefault();
                   const target = e.target as typeof e.target & {
-                    item_name: { value: string };
+                    item_id: { value: string };
                     quantity: { value: string };
                   };
-                  if (!target.item_name.value.trim() || !target.quantity.value) return;
+                  if (!target.item_id.value || !target.quantity.value) return;
                   setUploading(true);
                   try {
                     await import('../lib/jobs').then(m => m.addJobItem({
                       job_id: job.id,
-                      item_id: null,
-                      item_name_custom: target.item_name.value.trim(),
+                      item_id: target.item_id.value,
+                      item_name_custom: null,
                       quantity: parseInt(target.quantity.value),
                       source_vendor_id: null,
                       sub_rent_cost: 0,
                       is_returned: false
                     }));
-                    target.item_name.value = '';
+                    target.item_id.value = '';
                     target.quantity.value = '1';
                     loadDetails();
                   } catch (err) {
                     alert((err as Error).message);
                   }
                   setUploading(false);
-                }} className="flex gap-2 mb-4 p-3 bg-slate-50 dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-200 dark:border-slate-700">
-                  <input type="text" name="item_name" placeholder="Nama Barang..." required className="flex-1 px-3 py-2 bg-white dark:bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500" />
-                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-20 px-3 py-2 bg-white dark:bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500" />
-                  <button type="submit" disabled={uploading} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-slate-900 dark:text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
+                }} className="flex gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <select name="item_id" required className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-white">
+                    <option value="">-- Pilih Barang --</option>
+                    {availableItems.map(item => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-white" />
+                  <button type="submit" disabled={uploading} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
                 </form>
               )}
               <div className="space-y-3">
@@ -345,36 +363,33 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                 <form onSubmit={async (e) => {
                   e.preventDefault();
                   const target = e.target as typeof e.target & {
-                    staff_name: { value: string };
+                    profile_id: { value: string };
                     role: { value: string };
                   };
-                  if (!target.staff_name.value.trim() || !target.role.value.trim()) return;
+                  if (!target.profile_id.value || !target.role.value.trim()) return;
                   setUploading(true);
                   try {
-                    // For now, if profile doesn't exist, we might have issue because profile_id is required in job_staff.
-                    // The schema requires a valid profile_id. We'll simulate fetching profile or just alert for now.
-                    // "diambil dari menu vendor / staff".
-                    // Wait, job_staff references profiles(id). We must have a valid profile_id.
-                    const { data } = await (await import('../lib/supabase')).supabase.from('profiles').select('id').limit(1);
-                    if (!data || data.length === 0) {
-                      throw new Error("Tidak ada data karyawan di sistem (tabel profiles kosong).");
-                    }
                     await import('../lib/jobs').then(m => m.addJobStaff({
                       job_id: job.id,
-                      profile_id: data[0].id, // fallback to first profile for demo
+                      profile_id: target.profile_id.value,
                       role_in_job: target.role.value.trim()
                     }));
-                    target.staff_name.value = '';
+                    target.profile_id.value = '';
                     target.role.value = '';
                     loadDetails();
                   } catch (err) {
                     alert((err as Error).message);
                   }
                   setUploading(false);
-                }} className="flex gap-2 mb-4 p-3 bg-slate-50 dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-200 dark:border-slate-700">
-                  <input type="text" name="staff_name" placeholder="Pilih Karyawan..." required className="flex-1 px-3 py-2 bg-white dark:bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500" />
-                  <input type="text" name="role" placeholder="Peran (ex: Supir)" required className="w-1/3 px-3 py-2 bg-white dark:bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500" />
-                  <button type="submit" disabled={uploading} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-slate-900 dark:text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
+                }} className="flex gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <select name="profile_id" required className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-white">
+                    <option value="">-- Pilih Karyawan --</option>
+                    {availableStaff.map(s => (
+                      <option key={s.id} value={s.id}>{s.email}</option>
+                    ))}
+                  </select>
+                  <input type="text" name="role" placeholder="Peran (ex: Supir)" required className="w-1/3 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-white" />
+                  <button type="submit" disabled={uploading} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
                 </form>
               )}
               <div className="space-y-3">
