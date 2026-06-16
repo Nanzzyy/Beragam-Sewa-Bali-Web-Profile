@@ -26,7 +26,7 @@ function openModal(type, item = null) {
         el('modal-long-text-input').value = item.long_text || '';
         
         if (item.price) {
-            el('modal-price-input').value = item.price.toString();
+            el('modal-price-input').value = Math.floor(parseFloat(item.price)).toString();
             if (window.formatRupiah) window.formatRupiah(el('modal-price-input'));
         } else {
             el('modal-price-input').value = '';
