@@ -151,6 +151,40 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
             return response;
         }
 
+        if (path === '/admin/overview') {
+            requireAdmin(req);
+            try {
+                const servicesCount = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='service'");
+                const packagesCount = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='package'");
+                const galleryCount = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='gallery'");
+                
+                let cashflowIn = 0;
+                let cashflowOut = 0;
+                try {
+                    const cfIn = await db.query("SELECT SUM(amount) FROM public.cashflow WHERE type='inflow'");
+                    const cfOut = await db.query("SELECT SUM(amount) FROM public.cashflow WHERE type='outflow'");
+                    cashflowIn = parseFloat(cfIn.rows[0].sum || 0);
+                    cashflowOut = parseFloat(cfOut.rows[0].sum || 0);
+                } catch (cfError) {}
+
+                let inventoryCount = 0;
+                try {
+                    const inv = await db.query("SELECT COUNT(*) FROM public.items WHERE is_deleted=false");
+                    inventoryCount = parseInt(inv.rows[0].count || 0);
+                } catch (invErr) {}
+
+                return NextResponse.json({
+                    services: parseInt(servicesCount.rows[0].count || 0),
+                    packages: parseInt(packagesCount.rows[0].count || 0),
+                    gallery: parseInt(galleryCount.rows[0].count || 0),
+                    cashflow: { inflow: cashflowIn, outflow: cashflowOut },
+                    inventory: inventoryCount
+                });
+            } catch (err: any) {
+                return NextResponse.json({ error: err.message }, { status: 500 });
+            }
+        }
+
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
     } catch (e: any) {
         if (e.message === 'Unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
