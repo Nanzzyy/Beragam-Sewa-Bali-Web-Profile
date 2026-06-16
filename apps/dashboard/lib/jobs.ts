@@ -230,7 +230,7 @@ export async function fetchProfiles(): Promise<Profile[]> {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .order('display_name');
+    .order('email');
 
   if (error) throw new DashboardError(error.message, 'FETCH_PROFILES_FAILED');
   return data || [];

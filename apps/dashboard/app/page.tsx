@@ -114,7 +114,7 @@ export default function DashboardApp() {
       // Fetch items and staff simply for display
       const { data: iData } = await supabase.from('items').select('*').order('name');
       if (iData) setItemsList(iData);
-      const { data: sData } = await supabase.from('profiles').select('*').order('display_name');
+      const { data: sData } = await supabase.from('profiles').select('*').order('email');
       if (sData) setStaffList(sData);
 
     } catch (e) {
@@ -692,23 +692,31 @@ export default function DashboardApp() {
       {/* Staff Add/Edit Modal */}
       {staffModalOpen && staffModalData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-6 w-full max-w-md relative animate-slide-up">
-            <button onClick={() => setStaffModalOpen(false)} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-lg relative animate-slide-up">
+            <button onClick={() => setStaffModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-              {staffModalData.id ? 'Edit Karyawan' : 'Tambah Karyawan Baru'}
-            </h3>
+            
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shadow-inner">
+                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {staffModalData.id ? 'Edit Karyawan' : 'Tambah Karyawan Baru'}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Atur hak akses dan email staf.</p>
+              </div>
+            </div>
+
             <form onSubmit={async (e) => {
               e.preventDefault();
               const target = e.target as typeof e.target & {
                 email: { value: string };
-                display_name: { value: string };
                 role: { value: string };
               };
               const payload = {
                 email: target.email.value.trim(),
-                display_name: target.display_name.value.trim(),
                 role: target.role.value
               };
               try {
@@ -722,30 +730,31 @@ export default function DashboardApp() {
               } catch (err) {
                 alert((err as Error).message);
               }
-            }} className="space-y-4">
+            }} className="space-y-6">
+              
               <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Nama Lengkap</label>
-                <input type="text" name="display_name" defaultValue={staffModalData.display_name} required placeholder="Contoh: Budi Santoso" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition text-sm" />
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Alamat Email <span className="text-red-500">*</span></label>
+                <input type="email" name="email" defaultValue={staffModalData.email} required placeholder="budi@example.com" disabled={!!staffModalData.id} 
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed" />
               </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Alamat Email</label>
-                <input type="email" name="email" defaultValue={staffModalData.email} required placeholder="budi@example.com" disabled={!!staffModalData.id} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition text-sm disabled:opacity-50" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Role Hak Akses</label>
-                <select name="role" defaultValue={staffModalData.role} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-purple-600 outline-none transition text-sm">
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Role Hak Akses</label>
+                <select name="role" defaultValue={staffModalData.role} 
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium appearance-none cursor-pointer">
                   <option value="staff">Staff (Lapangan & Logistik)</option>
                   <option value="accounting">Accounting (Keuangan)</option>
                   <option value="owner">Owner (Pemilik Toko)</option>
                   <option value="guest">Guest (Tamu)</option>
                 </select>
               </div>
-              <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setStaffModalOpen(false)} className="px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+
+              <div className="flex gap-3 justify-end pt-6 border-t border-slate-100 dark:border-slate-800 mt-2">
+                <button type="button" onClick={() => setStaffModalOpen(false)} className="px-6 py-2.5 text-sm font-bold rounded-xl text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                   Batal
                 </button>
-                <button type="submit" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-purple-500/10">
-                  Simpan
+                <button type="submit" className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Simpan Akses
                 </button>
               </div>
             </form>
