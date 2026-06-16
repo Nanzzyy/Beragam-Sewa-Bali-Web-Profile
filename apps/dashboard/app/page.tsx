@@ -6,7 +6,7 @@ import { fetchJobs, fetchDashboardStats, createJob, updateJob, updateJobStatus, 
 import JobDetailModal from '../components/JobDetailModal';
 import JobFormModal from '../components/JobFormModal';
 import GanttScheduler from '../components/GanttScheduler';
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'staff' | 'cashflow' | 'suppliers' | 'landing';
@@ -28,6 +28,25 @@ export default function DashboardApp() {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // Inventories & Staff Lists
+  const [itemsList, setItemsList] = useState<any[]>([]);
+
+  // Company and Document settings
+  const [compName, setCompName] = useState('Beragam Sewa Bali');
+  const [compAddress, setCompAddress] = useState('Jl. By Pass Ngurah Rai, Denpasar, Bali');
+  const [compEmail, setCompEmail] = useState('info@beragamsewabali.com');
+  const [compPhone, setCompPhone] = useState('08123456789');
+  const [compPayment, setCompPayment] = useState('Bank BCA: 1234567890 a.n Beragam Sewa Bali');
+  const [compLogo, setCompLogo] = useState<string | null>(null);
+
+  // Custom Inventory Categories
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const categoriesList = Array.from(new Set([
+    'sound', 'tent', 'chairs', 'tables', 'lighting', 'decoration', 'generator', 'other',
+    ...customCategories,
+    ...(itemsList?.map(item => item.category).filter(Boolean) || [])
+  ]));
+
   // Filters
   const [statusFilter, setStatusFilter] = useState<JobStatus | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,7 +57,6 @@ export default function DashboardApp() {
   const [viewingJobId, setViewingJobId] = useState<string | null>(null);
 
   // Inventories & Staff Lists
-  const [itemsList, setItemsList] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
   const [cashflowList, setCashflowList] = useState<any[]>([]);
   const [suppliersList, setSuppliersList] = useState<any[]>([]);
@@ -68,7 +86,26 @@ export default function DashboardApp() {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      setCompName(localStorage.getItem('bsb_company_name') || 'Beragam Sewa Bali');
+      setCompAddress(localStorage.getItem('bsb_company_address') || 'Jl. By Pass Ngurah Rai, Denpasar, Bali');
+      setCompEmail(localStorage.getItem('bsb_company_email') || 'info@beragamsewabali.com');
+      setCompPhone(localStorage.getItem('bsb_company_phone') || '08123456789');
+      setCompPayment(localStorage.getItem('bsb_company_payment_info') || 'Bank BCA: 1234567890 a.n Beragam Sewa Bali');
+      setCompLogo(localStorage.getItem('bsb_company_logo') || null);
+
+      const saved = localStorage.getItem('bsb_custom_categories');
+      if (saved) {
+        try {
+          setCustomCategories(JSON.parse(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, []);
 
   const toggleTheme = () => setTheme(resolvedTheme === 'light' ? 'dark' : 'light');
 
@@ -277,9 +314,9 @@ export default function DashboardApp() {
 
   // ======== MAIN RENDER ========
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
+    <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 shrink-0">
+      <aside className="w-64 h-full border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 shrink-0 overflow-y-auto">
         <div className="flex items-center gap-3 px-2 mb-2">
           <div className="w-9 h-9 rounded-xl bg-purple-600/10 flex items-center justify-center">
             <Briefcase className="w-5 h-5 text-purple-500" />
@@ -320,7 +357,7 @@ export default function DashboardApp() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-6 lg:p-8">
+      <main className="flex-1 h-full overflow-y-auto p-6 lg:p-8">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
@@ -402,6 +439,96 @@ export default function DashboardApp() {
                     {jobs.length === 0 && <p className="text-center text-slate-500 py-6 text-sm">Belum ada data job.</p>}
                   </div>
                 </div>
+
+                {/* Company & Document Template Settings */}
+                {userRole === 'owner' && (
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
+                        <FileSpreadsheet className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-slate-900 dark:text-white font-semibold">Pengaturan Template Invoice & Surat Jalan</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Ubah kop dokumen surat jalan, invoice, serta bank info BCA dan upload berkas logo.</p>
+                      </div>
+                    </div>
+                    
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      localStorage.setItem('bsb_company_name', compName);
+                      localStorage.setItem('bsb_company_address', compAddress);
+                      localStorage.setItem('bsb_company_email', compEmail);
+                      localStorage.setItem('bsb_company_phone', compPhone);
+                      localStorage.setItem('bsb_company_payment_info', compPayment);
+                      alert('Pengaturan template perusahaan berhasil disimpan!');
+                    }} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Nama Perusahaan</label>
+                          <input type="text" value={compName} onChange={e => setCompName(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-purple-600 transition" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">No. Telepon / WhatsApp</label>
+                          <input type="text" value={compPhone} onChange={e => setCompPhone(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-purple-600 transition" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Alamat Email</label>
+                          <input type="email" value={compEmail} onChange={e => setCompEmail(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-purple-600 transition" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Informasi Pembayaran / Rekening BCA</label>
+                          <input type="text" value={compPayment} onChange={e => setCompPayment(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-purple-600 transition" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Alamat Lengkap Perusahaan</label>
+                        <input type="text" value={compAddress} onChange={e => setCompAddress(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-purple-600 transition" />
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Logo Perusahaan (.png / .jpg)</label>
+                        <div className="flex items-center gap-4">
+                          <input type="file" accept="image/*" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const base64 = reader.result as string;
+                                setCompLogo(base64);
+                                localStorage.setItem('bsb_company_logo', base64);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-500/10 dark:file:text-purple-400" />
+                          {compLogo && (
+                            <div className="flex items-center gap-2">
+                              <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
+                              <button type="button" onClick={() => {
+                                setCompLogo(null);
+                                localStorage.removeItem('bsb_company_logo');
+                              }} className="text-xs text-rose-500 hover:underline">Hapus</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-2">
+                        <button type="submit" className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-purple-500/25">
+                          Simpan Pengaturan
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             )}
 
@@ -645,71 +772,50 @@ export default function DashboardApp() {
 
             {/* === SUPER ADMIN: CASHFLOW TAB === */}
             {tab === 'cashflow' && userRole === 'owner' && (
-              <div className="animate-fade-in space-y-6">
+              <div className="animate-fade-in h-full flex flex-col space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Aliran Kas (Cashflow)</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Pantau & kelola data pencatatan transaksi masuk dan keluar secara langsung.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Aliran Kas (Cashflow Web App)</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Live preview & kontrol penuh aplikasi pembukuan utama.</p>
                   </div>
-                  <button onClick={() => {
-                    setCashflowModalData({ type: 'inflow', category: 'client_rental', amount: 0, description: '', transaction_date: new Date().toISOString().slice(0, 16) });
-                    setCashflowModalOpen(true);
-                  }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
-                    <Plus className="w-4 h-4" /> Tambah Transaksi
-                  </button>
+                  <a href="https://cashflow.beragamsewabali.com" target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-emerald-500/20">
+                    <ExternalLink className="w-4 h-4" /> Buka Tab Baru
+                  </a>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tanggal</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tipe</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Kategori</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Keterangan</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Jumlah</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {cashflowList.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">Belum ada catatan transaksi cashflow.</td>
-                          </tr>
-                        ) : (
-                          cashflowList.map(cf => (
-                            <tr key={cf.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                              <td className="px-6 py-4 text-sm text-slate-900 dark:text-white font-medium whitespace-nowrap">{formatDate(cf.transaction_date)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase ${cf.type === 'inflow' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-500'}`}>
-                                  {cf.type === 'inflow' ? 'Masuk' : 'Keluar'}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap capitalize">{cf.category.replace('_', ' ')}</td>
-                              <td className="px-6 py-4 text-sm text-slate-900 dark:text-white max-w-xs truncate">{cf.description || '-'}</td>
-                              <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatRupiah(cf.amount)}</td>
-                              <td className="px-6 py-4 text-right whitespace-nowrap">
-                                <button onClick={() => {
-                                  setConfirmModalConfig({
-                                    title: 'Hapus Transaksi',
-                                    message: 'Apakah Anda yakin ingin menghapus transaksi cashflow ini? Tindakan ini tidak dapat dibatalkan.',
-                                    onConfirm: async () => {
-                                      await supabase.from('cashflow').delete().eq('id', cf.id);
-                                      loadData(true);
-                                      setConfirmModalOpen(false);
-                                    }
-                                  });
-                                  setConfirmModalOpen(true);
-                                }} className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                {/* Mock Browser Container */}
+                <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-[2rem] overflow-hidden min-h-[500px]">
+                  {/* Browser Toolbar */}
+                  <div className="flex items-center gap-4 px-6 py-3.5 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+                    {/* Navigation Dots */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="w-3 h-3 rounded-full bg-rose-400 block" />
+                      <span className="w-3 h-3 rounded-full bg-amber-400 block" />
+                      <span className="w-3 h-3 rounded-full bg-emerald-400 block" />
+                    </div>
+                    {/* Address Bar */}
+                    <div className="flex-1 flex items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      <div className="flex items-center gap-2 truncate">
+                        <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span className="truncate">https://cashflow.beragamsewabali.com</span>
+                      </div>
+                      <button onClick={() => {
+                        navigator.clipboard.writeText('https://cashflow.beragamsewabali.com');
+                        alert('URL disalin ke papan klip!');
+                      }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-slate-600 transition">
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  {/* Web App Iframe */}
+                  <div className="flex-1 relative bg-slate-50 dark:bg-slate-950">
+                    <iframe 
+                      src="https://cashflow.beragamsewabali.com" 
+                      className="w-full h-full border-0 absolute inset-0"
+                      title="BSB Cashflow Live Preview"
+                      allow="clipboard-write"
+                    />
                   </div>
                 </div>
               </div>
@@ -959,21 +1065,33 @@ export default function DashboardApp() {
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Kategori</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Kategori</label>
+                  <button type="button" onClick={() => {
+                    const newCat = prompt('Masukkan nama kategori baru:');
+                    if (newCat && newCat.trim()) {
+                      const trimmed = newCat.trim().toLowerCase();
+                      if (!categoriesList.includes(trimmed)) {
+                        const updated = [...customCategories, trimmed];
+                        setCustomCategories(updated);
+                        localStorage.setItem('bsb_custom_categories', JSON.stringify(updated));
+                      } else {
+                        alert('Kategori sudah ada!');
+                      }
+                    }
+                  }} className="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1">
+                    <Plus className="w-3.5 h-3.5" /> Tambah Kategori
+                  </button>
+                </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Filter className="h-5 w-5 text-slate-400" />
                   </div>
                   <select name="category" defaultValue={itemModalData.category} 
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium appearance-none">
-                    <option value="sound">Sound</option>
-                    <option value="tent">Tent</option>
-                    <option value="chairs">Chairs</option>
-                    <option value="tables">Tables</option>
-                    <option value="lighting">Lighting</option>
-                    <option value="decoration">Decoration</option>
-                    <option value="generator">Generator</option>
-                    <option value="other">Other</option>
+                    {categoriesList.map(cat => (
+                      <option key={cat} value={cat} className="capitalize">{cat}</option>
+                    ))}
                   </select>
                 </div>
               </div>
