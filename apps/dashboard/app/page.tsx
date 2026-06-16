@@ -43,7 +43,7 @@ export default function DashboardApp() {
 
   // Item Modal State
   const [itemModalOpen, setItemModalOpen] = useState(false);
-  const [itemModalData, setItemModalData] = useState<{ id?: string; name: string; category_id: string } | null>(null);
+  const [itemModalData, setItemModalData] = useState<{ id?: string; name: string; category: string; quantity: number; sku: string } | null>(null);
 
   // Staff Modal State
   const [staffModalOpen, setStaffModalOpen] = useState(false);
@@ -459,7 +459,7 @@ export default function DashboardApp() {
                   </div>
                   {canModify && (
                     <button onClick={() => {
-                      setItemModalData({ name: '', category_id: '' });
+                      setItemModalData({ name: '', category: 'other', quantity: 1, sku: `SKU-${Date.now()}` });
                       setItemModalOpen(true);
                     }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
                       <Plus className="w-4 h-4" /> Tambah Barang
@@ -482,13 +482,13 @@ export default function DashboardApp() {
                             </div>
                             <div>
                               <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
-                              <div className="text-xs text-slate-500">Kategori: {item.category_id || '-'}</div>
+                              <div className="text-xs text-slate-500">Kategori: {item.category || '-'} | Stok: {item.quantity || 0}</div>
                             </div>
                           </div>
                           {canModify && (
                             <div className="flex items-center gap-2">
                               <button onClick={() => {
-                                setItemModalData({ id: item.id, name: item.name, category_id: item.category_id || '' });
+                                setItemModalData({ id: item.id, name: item.name, category: item.category || 'other', quantity: item.quantity || 1, sku: item.sku || `SKU-${Date.now()}` });
                                 setItemModalOpen(true);
                               }} className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                                 <Edit className="w-4 h-4" />
@@ -635,11 +635,15 @@ export default function DashboardApp() {
               e.preventDefault();
               const target = e.target as typeof e.target & {
                 name: { value: string };
-                category_id: { value: string };
+                category: { value: string };
+                quantity: { value: string };
+                sku: { value: string };
               };
               const payload = {
                 name: target.name.value.trim(),
-                category_id: target.category_id.value.trim() || null
+                category: target.category.value || 'other',
+                quantity: parseInt(target.quantity.value) || 1,
+                sku: target.sku.value.trim() || `SKU-${Date.now()}`
               };
               try {
                 if (itemModalData.id) {
@@ -665,14 +669,36 @@ export default function DashboardApp() {
                 </div>
               </div>
               
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">SKU</label>
+                  <input type="text" name="sku" defaultValue={itemModalData.sku} required placeholder="Contoh: SKU-12345" 
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Stok</label>
+                  <input type="number" name="quantity" defaultValue={itemModalData.quantity} required min="1" 
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium" />
+                </div>
+              </div>
+              
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Kategori (Opsional)</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Kategori</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Filter className="h-5 w-5 text-slate-400" />
                   </div>
-                  <input type="text" name="category_id" defaultValue={itemModalData.category_id} placeholder="Contoh: Audio, Lighting, General" 
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium" />
+                  <select name="category" defaultValue={itemModalData.category} 
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium appearance-none">
+                    <option value="sound">Sound</option>
+                    <option value="tent">Tent</option>
+                    <option value="chairs">Chairs</option>
+                    <option value="tables">Tables</option>
+                    <option value="lighting">Lighting</option>
+                    <option value="decoration">Decoration</option>
+                    <option value="generator">Generator</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
               </div>
 
