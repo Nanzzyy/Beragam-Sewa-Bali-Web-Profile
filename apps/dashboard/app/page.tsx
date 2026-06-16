@@ -47,7 +47,7 @@ export default function DashboardApp() {
 
   // Staff Modal State
   const [staffModalOpen, setStaffModalOpen] = useState(false);
-  const [staffModalData, setStaffModalData] = useState<{ id?: string; email: string; display_name: string; role: string } | null>(null);
+  const [staffModalData, setStaffModalData] = useState<{ id?: string; email: string; role: string } | null>(null);
 
   // Confirm Modal State
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -528,7 +528,7 @@ export default function DashboardApp() {
                   </div>
                   {userRole === 'owner' && (
                     <button onClick={() => {
-                      setStaffModalData({ email: '', display_name: '', role: 'staff' });
+                      setStaffModalData({ email: '', role: 'staff' });
                       setStaffModalOpen(true);
                     }} className="flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-purple-500/20">
                       <Plus className="w-4 h-4" /> Tambah Karyawan
@@ -546,10 +546,10 @@ export default function DashboardApp() {
                       <div key={staff.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative group">
                         <div className="flex items-center gap-4 mb-4">
                           <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-lg">
-                            {(staff.display_name || staff.email || '?')[0].toUpperCase()}
+                            {(staff.email || '?')[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 dark:text-white truncate">{staff.display_name || 'Tanpa Nama'}</div>
+                            <div className="font-semibold text-slate-900 dark:text-white truncate">{staff.email || 'Tanpa Email'}</div>
                             <div className="text-xs text-slate-500 truncate">{staff.email}</div>
                           </div>
                         </div>
@@ -560,7 +560,7 @@ export default function DashboardApp() {
                           {userRole === 'owner' && (
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                               <button onClick={() => {
-                                setStaffModalData({ id: staff.id, email: staff.email || '', display_name: staff.display_name || '', role: staff.role || 'staff' });
+                                setStaffModalData({ id: staff.id, email: staff.email || '', role: staff.role || 'staff' });
                                 setStaffModalOpen(true);
                               }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md">
                                 <Edit className="w-3.5 h-3.5" />
@@ -568,7 +568,7 @@ export default function DashboardApp() {
                               <button onClick={() => {
                                 setConfirmModalConfig({
                                   title: 'Hapus Karyawan',
-                                  message: `Apakah Anda yakin ingin menghapus karyawan "${staff.display_name || staff.email}"? Ini hanya akan menghapus profil mereka dari database.`,
+                                  message: `Apakah Anda yakin ingin menghapus karyawan "${staff.email}"? Ini hanya akan menghapus profil mereka dari database.`,
                                   onConfirm: () => {
                                     supabase.from('profiles').delete().eq('id', staff.id).then(() => {
                                       loadData();

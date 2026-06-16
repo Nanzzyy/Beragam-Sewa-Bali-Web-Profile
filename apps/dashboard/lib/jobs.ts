@@ -162,12 +162,11 @@ export async function fetchJobStaff(jobId: string): Promise<JobStaff[]> {
   if (error) throw new DashboardError(error.message, 'FETCH_JOB_STAFF_FAILED');
   return (data || []).map((row: Record<string, unknown>) => ({
     ...(row as unknown as JobStaff),
-    display_name: '',
     email: ((row as Record<string, unknown>).profiles as Record<string, unknown>)?.email as string || '',
   }));
 }
 
-export async function addJobStaff(staff: Omit<JobStaff, 'id' | 'created_at' | 'display_name' | 'email'>): Promise<void> {
+export async function addJobStaff(staff: Omit<JobStaff, 'id' | 'created_at' | 'email'>): Promise<void> {
   const { error } = await supabase.from('job_staff').insert(staff);
   if (error) throw new DashboardError(error.message, 'ADD_JOB_STAFF_FAILED');
 }

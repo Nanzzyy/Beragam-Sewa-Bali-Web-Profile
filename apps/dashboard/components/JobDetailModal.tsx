@@ -385,10 +385,10 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     <div key={s.id} className="flex items-center justify-between p-3 bg-white dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-400">
-                          {(s.display_name || s.email || '?')[0].toUpperCase()}
+                          {(s.email || '?')[0].toUpperCase()}
                         </div>
                         <div>
-                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-900 dark:text-white">{s.display_name || s.email}</div>
+                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-900 dark:text-white">{s.email || '-'}</div>
                           <div className="text-xs text-slate-500">{s.role_in_job}</div>
                         </div>
                       </div>
