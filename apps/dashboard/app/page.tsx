@@ -123,7 +123,12 @@ export default function DashboardApp() {
     setLoading(false);
   }, [authReady, statusFilter, searchQuery]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { 
+    loadData(); 
+    // Real-time polling every 15 seconds
+    const interval = setInterval(() => { loadData(); }, 15000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   // ======== HANDLERS ========
   const handleLogin = async (e: React.FormEvent) => {
@@ -286,11 +291,19 @@ export default function DashboardApp() {
                 </div>
 
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <StatCard icon={Briefcase} label="Total Jobs" value={stats.totalJobs.toString()} color="#3B82F6" />
                   <StatCard icon={Activity} label="Jobs Aktif" value={stats.activeJobs.toString()} color="#F59E0B" />
-                  {canViewAll && <StatCard icon={TrendingUp} label="Pendapatan" value={formatRupiah(stats.totalRevenue)} color="#10B981" />}
-                  {canViewAll && <StatCard icon={DollarSign} label="Laba Bersih" value={formatRupiah(stats.netProfit)} color="#8B5CF6" />}
+                  {canViewAll && <StatCard icon={TrendingUp} label="Pendapatan (Jobs)" value={formatRupiah(stats.totalRevenue)} color="#10B981" />}
+                  {canViewAll && <StatCard icon={DollarSign} label="Laba Bersih (Jobs)" value={formatRupiah(stats.netProfit)} color="#8B5CF6" />}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <StatCard icon={Package} label="Total Inventory" value={stats.totalInventory.toString()} color="#ec4899" />
+                  <StatCard icon={LayoutDashboard} label="LP Services" value={stats.landingPageServices.toString()} color="#06b6d4" />
+                  <StatCard icon={LayoutDashboard} label="LP Packages" value={stats.landingPagePackages.toString()} color="#f43f5e" />
+                  {canViewAll && <StatCard icon={TrendingUp} label="Cashflow In" value={formatRupiah(stats.cashflowIn)} color="#14b8a6" />}
+                  {canViewAll && <StatCard icon={DollarSign} label="Cashflow Out" value={formatRupiah(stats.cashflowOut)} color="#ef4444" />}
                 </div>
 
                 {/* Status Distribution */}
@@ -601,13 +614,23 @@ export default function DashboardApp() {
       {/* Item Add/Edit Modal */}
       {itemModalOpen && itemModalData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-6 w-full max-w-md relative animate-slide-up">
-            <button onClick={() => setItemModalOpen(false)} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-lg relative animate-slide-up">
+            <button onClick={() => setItemModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-              {itemModalData.id ? 'Edit Barang' : 'Tambah Barang Baru'}
-            </h3>
+            
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shadow-inner">
+                <Package className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {itemModalData.id ? 'Edit Barang' : 'Tambah Barang Baru'}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Lengkapi informasi inventaris di bawah ini.</p>
+              </div>
+            </div>
+
             <form onSubmit={async (e) => {
               e.preventDefault();
               const target = e.target as typeof e.target & {
@@ -629,21 +652,36 @@ export default function DashboardApp() {
               } catch (err) {
                 alert((err as Error).message);
               }
-            }} className="space-y-4">
+            }} className="space-y-6">
+              
               <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider animate-fade-in">Nama Barang</label>
-                <input type="text" name="name" defaultValue={itemModalData.name} required placeholder="Contoh: Sound System 1000W" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition text-sm" />
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nama Barang <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Package className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input type="text" name="name" defaultValue={itemModalData.name} required placeholder="Contoh: Sound System 1000W" 
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium" />
+                </div>
               </div>
+              
               <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Kategori</label>
-                <input type="text" name="category_id" defaultValue={itemModalData.category_id} placeholder="Contoh: Audio, Lighting, General" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none transition text-sm" />
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Kategori (Opsional)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Filter className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input type="text" name="category_id" defaultValue={itemModalData.category_id} placeholder="Contoh: Audio, Lighting, General" 
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium" />
+                </div>
               </div>
-              <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setItemModalOpen(false)} className="px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+
+              <div className="flex gap-3 justify-end pt-6 border-t border-slate-100 dark:border-slate-800 mt-2">
+                <button type="button" onClick={() => setItemModalOpen(false)} className="px-6 py-2.5 text-sm font-bold rounded-xl text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                   Batal
                 </button>
-                <button type="submit" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-purple-500/10">
-                  Simpan
+                <button type="submit" className="px-8 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:-translate-y-0.5 flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Simpan Data
                 </button>
               </div>
             </form>

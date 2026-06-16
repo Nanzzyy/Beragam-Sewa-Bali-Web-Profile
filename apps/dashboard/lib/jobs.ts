@@ -248,13 +248,18 @@ export interface DashboardStats {
   totalVendorCost: number;
   netProfit: number;
   jobsByStatus: Record<JobStatus, number>;
+  totalInventory: number;
+  cashflowIn: number;
+  cashflowOut: number;
+  landingPageServices: number;
+  landingPagePackages: number;
 }
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const { data, error } = await supabase.from('jobs').select('status, total_rental_fee, total_vendor_cost');
-  if (error) throw new DashboardError(error.message, 'FETCH_STATS_FAILED');
+  const { data: jobsData, error: jobsError } = await supabase.from('jobs').select('status, total_rental_fee, total_vendor_cost');
+  if (jobsError) throw new DashboardError(jobsError.message, 'FETCH_STATS_FAILED');
 
-  const jobs = data || [];
+  const jobs = jobsData || [];
   const stats: DashboardStats = {
     totalJobs: jobs.length,
     activeJobs: jobs.filter(j => j.status === 'confirmed' || j.status === 'on_going').length,
@@ -263,12 +268,41 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
     totalVendorCost: jobs.filter(j => j.status === 'completed').reduce((s, j) => s + Number(j.total_vendor_cost), 0),
     netProfit: 0,
     jobsByStatus: { draft: 0, confirmed: 0, on_going: 0, completed: 0, cancelled: 0 },
+    totalInventory: 0,
+    cashflowIn: 0,
+    cashflowOut: 0,
+    landingPageServices: 0,
+    landingPagePackages: 0,
   };
   stats.netProfit = stats.totalRevenue - stats.totalVendorCost;
 
   for (const j of jobs) {
     stats.jobsByStatus[j.status as JobStatus]++;
   }
+
+  // Fetch Inventory Count
+  try {
+    const { count } = await supabase.from('items').select('*', { count: 'exact', head: true });
+    stats.totalInventory = count || 0;
+  } catch (e) { /* ignore */ }
+
+  // Fetch Cashflow Stats
+  try {
+    const { data: cfData } = await supabase.from('cashflow').select('type, amount');
+    if (cfData) {
+      stats.cashflowIn = cfData.filter(c => c.type === 'inflow').reduce((s, c) => s + Number(c.amount || 0), 0);
+      stats.cashflowOut = cfData.filter(c => c.type === 'outflow').reduce((s, c) => s + Number(c.amount || 0), 0);
+    }
+  } catch (e) { /* ignore */ }
+
+  // Fetch Landing Page Stats
+  try {
+    const { data: sectionData } = await supabase.from('section_images').select('section');
+    if (sectionData) {
+      stats.landingPageServices = sectionData.filter(s => s.section === 'service').length;
+      stats.landingPagePackages = sectionData.filter(s => s.section === 'package').length;
+    }
+  } catch (e) { /* ignore */ }
 
   return stats;
 }
