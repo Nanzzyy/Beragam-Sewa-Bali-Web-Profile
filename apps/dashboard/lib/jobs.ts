@@ -248,10 +248,12 @@ export interface DashboardStats {
   netProfit: number;
   jobsByStatus: Record<JobStatus, number>;
   totalInventory: number;
+  totalSuppliers: number;
   cashflowIn: number;
   cashflowOut: number;
   landingPageServices: number;
   landingPagePackages: number;
+  landingPageGallery: number;
 }
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
@@ -268,10 +270,12 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
     netProfit: 0,
     jobsByStatus: { draft: 0, confirmed: 0, on_going: 0, completed: 0, cancelled: 0 },
     totalInventory: 0,
+    totalSuppliers: 0,
     cashflowIn: 0,
     cashflowOut: 0,
     landingPageServices: 0,
     landingPagePackages: 0,
+    landingPageGallery: 0,
   };
   stats.netProfit = stats.totalRevenue - stats.totalVendorCost;
 
@@ -283,7 +287,13 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
   try {
     const { count } = await supabase.from('items').select('*', { count: 'exact', head: true });
     stats.totalInventory = count || 0;
-  } catch (e) { /* ignore */ }
+  } catch { /* silent */ }
+
+  // Fetch Suppliers Count
+  try {
+    const { count } = await supabase.from('suppliers').select('*', { count: 'exact', head: true }).eq('is_deleted', false);
+    stats.totalSuppliers = count || 0;
+  } catch { /* silent */ }
 
   // Fetch Cashflow Stats
   try {
@@ -292,16 +302,17 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
       stats.cashflowIn = cfData.filter(c => c.type === 'inflow').reduce((s, c) => s + Number(c.amount || 0), 0);
       stats.cashflowOut = cfData.filter(c => c.type === 'outflow').reduce((s, c) => s + Number(c.amount || 0), 0);
     }
-  } catch (e) { /* ignore */ }
+  } catch { /* silent */ }
 
-  // Fetch Landing Page Stats
+  // Fetch Landing Page Stats (column is section_key)
   try {
-    const { data: sectionData } = await supabase.from('section_images').select('section');
+    const { data: sectionData } = await supabase.from('section_images').select('section_key');
     if (sectionData) {
-      stats.landingPageServices = sectionData.filter(s => s.section === 'service').length;
-      stats.landingPagePackages = sectionData.filter(s => s.section === 'package').length;
+      stats.landingPageServices = sectionData.filter(s => s.section_key === 'service').length;
+      stats.landingPagePackages = sectionData.filter(s => s.section_key === 'package').length;
+      stats.landingPageGallery = sectionData.filter(s => s.section_key === 'gallery').length;
     }
-  } catch (e) { /* ignore */ }
+  } catch { /* silent */ }
 
   return stats;
 }
