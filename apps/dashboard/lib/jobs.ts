@@ -80,7 +80,26 @@ export async function createJob(input: Omit<Job, 'id' | 'created_at' | 'updated_
     .single();
 
   if (error) throw new DashboardError(error.message, 'CREATE_JOB_FAILED');
-  return data!.id;
+  const jobId = data!.id;
+
+  // Auto-journal Cashflow
+  if (input.total_rental_fee && Number(input.total_rental_fee) > 0) {
+    const cfPayload = {
+      type: 'inflow',
+      category: 'client_rental',
+      amount: Number(input.total_rental_fee),
+      description: `Pemasukan Job: ${input.client_name} - ${input.venue}`,
+      reference_id: jobId,
+      transaction_date: input.job_date || new Date().toISOString(),
+      created_by: user.id
+    };
+    const { data: cfData, error: cfError } = await supabase.from('cashflow').insert(cfPayload).select('id').single();
+    if (!cfError && cfData) {
+      await supabase.from('jobs').update({ cashflow_tx_id: cfData.id }).eq('id', jobId);
+    }
+  }
+
+  return jobId;
 }
 
 export async function updateJob(id: string, updates: Partial<Job>): Promise<void> {
@@ -90,6 +109,39 @@ export async function updateJob(id: string, updates: Partial<Job>): Promise<void
     .eq('id', id);
 
   if (error) throw new DashboardError(error.message, 'UPDATE_JOB_FAILED');
+
+  // Sync Cashflow if fields changed
+  if ('total_rental_fee' in updates || 'client_name' in updates || 'venue' in updates || 'job_date' in updates) {
+    const { data: job } = await supabase.from('jobs').select('*').eq('id', id).single();
+    if (job) {
+      if (job.cashflow_tx_id) {
+        if (Number(job.total_rental_fee) > 0) {
+          await supabase.from('cashflow').update({
+            amount: Number(job.total_rental_fee),
+            description: `Pemasukan Job: ${job.client_name} - ${job.venue}`,
+            transaction_date: job.job_date || new Date().toISOString()
+          }).eq('id', job.cashflow_tx_id);
+        } else {
+          await supabase.from('cashflow').delete().eq('id', job.cashflow_tx_id);
+          await supabase.from('jobs').update({ cashflow_tx_id: null }).eq('id', id);
+        }
+      } else if (Number(job.total_rental_fee) > 0) {
+        const cfPayload = {
+          type: 'inflow',
+          category: 'client_rental',
+          amount: Number(job.total_rental_fee),
+          description: `Pemasukan Job: ${job.client_name} - ${job.venue}`,
+          reference_id: id,
+          transaction_date: job.job_date || new Date().toISOString(),
+          created_by: job.created_by
+        };
+        const { data: cfData } = await supabase.from('cashflow').insert(cfPayload).select('id').single();
+        if (cfData) {
+          await supabase.from('jobs').update({ cashflow_tx_id: cfData.id }).eq('id', id);
+        }
+      }
+    }
+  }
 }
 
 export async function updateJobStatus(id: string, status: JobStatus): Promise<void> {
@@ -102,8 +154,16 @@ export async function updateJobStatus(id: string, status: JobStatus): Promise<vo
 }
 
 export async function deleteJob(id: string): Promise<void> {
+  const { data: job } = await supabase.from('jobs').select('cashflow_tx_id').eq('id', id).single();
+  
   const { error } = await supabase.from('jobs').delete().eq('id', id);
   if (error) throw new DashboardError(error.message, 'DELETE_JOB_FAILED');
+
+  if (job?.cashflow_tx_id) {
+    await supabase.from('cashflow').delete().eq('id', job.cashflow_tx_id);
+  } else {
+    await supabase.from('cashflow').delete().eq('reference_id', id);
+  }
 }
 
 // ============================================================
