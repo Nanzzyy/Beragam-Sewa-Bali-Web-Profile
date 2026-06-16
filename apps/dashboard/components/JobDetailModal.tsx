@@ -24,8 +24,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   const [uploading, setUploading] = useState(false);
 
   // Lists of all available items and staff for the dropdowns
-  const [availableItems, setAvailableItems] = useState<{ id: string; name: string }[]>([]);
-  const [availableStaff, setAvailableStaff] = useState<{ id: string; email: string }[]>([]);
+  const [availableItems, setAvailableItems] = useState<{ id: string; name: string; available?: number; total?: number }[]>([]);
+  const [availableStaff, setAvailableStaff] = useState<{ id: string; email: string; nickname?: string }[]>([]);
 
   const canModify = userRole === 'owner' || userRole === 'staff';
 
@@ -43,14 +43,51 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
       setStaff(staffData);
       setProofs(proofsData);
 
-      // Fetch all items and employee profiles
+      // Fetch all items and employee profiles, plus active jobs for quantity calculation
       const { supabase: sbClient } = await import('../lib/supabase');
-      const [iRes, sRes] = await Promise.all([
-        sbClient.from('items').select('id, name').order('name'),
-        sbClient.from('profiles').select('id, email').order('email')
+      const [iRes, sRes, jobsRes] = await Promise.all([
+        sbClient.from('items').select('id, name, quantity').order('name'),
+        sbClient.from('profiles').select('id, email').order('email'),
+        sbClient.from('jobs').select('id').in('status', ['confirmed', 'on_going'])
       ]);
-      if (iRes.data) setAvailableItems(iRes.data);
-      if (sRes.data) setAvailableStaff(sRes.data);
+
+      let usedQuantities: Record<string, number> = {};
+      if (jobsRes.data && jobsRes.data.length > 0) {
+        const jobIds = jobsRes.data.map(j => j.id);
+        const { data: usedItems } = await sbClient.from('job_items')
+          .select('item_id, quantity')
+          .in('job_id', jobIds)
+          .eq('is_returned', false)
+          .not('item_id', 'is', null);
+        
+        if (usedItems) {
+          usedItems.forEach(ui => {
+            if (ui.item_id) usedQuantities[ui.item_id] = (usedQuantities[ui.item_id] || 0) + ui.quantity;
+          });
+        }
+      }
+
+      if (iRes.data) {
+        setAvailableItems(iRes.data.map(item => ({
+          id: item.id,
+          name: item.name,
+          total: item.quantity || 0,
+          available: Math.max(0, (item.quantity || 0) - (usedQuantities[item.id] || 0))
+        })));
+      }
+
+      if (sRes.data) {
+        try {
+          const nicknamesMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
+          setAvailableStaff(sRes.data.map(staff => ({
+            id: staff.id,
+            email: staff.email,
+            nickname: nicknamesMap[staff.email] || ''
+          })));
+        } catch (e) {
+          setAvailableStaff(sRes.data);
+        }
+      }
     } catch (e) {
       console.error('Failed to load job details:', e);
     }
@@ -309,7 +346,9 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   <select name="item_id" required className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-white">
                     <option value="">-- Pilih Barang --</option>
                     {availableItems.map(item => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
+                      <option key={item.id} value={item.id} disabled={item.available === 0}>
+                        {item.name} (Stok: {item.available}/{item.total})
+                      </option>
                     ))}
                   </select>
                   <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-white" />
@@ -321,12 +360,14 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   <p className="text-center text-slate-500 py-4 text-sm">Belum ada barang yang ditambahkan.</p>
                 ) : (
                   items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-white dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
                       <div className="flex items-center gap-3">
-                        <Package className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
+                          <Package className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
                         <div>
-                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-900 dark:text-white">{item.item_name || item.item_name_custom || '-'}</div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-sm font-bold text-slate-900 dark:text-white">{item.item_name || item.item_name_custom || '-'}</div>
+                          <div className="text-xs text-slate-500 font-medium mt-0.5">
                             Qty: {item.quantity}
                             {item.vendor_name && ` • Vendor: ${item.vendor_name}`}
                             {item.sub_rent_cost > 0 && ` • ${formatRupiah(item.sub_rent_cost)}`}
@@ -385,7 +426,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   <select name="profile_id" required className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-white">
                     <option value="">-- Pilih Karyawan --</option>
                     {availableStaff.map(s => (
-                      <option key={s.id} value={s.id}>{s.email}</option>
+                      <option key={s.id} value={s.id}>{s.nickname ? `${s.nickname} (${s.email})` : s.email}</option>
                     ))}
                   </select>
                   <input type="text" name="role" placeholder="Peran (ex: Supir)" required className="w-1/3 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-white" />
@@ -396,17 +437,20 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                 {staff.length === 0 ? (
                   <p className="text-center text-slate-500 py-4 text-sm">Belum ada kru yang ditugaskan.</p>
                 ) : (
-                  staff.map(s => (
-                    <div key={s.id} className="flex items-center justify-between p-3 bg-white dark:bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-400">
-                          {(s.email || '?')[0].toUpperCase()}
+                  staff.map(s => {
+                    const sNickname = availableStaff.find(a => a.id === s.profile_id)?.nickname;
+                    const displayName = sNickname || s.email || '-';
+                    return (
+                      <div key={s.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                            {displayName[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-slate-900 dark:text-white">{displayName}</div>
+                            <div className="text-xs text-slate-500 font-medium mt-0.5">{s.role_in_job}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-900 dark:text-white">{s.email || '-'}</div>
-                          <div className="text-xs text-slate-500">{s.role_in_job}</div>
-                        </div>
-                      </div>
                       {canModify && (
                         <button onClick={async () => {
                           if (!confirm('Hapus staf ini dari tugas?')) return;
@@ -419,7 +463,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                         </button>
                       )}
                     </div>
-                  ))
+                  );
+                })
                 )}
               </div>
             </div>

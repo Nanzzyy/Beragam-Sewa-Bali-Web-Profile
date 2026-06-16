@@ -9,7 +9,7 @@ import GanttScheduler from '../components/GanttScheduler';
 import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
-type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'staff' | 'cashflow' | 'suppliers' | 'landing';
+type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'staff' | 'cashflow' | 'suppliers' | 'landing' | 'template';
 
 export default function DashboardApp() {
   const [tab, setTab] = useState<Tab>('dashboard');
@@ -68,7 +68,7 @@ export default function DashboardApp() {
 
   // Staff Modal State
   const [staffModalOpen, setStaffModalOpen] = useState(false);
-  const [staffModalData, setStaffModalData] = useState<{ id?: string; email: string; role: string } | null>(null);
+  const [staffModalData, setStaffModalData] = useState<{ id?: string; email: string; role: string; nickname?: string } | null>(null);
 
   // Cashflow Modal State
   const [cashflowModalOpen, setCashflowModalOpen] = useState(false);
@@ -336,6 +336,7 @@ export default function DashboardApp() {
           {userRole === 'owner' && (
             <>
               <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Super Admin</div>
+              <SidebarItem icon={FileSpreadsheet} label="Pengaturan Template" value="template" />
               <SidebarItem icon={Wallet} label="Cashflow" value="cashflow" />
               <SidebarItem icon={Truck} label="Suppliers" value="suppliers" />
               <SidebarItem icon={Globe} label="Landing Page" value="landing" />
@@ -440,8 +441,17 @@ export default function DashboardApp() {
                   </div>
                 </div>
 
+              </div>
+            )}
+
+            {/* === TEMPLATE TAB === */}
+            {tab === 'template' && userRole === 'owner' && (
+              <div className="animate-fade-in space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pengaturan Template</h1>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Ubah kop dokumen surat jalan, invoice, dan logo perusahaan</p>
+                </div>
                 {/* Company & Document Template Settings */}
-                {userRole === 'owner' && (
                   <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
@@ -528,7 +538,6 @@ export default function DashboardApp() {
                       </div>
                     </form>
                   </div>
-                )}
               </div>
             )}
 
@@ -722,15 +731,18 @@ export default function DashboardApp() {
                       <p className="text-slate-500 dark:text-slate-400">Belum ada data karyawan.</p>
                     </div>
                   ) : (
-                    staffList.map(staff => (
+                    staffList.map(staff => {
+                      const nMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
+                      const sNick = nMap[staff.email] || '';
+                      return (
                       <div key={staff.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative group">
                         <div className="flex items-center gap-4 mb-4">
                           <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-lg">
-                            {(staff.email || '?')[0].toUpperCase()}
+                            {(sNick || staff.email || '?')[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 dark:text-white truncate">{staff.email || 'Tanpa Email'}</div>
-                            <div className="text-xs text-slate-500 truncate">{staff.email}</div>
+                            <div className="font-semibold text-slate-900 dark:text-white truncate">{sNick || staff.email || 'Tanpa Email'}</div>
+                            <div className="text-xs text-slate-500 truncate">{sNick ? staff.email : ''}</div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -740,7 +752,8 @@ export default function DashboardApp() {
                           {userRole === 'owner' && (
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                               <button onClick={() => {
-                                setStaffModalData({ id: staff.id, email: staff.email || '', role: staff.role || 'staff' });
+                                const nMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
+                                setStaffModalData({ id: staff.id, email: staff.email || '', role: staff.role || 'staff', nickname: nMap[staff.email] || '' });
                                 setStaffModalOpen(true);
                               }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md">
                                 <Edit className="w-3.5 h-3.5" />
@@ -764,8 +777,9 @@ export default function DashboardApp() {
                           )}
                         </div>
                       </div>
-                    ))
-                  )}
+                    );
+                  })
+                )}
                 </div>
               </div>
             )}
@@ -1418,6 +1432,7 @@ export default function DashboardApp() {
               const target = e.target as typeof e.target & {
                 email: { value: string };
                 role: { value: string };
+                nickname: { value: string };
               };
               const payload = {
                 email: target.email.value.trim(),
@@ -1429,6 +1444,11 @@ export default function DashboardApp() {
                 } else {
                   await supabase.from('profiles').insert(payload);
                 }
+                const newNickname = target.nickname.value.trim();
+                const nicknamesMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
+                nicknamesMap[payload.email] = newNickname;
+                localStorage.setItem('bsb_staff_nicknames', JSON.stringify(nicknamesMap));
+
                 loadData();
                 setStaffModalOpen(false);
               } catch (err) {
@@ -1436,6 +1456,12 @@ export default function DashboardApp() {
               }
             }} className="space-y-6">
               
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nama Panggilan / Nickname</label>
+                <input type="text" name="nickname" defaultValue={staffModalData.nickname} placeholder="Contoh: Budi" 
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-sm font-medium" />
+              </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Alamat Email <span className="text-red-500">*</span></label>
                 <input type="email" name="email" defaultValue={staffModalData.email} required placeholder="budi@example.com" disabled={!!staffModalData.id} 
