@@ -8,7 +8,8 @@
     { "src": "admin/**", "use": "@vercel/static" },
     { "src": "katalog/**", "use": "@vercel/static" },
     { "src": "dashboard-build/**", "use": "@vercel/static" },
-    { "src": "cashflow-build/**", "use": "@vercel/static" }
+    { "src": "cashflow-build/**", "use": "@vercel/static" },
+    { "src": "sitemap.xml", "use": "@vercel/static" }
   ],
   "routes": [
     {
@@ -35,6 +36,7 @@
     { "src": "/api/(.*)", "dest": "/api/index.js" },
     { "src": "/src/(.*)", "dest": "/src/$1" },
     { "src": "/favicon(.*)", "dest": "/favicon$1" },
+    { "src": "/sitemap\\.xml", "dest": "/sitemap.xml" },
     
     {
       "src": "/",
