@@ -342,8 +342,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     alert((err as Error).message);
                   }
                   setUploading(false);
-                }} className="flex gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <select name="item_id" required className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
+                }} className="flex flex-col sm:flex-row gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <select name="item_id" required className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
                     <option value="">-- Pilih Barang --</option>
                     {availableItems.map(item => (
                       <option key={item.id} value={item.id} disabled={item.available === 0}>
@@ -351,8 +351,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                       </option>
                     ))}
                   </select>
-                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                  <button type="submit" disabled={uploading} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
+                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full sm:w-24 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                  <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
                 </form>
               )}
               <div className="space-y-3">
@@ -422,15 +422,15 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     alert((err as Error).message);
                   }
                   setUploading(false);
-                }} className="flex gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <select name="profile_id" required className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
+                }} className="flex flex-col sm:flex-row gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <select name="profile_id" required className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
                     <option value="">-- Pilih Karyawan --</option>
                     {availableStaff.map(s => (
                       <option key={s.id} value={s.id}>{s.nickname ? `${s.nickname} (${s.email})` : s.email}</option>
                     ))}
                   </select>
-                  <input type="text" name="role" placeholder="Peran (ex: Supir)" required className="w-1/3 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                  <button type="submit" disabled={uploading} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
+                  <input type="text" name="role" placeholder="Peran (ex: Supir)" required className="w-full sm:w-1/3 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                  <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
                 </form>
               )}
               <div className="space-y-3">

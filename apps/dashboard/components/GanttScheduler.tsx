@@ -56,14 +56,14 @@ export default function GanttScheduler({ jobs, onJobClick }: GanttSchedulerProps
 
   if (activeJobs.length === 0) {
     return (
-      <div className="bg-white dark:bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-12 text-center" style={{ background: '#1e293b', borderColor: '#334155' }}>
+      <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-12 text-center">
         <p className="text-slate-500 dark:text-slate-400">Belum ada jadwal job untuk ditampilkan.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border overflow-hidden" style={{ background: '#1e293b', borderColor: '#334155' }}>
+    <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border overflow-hidden">
       <div className="overflow-x-auto">
         <div style={{ minWidth: `${Math.max(totalDays * 48, 600)}px` }}>
           {/* Header */}
@@ -74,7 +74,7 @@ export default function GanttScheduler({ jobs, onJobClick }: GanttSchedulerProps
                 const isToday = d.toDateString() === today.toDateString();
                 const isSunday = d.getDay() === 0;
                 return (
-                  <div key={i} className={`flex-1 min-w-[48px] text-center py-2 text-[10px] border-r border-slate-800 ${isToday ? 'bg-red-600/10 font-bold text-red-500' : isSunday ? 'text-red-400' : 'text-slate-500'}`}>
+                  <div key={i} className={`flex-1 min-w-[48px] text-center py-2 text-[10px] border-r border-slate-200 dark:border-slate-800 ${isToday ? 'bg-red-600/10 font-bold text-red-500' : isSunday ? 'text-red-400' : 'text-slate-500'}`}>
                     <div>{d.toLocaleDateString('id-ID', { weekday: 'short' })}</div>
                     <div className="text-sm font-semibold">{d.getDate()}</div>
                   </div>
@@ -88,8 +88,8 @@ export default function GanttScheduler({ jobs, onJobClick }: GanttSchedulerProps
             const barStyle = getBarStyle(job);
             const config = JOB_STATUS_CONFIG[job.status as JobStatus];
             return (
-              <div key={job.id} className="flex items-center border-b border-slate-800 hover:bg-white dark:bg-slate-800/30 transition">
-                <div className="w-52 shrink-0 px-4 py-3 border-r border-slate-800">
+              <div key={job.id} className="flex items-center border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
+                <div className="w-52 shrink-0 px-4 py-3 border-r border-slate-200 dark:border-slate-800">
                   <div className="text-sm text-slate-900 dark:text-white font-medium truncate">{job.client_name}</div>
                   <div className="text-xs text-slate-500 truncate">{job.venue}</div>
                 </div>
