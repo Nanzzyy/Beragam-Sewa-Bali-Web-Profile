@@ -6,7 +6,7 @@ import { fetchJobs, fetchDashboardStats, createJob, updateJob, updateJobStatus, 
 import JobDetailModal from '../components/JobDetailModal';
 import JobFormModal from '../components/JobFormModal';
 import GanttScheduler from '../components/GanttScheduler';
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'staff' | 'cashflow' | 'suppliers' | 'landing' | 'template';
@@ -60,13 +60,13 @@ export default function DashboardApp() {
     ...(itemsList?.map(item => item.category).filter(Boolean) || [])
   ]));
 
-  // Filters
   const [statusFilter, setStatusFilter] = useState<JobStatus | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
   const [activeJobs, setActiveJobs] = useState<any[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Modals
   const [showJobForm, setShowJobForm] = useState(false);
@@ -112,7 +112,7 @@ export default function DashboardApp() {
       setCompEmail(localStorage.getItem('bsb_company_email') || 'info@beragamsewabali.com');
       setCompPhone(localStorage.getItem('bsb_company_phone') || '08123456789');
       setCompPayment(localStorage.getItem('bsb_company_payment_info') || 'Bank BCA: 1234567890 a.n Beragam Sewa Bali');
-      setCompLogo(localStorage.getItem('bsb_company_logo') || null);
+      setCompLogo(null); // Fetch from DB directly to save localStorage space
 
       // Fetch from Supabase for sync across browsers
       supabase.from('site_content').select('*').in('content_key', [
@@ -149,7 +149,7 @@ export default function DashboardApp() {
           const dbLogo = getVal('bsb_company_logo', '');
           if (dbLogo) {
             setCompLogo(dbLogo);
-            localStorage.setItem('bsb_company_logo', dbLogo);
+            // Removed to avoid quota exceeded
           }
         }
       });
@@ -395,17 +395,40 @@ export default function DashboardApp() {
 
   // ======== MAIN RENDER ========
   return (
-    <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="h-screen flex flex-col md:flex-row overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-red-600/10 flex items-center justify-center">
+            <Briefcase className="w-4 h-4 text-red-500" />
+          </div>
+          <div className="font-bold text-slate-900 dark:text-white">BSB Dashboard</div>
+        </div>
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 -mr-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition">
+          <Menu className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Sidebar Overlay */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm transition-opacity" onClick={() => setMobileMenuOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 h-full border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 shrink-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-2 mb-2">
-          <div className="w-9 h-9 rounded-xl bg-red-600/10 flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-red-500" />
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 shrink-0 overflow-y-auto transition-transform duration-300 md:relative md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between px-2 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-600/10 flex items-center justify-center">
+              <Briefcase className="w-5 h-5 text-red-500" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">BSB Dashboard</div>
+              <div className="text-xs text-slate-500">{userRole.toUpperCase()}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white">BSB Dashboard</div>
-            <div className="text-xs text-slate-500">{userRole.toUpperCase()}</div>
-          </div>
+          <button className="md:hidden text-slate-400 hover:text-slate-900 dark:hover:text-white transition p-1" onClick={() => setMobileMenuOpen(false)}>
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <div className="mt-6 space-y-1">
           <SidebarItem icon={LayoutDashboard} label="Overview" value="dashboard" />
@@ -424,7 +447,7 @@ export default function DashboardApp() {
             </>
           )}
         </div>
-        <div className="mt-auto space-y-2">
+        <div className="mt-auto space-y-2 pt-4">
           <div className="px-4 py-2 text-xs text-slate-500 truncate">{userEmail}</div>
           {mounted && (
             <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-white dark:bg-slate-800 transition">
@@ -612,7 +635,7 @@ export default function DashboardApp() {
                               reader.onloadend = () => {
                                 const base64 = reader.result as string;
                                 setCompLogo(base64);
-                                localStorage.setItem('bsb_company_logo', base64);
+                                // localStorage.setItem('bsb_company_logo', base64); // Removed to avoid quota error
                               };
                               reader.readAsDataURL(file);
                             }
@@ -622,7 +645,7 @@ export default function DashboardApp() {
                               <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
                               <button type="button" onClick={() => {
                                 setCompLogo(null);
-                                localStorage.removeItem('bsb_company_logo');
+                                // localStorage.removeItem('bsb_company_logo');
                               }} className="text-xs text-rose-500 hover:underline">Hapus</button>
                             </div>
                           )}
@@ -980,7 +1003,7 @@ export default function DashboardApp() {
                       src="https://cashflow.beragamsewabali.com" 
                       className="w-full h-full border-0 absolute inset-0"
                       title="BSB Cashflow Live Preview"
-                      allow="clipboard-write"
+                      allow="clipboard-read; clipboard-write; display-capture"
                     />
                   </div>
                 </div>
