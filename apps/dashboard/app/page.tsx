@@ -63,6 +63,10 @@ export default function DashboardApp() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<JobStatus | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
+  const [activeJobs, setActiveJobs] = useState<any[]>([]);
 
   // Modals
   const [showJobForm, setShowJobForm] = useState(false);
@@ -235,6 +239,17 @@ export default function DashboardApp() {
         const { data: landData } = await supabase.from('section_images').select('*').order('id', { ascending: false });
         if (landData) setLandingList(landData);
       }
+
+      // Fetch Active Jobs mappings for Staff, Items, Suppliers
+      const { data: activeJobsData } = await supabase
+        .from('jobs')
+        .select(`
+          id, client_name, venue,
+          job_items ( item_id, source_vendor_id, quantity ),
+          job_staff ( profile_id )
+        `)
+        .eq('status', 'on_going');
+      setActiveJobs(activeJobsData || []);
 
       // Update Favicon based on site_logo
       const { data: contentData } = await supabase.from('site_content').select('content_value').eq('content_key', 'site_logo').single();
@@ -739,6 +754,13 @@ export default function DashboardApp() {
                   )}
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-4">
+                  <div className="mb-4">
+                    <div className="relative w-full max-w-sm">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input type="text" value={itemSearchQuery} onChange={e => setItemSearchQuery(e.target.value)} placeholder="Cari barang..."
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
+                    </div>
+                  </div>
                   {itemsList.length === 0 ? (
                     <div className="text-center py-12">
                       <Package className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
@@ -746,15 +768,34 @@ export default function DashboardApp() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {itemsList.map(item => (
-                        <div key={item.id} className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition group">
+                      {itemsList.filter(item => item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) || item.category?.toLowerCase().includes(itemSearchQuery.toLowerCase())).map(item => {
+                        // Find active jobs using this item
+                        const itemActiveJobs = activeJobs.filter(job => job.job_items?.some((ji: any) => ji.item_id === item.id));
+                        const usedQuantity = itemActiveJobs.reduce((acc, job) => {
+                          const ji = job.job_items.find((ji: any) => ji.item_id === item.id);
+                          return acc + (ji ? ji.quantity : 0);
+                        }, 0);
+                        
+                        return (
+                        <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition group gap-3 md:gap-0">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
                               <Package className="w-5 h-5 text-red-600 dark:text-red-400" />
                             </div>
                             <div>
                               <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
-                              <div className="text-xs text-slate-500">Kategori: {item.category || '-'} | Stok: {item.quantity || 0}</div>
+                              <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2 mt-1">
+                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Kategori: {item.category || '-'}</span>
+                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Stok Total: {item.quantity || 0}</span>
+                                {usedQuantity > 0 && (
+                                  <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded font-medium">Sedang Dipakai: {usedQuantity}</span>
+                                )}
+                              </div>
+                              {itemActiveJobs.length > 0 && (
+                                <div className="text-xs text-red-600 dark:text-red-400 mt-1.5 flex items-center gap-1">
+                                  <Activity className="w-3 h-3" /> Job Aktif: {itemActiveJobs.map(j => j.client_name).join(', ')}
+                                </div>
+                              )}
                             </div>
                           </div>
                           {canModify && (
@@ -783,7 +824,8 @@ export default function DashboardApp() {
                             </div>
                           )}
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   )}
                 </div>
@@ -807,6 +849,13 @@ export default function DashboardApp() {
                     </button>
                   )}
                 </div>
+                <div className="mb-4">
+                  <div className="relative w-full max-w-sm">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input type="text" value={staffSearchQuery} onChange={e => setStaffSearchQuery(e.target.value)} placeholder="Cari karyawan..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {staffList.length === 0 ? (
                     <div className="col-span-full text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl">
@@ -814,20 +863,39 @@ export default function DashboardApp() {
                       <p className="text-slate-500 dark:text-slate-400">Belum ada data karyawan.</p>
                     </div>
                   ) : (
-                    staffList.map(staff => {
+                    staffList.filter(staff => {
                       const nMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
                       const sNick = nMap[staff.email] || '';
+                      const query = staffSearchQuery.toLowerCase();
+                      return staff.email.toLowerCase().includes(query) || staff.role.toLowerCase().includes(query) || sNick.toLowerCase().includes(query);
+                    }).map(staff => {
+                      const nMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
+                      const sNick = nMap[staff.email] || '';
+                      
+                      const staffActiveJobs = activeJobs.filter(job => job.job_staff?.some((js: any) => js.profile_id === staff.id));
+                      
                       return (
-                      <div key={staff.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative group">
+                      <div key={staff.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative group flex flex-col h-full">
                         <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 font-bold text-lg">
+                          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 font-bold text-lg shrink-0">
                             {(sNick || staff.email || '?')[0].toUpperCase()}
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="font-semibold text-slate-900 dark:text-white truncate">{sNick || staff.email || 'Tanpa Email'}</div>
                             <div className="text-xs text-slate-500 truncate">{sNick ? staff.email : ''}</div>
                           </div>
                         </div>
+                        {staffActiveJobs.length > 0 && (
+                          <div className="mb-4 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 p-2 rounded-lg">
+                            <div className="flex items-center gap-1 font-semibold mb-1"><Activity className="w-3 h-3" /> Job Aktif:</div>
+                            <ul className="list-disc list-inside">
+                              {staffActiveJobs.map(j => (
+                                <li key={j.id} className="truncate">{j.client_name}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <div className="mt-auto">
                         <div className="flex items-center justify-between">
                           <div className="text-xs font-medium px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                             {staff.role}
@@ -858,6 +926,7 @@ export default function DashboardApp() {
                               </button>
                             </div>
                           )}
+                        </div>
                         </div>
                       </div>
                     );
@@ -934,6 +1003,14 @@ export default function DashboardApp() {
                   </button>
                 </div>
 
+                <div className="mb-4">
+                  <div className="relative w-full max-w-sm">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input type="text" value={supplierSearchQuery} onChange={e => setSupplierSearchQuery(e.target.value)} placeholder="Cari supplier..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {suppliersList.length === 0 ? (
                     <div className="col-span-full text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl">
@@ -941,13 +1018,16 @@ export default function DashboardApp() {
                       <p className="text-slate-500 dark:text-slate-400">Belum ada data supplier / vendor.</p>
                     </div>
                   ) : (
-                    suppliersList.map(sup => (
-                      <div key={sup.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative group">
+                    suppliersList.filter(sup => sup.name.toLowerCase().includes(supplierSearchQuery.toLowerCase()) || sup.contact_name?.toLowerCase().includes(supplierSearchQuery.toLowerCase())).map(sup => {
+                      const supActiveJobs = activeJobs.filter(job => job.job_items?.some((ji: any) => ji.source_vendor_id === sup.id));
+                      
+                      return (
+                      <div key={sup.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative group flex flex-col h-full">
                         <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                          <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                             <Truck className="w-6 h-6" />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="font-semibold text-slate-900 dark:text-white truncate">{sup.name}</div>
                             <div className="text-xs text-slate-500 truncate">{sup.contact_name || 'Kontak Utama'}</div>
                           </div>
@@ -956,7 +1036,17 @@ export default function DashboardApp() {
                           <div>Telp: {sup.phone || '-'}</div>
                           <div>Email: {sup.email || '-'}</div>
                         </div>
-                        <div className="flex justify-end gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        {supActiveJobs.length > 0 && (
+                          <div className="mb-4 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 p-2 rounded-lg">
+                            <div className="flex items-center gap-1 font-semibold mb-1"><Activity className="w-3 h-3" /> Supply Job Aktif:</div>
+                            <ul className="list-disc list-inside">
+                              {supActiveJobs.map(j => (
+                                <li key={j.id} className="truncate">{j.client_name}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <div className="flex justify-end gap-1 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
                           <button onClick={() => {
                             setSupplierModalData({ id: sup.id, name: sup.name, contact_name: sup.contact_name || '', phone: sup.phone || '', email: sup.email || '' });
                             setSupplierModalOpen(true);
@@ -979,7 +1069,8 @@ export default function DashboardApp() {
                           </button>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
