@@ -362,7 +362,19 @@ export default function DashboardApp() {
   const canViewAll = userRole === 'owner' || userRole === 'accounting';
 
   // ======== LANDING ATAU LOGIN SCREEN ========
-  if (!loading && !authReady) {
+  // Show spinner during initial load to prevent landing page flash
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authReady) {
     if (!showLogin) {
       return <LandingPage onLoginClick={() => setShowLogin(true)} />;
     }
@@ -495,7 +507,7 @@ export default function DashboardApp() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 h-full overflow-y-auto p-4 md:p-6 lg:p-8">
+      <main className="flex-1 h-full overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
@@ -505,14 +517,14 @@ export default function DashboardApp() {
             {/* === OVERVIEW TAB === */}
             {tab === 'dashboard' && stats && (
               <div className="animate-fade-in space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard Overview</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Dashboard Overview</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Ringkasan operasional & keuangan</p>
                   </div>
                   {canModify && (
                     <button onClick={() => { setEditingJob(null); setShowJobForm(true); }}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm">
+                      className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm w-full sm:w-auto justify-center">
                       <Plus className="w-4 h-4" /> Job Baru
                     </button>
                   )}
@@ -526,7 +538,7 @@ export default function DashboardApp() {
                   {canViewAll && <StatCard icon={DollarSign} label="Laba Bersih (Jobs)" value={formatRupiah(stats.netProfit)} color="#8B5CF6" />}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
                   <StatCard icon={Package} label="Total Inventory" value={stats.totalInventory.toString()} color="#ec4899" />
                   <StatCard icon={Truck} label="Suppliers" value={stats.totalSuppliers.toString()} color="#8b5cf6" />
                   <StatCard icon={Image} label="Gallery" value={stats.landingPageGallery.toString()} color="#06b6d4" />
@@ -537,7 +549,7 @@ export default function DashboardApp() {
                 {/* Status Distribution */}
                 <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-6" >
                   <h3 className="text-slate-900 dark:text-white font-semibold mb-4">Distribusi Status Job</h3>
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                     {(Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(status => (
                       <div key={status} className="text-center p-3 rounded-xl" style={{ background: JOB_STATUS_CONFIG[status].bg }}>
                         <div className="text-2xl font-bold" style={{ color: JOB_STATUS_CONFIG[status].color }}>{stats.jobsByStatus[status]}</div>
@@ -693,14 +705,14 @@ export default function DashboardApp() {
             {/* === JOBS LIST TAB === */}
             {tab === 'jobs' && (
               <div className="animate-fade-in space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Manajemen Job & Event</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Manajemen Job & Event</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola penyewaan peralatan event</p>
                   </div>
                   {canModify && (
                     <button onClick={() => { setEditingJob(null); setShowJobForm(true); }}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-slate-900 dark:text-white font-semibold rounded-xl transition text-sm">
+                      className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm w-full sm:w-auto justify-center">
                       <Plus className="w-4 h-4" /> Job Baru
                     </button>
                   )}
@@ -790,16 +802,16 @@ export default function DashboardApp() {
             {/* === INVENTORY TAB === */}
             {tab === 'inventory' && (
               <div className="animate-fade-in space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Menu Barang</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Menu Barang</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Daftar inventaris alat dan barang</p>
                   </div>
                   {canModify && (
                     <button onClick={() => {
                       setItemModalData({ name: '', category: 'other', quantity: 1, sku: `SKU-${Date.now()}` });
                       setItemModalOpen(true);
-                    }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20">
+                    }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 w-full sm:w-auto justify-center">
                       <Plus className="w-4 h-4" /> Tambah Barang
                     </button>
                   )}
@@ -888,16 +900,16 @@ export default function DashboardApp() {
             {/* === STAFF TAB === */}
             {tab === 'staff' && (
               <div className="animate-fade-in space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Daftar Karyawan</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Daftar Karyawan</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola data profil karyawan</p>
                   </div>
                   {userRole === 'owner' && (
                     <button onClick={() => {
                       setStaffModalData({ email: '', role: 'staff' });
                       setStaffModalOpen(true);
-                    }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20">
+                    }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 w-full sm:w-auto justify-center">
                       <Plus className="w-4 h-4" /> Tambah Karyawan
                     </button>
                   )}
@@ -992,13 +1004,13 @@ export default function DashboardApp() {
             {/* === SUPER ADMIN: CASHFLOW TAB === */}
             {tab === 'cashflow' && userRole === 'owner' && (
               <div className="animate-fade-in h-full flex flex-col space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Aliran Kas (Cashflow Web App)</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Aliran Kas (Cashflow Web App)</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Live preview & kontrol penuh aplikasi pembukuan utama.</p>
                   </div>
                   <a href="https://cashflow.beragamsewabali.com" target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-emerald-500/20">
+                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-emerald-500/20 w-full sm:w-auto justify-center">
                     <ExternalLink className="w-4 h-4" /> Buka Tab Baru
                   </a>
                 </div>
@@ -1038,15 +1050,15 @@ export default function DashboardApp() {
             {/* === SUPER ADMIN: SUPPLIERS TAB === */}
             {tab === 'suppliers' && userRole === 'owner' && (
               <div className="animate-fade-in space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Daftar Suppliers & Vendor</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Daftar Suppliers & Vendor</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Daftar supplier penyedia logistik dan sub-rent alat event.</p>
                   </div>
                   <button onClick={() => {
                     setSupplierModalData({ name: '', contact_name: '', phone: '', email: '' });
                     setSupplierModalOpen(true);
-                  }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20">
+                  }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 w-full sm:w-auto justify-center">
                     <Plus className="w-4 h-4" /> Tambah Supplier
                   </button>
                 </div>
@@ -1127,15 +1139,15 @@ export default function DashboardApp() {
             {/* === SUPER ADMIN: LANDING PAGE CONTENT TAB === */}
             {tab === 'landing' && userRole === 'owner' && (
               <div className="animate-fade-in space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Konten Website & Landing Page</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Konten Website & Landing Page</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola konten, layanan, paket promo, dan galeri portofolio beragamsewabali.com.</p>
                   </div>
                   <button onClick={() => {
                     setLandingModalData({ section_key: 'service', title: '', text: '', long_text: '', image_url: '' });
                     setLandingModalOpen(true);
-                  }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20">
+                  }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 w-full sm:w-auto justify-center">
                     <Plus className="w-4 h-4" /> Tambah Konten
                   </button>
                 </div>
@@ -1394,7 +1406,7 @@ export default function DashboardApp() {
                 alert((err as Error).message);
               }
             }} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Tipe</label>
                   <select name="type" defaultValue={cashflowModalData.type}
@@ -1416,7 +1428,7 @@ export default function DashboardApp() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Jumlah (IDR) <span className="text-red-500">*</span></label>
                   <input type="number" name="amount" defaultValue={cashflowModalData.amount || ''} required min="1" placeholder="Jumlah nominal"
@@ -1738,13 +1750,13 @@ export default function DashboardApp() {
 // ======== STAT CARD COMPONENT ========
 function StatCard({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: string; color: string }) {
   return (
-    <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-5 flex items-center gap-4" >
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
-        <Icon className="w-6 h-6" style={{ color }} />
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-4 sm:p-5 flex items-center gap-3 sm:gap-4 min-w-0" >
+      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color }} />
       </div>
-      <div>
-        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</div>
-        <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{value}</div>
+      <div className="min-w-0">
+        <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{label}</div>
+        <div className="text-base sm:text-xl font-bold text-slate-900 dark:text-white mt-0.5 truncate">{value}</div>
       </div>
     </div>
   );

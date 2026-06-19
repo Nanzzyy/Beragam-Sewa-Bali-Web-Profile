@@ -133,7 +133,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
           </div>
 
           {/* Dates */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <InputField label="Tanggal Setup" required type="date" value={setupDate} onChange={setSetupDate} />
             <InputField label="Tanggal Event" required type="date" value={jobDate} onChange={setJobDate} />
             <InputField label="Tanggal Selesai" required type="date" value={completionDate} onChange={setCompletionDate} />
