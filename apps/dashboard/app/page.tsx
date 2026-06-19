@@ -181,6 +181,28 @@ export default function DashboardApp() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      if (event === 'INITIAL_SESSION') return;
+      
+      if (session?.user) {
+        setAuthReady(true);
+        setUserEmail(session.user.email || '');
+        setCurrentUserId(session.user.id);
+        try {
+          const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+          if (mounted) setUserRole((data?.role as AppRole) || 'guest');
+        } catch { 
+          if (mounted) setUserRole('guest'); 
+        }
+      } else {
+        setAuthReady(false);
+        setUserEmail('');
+        setCurrentUserId('');
+        setUserRole('guest');
+      }
+    });
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted || initialCheckDone) return;
       
       if (session?.user) {
         setAuthReady(true);
@@ -199,28 +221,7 @@ export default function DashboardApp() {
         setUserRole('guest');
       }
       
-      if (!initialCheckDone && mounted) {
-        initialCheckDone = true;
-        setLoading(false);
-      }
-    });
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted || initialCheckDone) return;
-      
-      if (session?.user) {
-        setAuthReady(true);
-        setUserEmail(session.user.email || '');
-        setCurrentUserId(session.user.id);
-        try {
-          const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-          if (mounted) setUserRole((data?.role as AppRole) || 'guest');
-        } catch { 
-          if (mounted) setUserRole('guest'); 
-        }
-      }
-      
-      if (!initialCheckDone && mounted) {
+      if (mounted) {
         initialCheckDone = true;
         setLoading(false);
       }

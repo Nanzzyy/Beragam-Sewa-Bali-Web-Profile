@@ -101,6 +101,7 @@ export default function CashflowDashboard() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      if (event === 'INITIAL_SESSION') return;
       if (session?.user) {
         setAuthReady(true);
         setUserEmail(session.user.email || '');
@@ -126,10 +127,6 @@ export default function CashflowDashboard() {
         setCurrentUserId('');
         setUserRole('guest');
       }
-      if (!initialCheckDone && mounted) {
-        initialCheckDone = true;
-        setLoading(false);
-      }
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -148,8 +145,14 @@ export default function CashflowDashboard() {
         } catch {
           if (mounted) setUserRole('guest');
         }
+      } else {
+        setAuthReady(false);
+        setUserEmail('');
+        setCurrentUserId('');
+        setUserRole('guest');
       }
-      if (!initialCheckDone && mounted) {
+      
+      if (mounted) {
         initialCheckDone = true;
         setLoading(false);
       }
