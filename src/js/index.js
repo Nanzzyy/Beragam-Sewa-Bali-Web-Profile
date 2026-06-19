@@ -30,13 +30,16 @@ async function initializePage() {
         if (data.site_logo) {
             const navLogo = document.getElementById('nav-logo');
             const footerLogo = document.getElementById('footer-logo');
-            const favicon = document.getElementById('favicon');
             if (navLogo) navLogo.src = data.site_logo;
             if (footerLogo) footerLogo.src = data.site_logo;
-            if (favicon) {
-                // Tambahkan cache buster (?t=...) agar browser selalu mengambil yang terbaru
-                favicon.href = data.site_logo + '?t=' + new Date().getTime();
+            let favicon = document.getElementById('favicon') || document.querySelector("link[rel~='icon']");
+            if (!favicon) {
+                favicon = document.createElement('link');
+                favicon.rel = 'icon';
+                favicon.id = 'favicon';
+                document.head.appendChild(favicon);
             }
+            favicon.href = data.site_logo + '?t=' + new Date().getTime();
         }
 
         const servicesTitle = document.getElementById('services_title');

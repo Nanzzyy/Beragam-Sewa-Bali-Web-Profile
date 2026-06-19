@@ -26,7 +26,7 @@ function openModal(type, item = null) {
         el('modal-long-text-input').value = item.long_text || '';
         
         if (item.price) {
-            el('modal-price-input').value = Math.floor(parseFloat(item.price)).toString();
+            el('modal-price-input').value = item.price.toString();
             if (window.formatRupiah) window.formatRupiah(el('modal-price-input'));
         } else {
             el('modal-price-input').value = '';
@@ -104,9 +104,28 @@ function closeMobileDrawer() {
 }
 
 // ── Data Loading ──────────────────────────────────────────────
+let overviewRefreshInterval = null;
+
 async function loadSection(section) {
     try {
-        if (section === 'hero') {
+        if (section === 'overview') {
+            const data = await fetch(`${API_URL}/admin/overview`, FETCH_OPTS).then(r => r.json());
+            if (el('stat-services')) el('stat-services').textContent = data.services || 0;
+            if (el('stat-packages')) el('stat-packages').textContent = data.packages || 0;
+            if (el('stat-gallery')) el('stat-gallery').textContent = data.gallery || 0;
+            if (el('stat-inventory')) el('stat-inventory').textContent = data.inventory || 0;
+            if (el('stat-cashflow-in')) el('stat-cashflow-in').textContent = window.formatPriceLabel ? window.formatPriceLabel(data.cashflow?.inflow || 0) : `Rp ${data.cashflow?.inflow || 0}`;
+            if (el('stat-cashflow-out')) el('stat-cashflow-out').textContent = window.formatPriceLabel ? window.formatPriceLabel(data.cashflow?.outflow || 0) : `Rp ${data.cashflow?.outflow || 0}`;
+            
+            // Setup real-time monitoring (refresh every 15 seconds)
+            if (!overviewRefreshInterval) {
+                overviewRefreshInterval = setInterval(() => {
+                    if (el('overview-content').classList.contains('active')) {
+                        loadSection('overview');
+                    }
+                }, 15000);
+            }
+        } else if (section === 'hero') {
             const hero = await fetch(`${API_URL}/hero`, FETCH_OPTS).then(r => r.json());
             if(el('hero-title-input')) el('hero-title-input').value = hero.title || '';
             if(el('hero-subtitle-input')) el('hero-subtitle-input').value = hero.subtitle || '';
@@ -132,10 +151,17 @@ async function loadSection(section) {
             const content = await fetch(`${API_URL}/content`, FETCH_OPTS).then(r => r.json());
             if (content.site_logo) {
                 const logoUrl = content.site_logo + '?t=' + new Date().getTime();
+                let favicon = document.getElementById('favicon') || document.querySelector("link[rel~='icon']");
+                if (!favicon) {
+                    favicon = document.createElement('link');
+                    favicon.rel = 'icon';
+                    favicon.id = 'favicon';
+                    document.head.appendChild(favicon);
+                }
+                favicon.href = logoUrl;
                 if (el('admin-site-logo-preview')) el('admin-site-logo-preview').src = content.site_logo;
                 if (el('login-logo')) el('login-logo').src = content.site_logo;
                 if (el('nav-logo')) el('nav-logo').src = content.site_logo;
-                if (el('favicon')) el('favicon').href = logoUrl;
             }
         }
     } catch (e) { console.error(`Error loading section ${section}:`, e); }
@@ -144,9 +170,18 @@ async function loadSection(section) {
 async function loadAll() {
     try {
         await Promise.all([
+            loadSection('overview'),
             loadSection('hero'),
             loadSection('content')
         ]);
+        
+        // Start live clock
+        setInterval(() => {
+            if (el('live-clock')) {
+                const now = new Date();
+                el('live-clock').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WITA';
+            }
+        }, 1000);
     } catch (e) { console.error('Data Sync Error'); }
 }
 
@@ -221,6 +256,7 @@ document.addEventListener('click', async (e) => {
         el(target).classList.add('active');
         
         const listMap = {
+            'overview-content': 'overview',
             'about-content': 'about',
             'services-content': 'service',
             'packages-content': 'package',

@@ -74,7 +74,7 @@ export default function GanttScheduler({ jobs, onJobClick }: GanttSchedulerProps
                 const isToday = d.toDateString() === today.toDateString();
                 const isSunday = d.getDay() === 0;
                 return (
-                  <div key={i} className={`flex-1 min-w-[48px] text-center py-2 text-[10px] border-r border-slate-800 ${isToday ? 'bg-purple-600/10 font-bold text-purple-500' : isSunday ? 'text-red-400' : 'text-slate-500'}`}>
+                  <div key={i} className={`flex-1 min-w-[48px] text-center py-2 text-[10px] border-r border-slate-800 ${isToday ? 'bg-red-600/10 font-bold text-red-500' : isSunday ? 'text-red-400' : 'text-slate-500'}`}>
                     <div>{d.toLocaleDateString('id-ID', { weekday: 'short' })}</div>
                     <div className="text-sm font-semibold">{d.getDate()}</div>
                   </div>
@@ -95,7 +95,7 @@ export default function GanttScheduler({ jobs, onJobClick }: GanttSchedulerProps
                 </div>
                 <div className="flex-1 relative h-12 flex items-center px-2">
                   {showTodayLine && (
-                    <div className="absolute top-0 bottom-0 w-px bg-purple-600/40 z-10" style={{ left: `${todayPct}%` }} />
+                    <div className="absolute top-0 bottom-0 w-px bg-red-600/40 z-10" style={{ left: `${todayPct}%` }} />
                   )}
                   <div className="gantt-bar absolute flex items-center px-2 text-[10px] font-semibold"
                     style={{ ...barStyle, background: config.bg, color: config.color, border: `1px solid ${config.color}40` }}

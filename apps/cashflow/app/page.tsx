@@ -19,7 +19,12 @@ type Tab = 'dashboard' | 'ledger' | 'ledger-acc' | 'neraca' | 'adjusting' | 'wor
 type TxWithEntries = Transaction & { journal_entries: JournalEntryWithAccount[] };
 
 export default function CashflowDashboard() {
-  const [tab, setTab] = useState<Tab>('dashboard');
+  const [tab, setTabState] = useState<Tab>('dashboard');
+
+  const setTab = (newTab: Tab) => {
+    setTabState(newTab);
+    if (typeof window !== 'undefined') localStorage.setItem('bsb_cashflow_tab', newTab);
+  };
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [trialBalance, setTrialBalance] = useState<TrialBalanceRow[]>([]);
   const [transactions, setTransactions] = useState<TxWithEntries[]>([]);
@@ -42,6 +47,25 @@ export default function CashflowDashboard() {
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('bsb_cashflow_tab') as Tab;
+      if (savedTab) setTabState(savedTab);
+
+      // Fetch dynamic favicon
+      supabase.from('site_content').select('content_value').eq('content_key', 'site_logo').single().then(({ data }) => {
+        if (data?.content_value) {
+          let favicon = (document.getElementById('favicon') as HTMLLinkElement) || (document.querySelector("link[rel~='icon']") as HTMLLinkElement);
+          if (!favicon) {
+            favicon = document.createElement('link');
+            favicon.rel = 'icon';
+            favicon.id = 'favicon';
+            document.head.appendChild(favicon);
+          }
+          favicon.href = data.content_value + '?t=' + new Date().getTime();
+        }
+      });
+    }
+
     // PWA setup
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();

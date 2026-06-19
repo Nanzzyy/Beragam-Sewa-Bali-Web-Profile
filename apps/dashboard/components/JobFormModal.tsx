@@ -18,7 +18,7 @@ const InputField = ({ label, required, type = 'text', value, onChange, placehold
   <div>
     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{label}{required && ' *'}</label>
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition text-sm shadow-sm" />
+      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-sm shadow-sm" />
   </div>
 );
 
@@ -129,7 +129,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
           <div>
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Deskripsi Job</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Deskripsi event, kebutuhan alat, dll."
-              className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition text-sm resize-none shadow-sm" />
+              className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-sm resize-none shadow-sm" />
           </div>
 
           {/* Dates */}
@@ -146,7 +146,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Akun Penerimaan (Cashflow) *</label>
               <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white outline-none focus:border-purple-500 transition text-sm shadow-sm">
+                className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white outline-none focus:border-red-500 transition text-sm shadow-sm">
                 <option value="1-101">Kas Besar (1-101)</option>
                 <option value="1-102">Bank BCA (1-102)</option>
                 <option value="1-103">Bank Mandiri (1-103)</option>
@@ -160,7 +160,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
           <div className="max-w-xs">
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Status *</label>
             <select value={status} onChange={e => setStatus(e.target.value as JobStatus)}
-              className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white outline-none focus:border-purple-500 transition text-sm shadow-sm">
+              className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white outline-none focus:border-red-500 transition text-sm shadow-sm">
               {(Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(s => (
                 <option key={s} value={s}>{JOB_STATUS_CONFIG[s].label}</option>
               ))}
@@ -173,7 +173,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
             <button type="button" onClick={onClose}
               className="px-5 py-2.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-xl transition text-sm font-medium">Batal</button>
             <button type="submit" disabled={saving}
-              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition text-sm disabled:opacity-50 shadow-md shadow-purple-500/20">
+              className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition text-sm disabled:opacity-50 shadow-md shadow-red-500/20">
               {saving ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Buat Job'}
             </button>
           </div>

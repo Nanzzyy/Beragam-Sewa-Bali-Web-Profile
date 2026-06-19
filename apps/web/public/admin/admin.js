@@ -151,10 +151,17 @@ async function loadSection(section) {
             const content = await fetch(`${API_URL}/content`, FETCH_OPTS).then(r => r.json());
             if (content.site_logo) {
                 const logoUrl = content.site_logo + '?t=' + new Date().getTime();
+                let favicon = document.getElementById('favicon') || document.querySelector("link[rel~='icon']");
+                if (!favicon) {
+                    favicon = document.createElement('link');
+                    favicon.rel = 'icon';
+                    favicon.id = 'favicon';
+                    document.head.appendChild(favicon);
+                }
+                favicon.href = logoUrl;
                 if (el('admin-site-logo-preview')) el('admin-site-logo-preview').src = content.site_logo;
                 if (el('login-logo')) el('login-logo').src = content.site_logo;
                 if (el('nav-logo')) el('nav-logo').src = content.site_logo;
-                if (el('favicon')) el('favicon').href = logoUrl;
             }
         }
     } catch (e) { console.error(`Error loading section ${section}:`, e); }
