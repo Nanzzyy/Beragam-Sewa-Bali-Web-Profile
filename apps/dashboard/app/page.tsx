@@ -885,7 +885,7 @@ export default function DashboardApp() {
                           <div>Telp: {sup.phone || '-'}</div>
                           <div>Email: {sup.email || '-'}</div>
                         </div>
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
+                        <div className="flex justify-end gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                           <button onClick={() => {
                             setSupplierModalData({ id: sup.id, name: sup.name, contact_name: sup.contact_name || '', phone: sup.phone || '', email: sup.email || '' });
                             setSupplierModalOpen(true);
