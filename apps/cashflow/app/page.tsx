@@ -86,36 +86,11 @@ export default function CashflowDashboard() {
 
   // Check auth
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setAuthReady(true);
-        setUserEmail(session.user.email || '');
-        setCurrentUserId(session.user.id);
-        
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-          if (data && !error) {
-            setUserRole(data.role);
-          } else {
-            setUserRole('guest');
-          }
-        } catch (e) {
-          console.error('Error fetching role:', e);
-          setUserRole('guest');
-        }
-      } else {
-        setAuthReady(false);
-        setCurrentUserId('');
-        setUserRole('guest');
-      }
-      setLoading(false);
-    });
+    let mounted = true;
+    let initialCheckDone = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_ev, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
       if (session?.user) {
         setAuthReady(true);
         setUserEmail(session.user.email || '');
@@ -127,13 +102,13 @@ export default function CashflowDashboard() {
             .select('role')
             .eq('id', session.user.id)
             .single();
-          if (data && !error) {
+          if (mounted && data && !error) {
             setUserRole(data.role);
-          } else {
+          } else if (mounted) {
             setUserRole('guest');
           }
         } catch (e) {
-          setUserRole('guest');
+          if (mounted) setUserRole('guest');
         }
       } else {
         setAuthReady(false);
@@ -141,8 +116,39 @@ export default function CashflowDashboard() {
         setCurrentUserId('');
         setUserRole('guest');
       }
+      if (!initialCheckDone && mounted) {
+        initialCheckDone = true;
+        setLoading(false);
+      }
     });
-    return () => subscription.unsubscribe();
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted || initialCheckDone) return;
+      if (session?.user) {
+        setAuthReady(true);
+        setUserEmail(session.user.email || '');
+        setCurrentUserId(session.user.id);
+        try {
+          const { data, error } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+          if (mounted && data && !error) {
+            setUserRole(data.role);
+          } else if (mounted) {
+            setUserRole('guest');
+          }
+        } catch {
+          if (mounted) setUserRole('guest');
+        }
+      }
+      if (!initialCheckDone && mounted) {
+        initialCheckDone = true;
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadData = useCallback(async () => {
