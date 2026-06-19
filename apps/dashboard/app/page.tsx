@@ -30,10 +30,20 @@ export default function DashboardApp() {
   useEffect(() => {
     setMounted(true);
     if (typeof window !== 'undefined') {
+      try {
+        const keysToRemove = ['bsb_company_logo', 'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info'];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k) {
+            const val = localStorage.getItem(k);
+            if (val && val.length > 100000) keysToRemove.push(k); // Remove any item > 100KB
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
+      
       const savedTab = localStorage.getItem('bsb_dashboard_tab') as Tab;
       if (savedTab) setTabState(savedTab);
-      // Remove legacy logo
-      try { localStorage.removeItem('bsb_company_logo'); } catch (e) {}
     }
   }, []);
 
@@ -750,7 +760,7 @@ export default function DashboardApp() {
                           <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{job.venue} • {formatDate(job.job_date)}</div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 w-full md:w-auto md:ml-4">
+                      <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 shrink-0 w-full md:w-auto md:ml-4">
                         {canViewAll && <span className="text-red-500 font-semibold text-sm hidden lg:block">{formatRupiah(job.total_rental_fee)}</span>}
                         <select value={job.status} onChange={e => handleStatusChange(job.id, e.target.value as JobStatus)}
                           disabled={!canModify}
@@ -864,7 +874,7 @@ export default function DashboardApp() {
                             </div>
                           </div>
                           {canModify && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 mt-3 md:mt-0 justify-end w-full md:w-auto border-t md:border-0 border-slate-100 dark:border-slate-800 pt-3 md:pt-0">
                               <button onClick={() => {
                                 setItemModalData({ id: item.id, name: item.name, category: item.category || 'other', quantity: item.quantity || 1, sku: item.sku || `SKU-${Date.now()}` });
                                 setItemModalOpen(true);
@@ -966,7 +976,7 @@ export default function DashboardApp() {
                             {staff.role}
                           </div>
                           {userRole === 'owner' && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                            <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition">
                               <button onClick={() => {
                                 const nMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
                                 setStaffModalData({ id: staff.id, email: staff.email || '', role: staff.role || 'staff', nickname: nMap[staff.email] || '' });

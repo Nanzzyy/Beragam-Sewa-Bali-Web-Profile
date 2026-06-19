@@ -57,9 +57,20 @@ export default function CashflowDashboard() {
   useEffect(() => {
     setMounted(true);
     if (typeof window !== 'undefined') {
+      try {
+        const keysToRemove = ['bsb_company_logo', 'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info'];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k) {
+            const val = localStorage.getItem(k);
+            if (val && val.length > 100000) keysToRemove.push(k); // Remove any item > 100KB
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
+
       const savedTab = localStorage.getItem('bsb_cashflow_tab') as Tab;
       if (savedTab) setTabState(savedTab);
-      try { localStorage.removeItem('bsb_company_logo'); } catch(e) {}
 
       // Fetch dynamic favicon
       supabase.from('site_content').select('content_value').eq('content_key', 'site_logo').single().then(({ data }) => {
