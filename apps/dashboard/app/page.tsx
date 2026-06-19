@@ -72,6 +72,7 @@ export default function DashboardApp() {
   const [compPayment, setCompPayment] = useState('Bank BCA: 1234567890 a.n Beragam Sewa Bali');
   const [compLogo, setCompLogo] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string>('');
+  const [staffNicknames, setStaffNicknames] = useState<Record<string, string>>({});
 
   // Custom Inventory Categories
   const [customCategories, setCustomCategories] = useState<string[]>([]);
@@ -126,47 +127,42 @@ export default function DashboardApp() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setCompName(localStorage.getItem('bsb_company_name') || 'Beragam Sewa Bali');
-      setCompAddress(localStorage.getItem('bsb_company_address') || 'Jl. By Pass Ngurah Rai, Denpasar, Bali');
-      setCompEmail(localStorage.getItem('bsb_company_email') || 'info@beragamsewabali.com');
-      setCompPhone(localStorage.getItem('bsb_company_phone') || '08123456789');
-      setCompPayment(localStorage.getItem('bsb_company_payment_info') || 'Bank BCA: 1234567890 a.n Beragam Sewa Bali');
+      setCompName('Beragam Sewa Bali');
+      setCompAddress('Jl. By Pass Ngurah Rai, Denpasar, Bali');
+      setCompEmail('info@beragamsewabali.com');
+      setCompPhone('08123456789');
+      setCompPayment('Bank BCA: 1234567890 a.n Beragam Sewa Bali');
       setCompLogo(null);
       
       supabase.from('site_content').select('*').in('content_key', [
-        'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'bsb_company_logo'
+        'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo', 'bsb_staff_nicknames'
       ]).then(({ data }) => {
         if (data && data.length > 0) {
           const getVal = (key: string, def: string) => data.find(d => d.content_key === key)?.content_value || def;
           
           const dbName = getVal('bsb_company_name', '');
-          if (dbName) {
-            setCompName(dbName);
-            safeSetItem('bsb_company_name', dbName);
-          }
+          if (dbName) setCompName(dbName);
+          
           const dbAddress = getVal('bsb_company_address', '');
-          if (dbAddress) {
-            setCompAddress(dbAddress);
-            safeSetItem('bsb_company_address', dbAddress);
-          }
+          if (dbAddress) setCompAddress(dbAddress);
+          
           const dbEmail = getVal('bsb_company_email', '');
-          if (dbEmail) {
-            setCompEmail(dbEmail);
-            safeSetItem('bsb_company_email', dbEmail);
-          }
+          if (dbEmail) setCompEmail(dbEmail);
+          
           const dbPhone = getVal('bsb_company_phone', '');
-          if (dbPhone) {
-            setCompPhone(dbPhone);
-            safeSetItem('bsb_company_phone', dbPhone);
-          }
+          if (dbPhone) setCompPhone(dbPhone);
+          
           const dbPayment = getVal('bsb_company_payment_info', '');
-          if (dbPayment) {
-            setCompPayment(dbPayment);
-            safeSetItem('bsb_company_payment_info', dbPayment);
-          }
-          const dbLogo = getVal('bsb_company_logo', '');
-          if (dbLogo) {
-            setCompLogo(dbLogo);
+          if (dbPayment) setCompPayment(dbPayment);
+          
+          const dbLogo = getVal('site_logo', '');
+          if (dbLogo) setCompLogo(dbLogo);
+          
+          const dbNicknames = getVal('bsb_staff_nicknames', '');
+          if (dbNicknames) {
+            try {
+              setStaffNicknames(JSON.parse(dbNicknames));
+            } catch (e) {}
           }
         }
       });
@@ -780,7 +776,9 @@ export default function DashboardApp() {
                           className="px-3 py-1.5 text-xs font-semibold rounded-full border-0 outline-none cursor-pointer"
                           style={{ color: JOB_STATUS_CONFIG[job.status].color, background: JOB_STATUS_CONFIG[job.status].bg }}>
                           {(Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(s => (
-                            <option key={s} value={s}>{JOB_STATUS_CONFIG[s].label}</option>
+                            <option key={s} value={s} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white" style={{ color: JOB_STATUS_CONFIG[s as JobStatus].color }}>
+                              {JOB_STATUS_CONFIG[s].label}
+                            </option>
                           ))}
                         </select>
                         <button onClick={() => setViewingJobId(job.id)} className="p-2 hover:bg-slate-700 rounded-lg transition" title="Lihat Detail">
@@ -952,13 +950,11 @@ export default function DashboardApp() {
                     </div>
                   ) : (
                     staffList.filter(staff => {
-                      const nMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
-                      const sNick = nMap[staff.email] || '';
+                      const sNick = staffNicknames[staff.email] || '';
                       const query = staffSearchQuery.toLowerCase();
                       return staff.email.toLowerCase().includes(query) || staff.role.toLowerCase().includes(query) || sNick.toLowerCase().includes(query);
                     }).map(staff => {
-                      const nMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
-                      const sNick = nMap[staff.email] || '';
+                      const sNick = staffNicknames[staff.email] || '';
                       
                       const staffActiveJobs = activeJobs.filter(job => job.job_staff?.some((js: any) => js.profile_id === staff.id));
                       
@@ -1702,9 +1698,13 @@ export default function DashboardApp() {
                   await supabase.from('profiles').insert(payload);
                 }
                 const newNickname = target.nickname.value.trim();
-                const nicknamesMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
-                nicknamesMap[payload.email] = newNickname;
-                safeSetItem('bsb_staff_nicknames', JSON.stringify(nicknamesMap));
+                const updatedNicknames = { ...staffNicknames, [payload.email]: newNickname };
+                setStaffNicknames(updatedNicknames);
+                
+                await supabase.from('site_content').upsert({
+                  content_key: 'bsb_staff_nicknames',
+                  content_value: JSON.stringify(updatedNicknames)
+                }, { onConflict: 'content_key' });
 
                 loadData();
                 setStaffModalOpen(false);
