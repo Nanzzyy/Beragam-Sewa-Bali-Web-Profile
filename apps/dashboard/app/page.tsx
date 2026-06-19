@@ -16,13 +16,24 @@ export default function DashboardApp() {
   
   const setTab = (newTab: Tab) => {
     setTabState(newTab);
-    if (typeof window !== 'undefined') localStorage.setItem('bsb_dashboard_tab', newTab);
+    if (typeof window !== 'undefined') safeSetItem('bsb_dashboard_tab', newTab);
+  };
+
+  const safeSetItem = (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn(`Failed to save to localStorage (${key})`, e);
+    }
   };
 
   useEffect(() => {
+    setMounted(true);
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('bsb_dashboard_tab') as Tab;
       if (savedTab) setTabState(savedTab);
+      // Remove legacy logo
+      try { localStorage.removeItem('bsb_company_logo'); } catch (e) {}
     }
   }, []);
 
@@ -104,17 +115,14 @@ export default function DashboardApp() {
   const [confirmModalConfig, setConfirmModalConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
-    setMounted(true);
     if (typeof window !== 'undefined') {
-      // Load from local storage initially for fast render
       setCompName(localStorage.getItem('bsb_company_name') || 'Beragam Sewa Bali');
       setCompAddress(localStorage.getItem('bsb_company_address') || 'Jl. By Pass Ngurah Rai, Denpasar, Bali');
       setCompEmail(localStorage.getItem('bsb_company_email') || 'info@beragamsewabali.com');
       setCompPhone(localStorage.getItem('bsb_company_phone') || '08123456789');
       setCompPayment(localStorage.getItem('bsb_company_payment_info') || 'Bank BCA: 1234567890 a.n Beragam Sewa Bali');
-      setCompLogo(null); // Fetch from DB directly to save localStorage space
-
-      // Fetch from Supabase for sync across browsers
+      setCompLogo(null);
+      
       supabase.from('site_content').select('*').in('content_key', [
         'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'bsb_company_logo'
       ]).then(({ data }) => {
@@ -124,32 +132,31 @@ export default function DashboardApp() {
           const dbName = getVal('bsb_company_name', '');
           if (dbName) {
             setCompName(dbName);
-            localStorage.setItem('bsb_company_name', dbName);
+            safeSetItem('bsb_company_name', dbName);
           }
           const dbAddress = getVal('bsb_company_address', '');
           if (dbAddress) {
             setCompAddress(dbAddress);
-            localStorage.setItem('bsb_company_address', dbAddress);
+            safeSetItem('bsb_company_address', dbAddress);
           }
           const dbEmail = getVal('bsb_company_email', '');
           if (dbEmail) {
             setCompEmail(dbEmail);
-            localStorage.setItem('bsb_company_email', dbEmail);
+            safeSetItem('bsb_company_email', dbEmail);
           }
           const dbPhone = getVal('bsb_company_phone', '');
           if (dbPhone) {
             setCompPhone(dbPhone);
-            localStorage.setItem('bsb_company_phone', dbPhone);
+            safeSetItem('bsb_company_phone', dbPhone);
           }
           const dbPayment = getVal('bsb_company_payment_info', '');
           if (dbPayment) {
             setCompPayment(dbPayment);
-            localStorage.setItem('bsb_company_payment_info', dbPayment);
+            safeSetItem('bsb_company_payment_info', dbPayment);
           }
           const dbLogo = getVal('bsb_company_logo', '');
           if (dbLogo) {
             setCompLogo(dbLogo);
-            // Removed to avoid quota exceeded
           }
         }
       });
@@ -198,7 +205,6 @@ export default function DashboardApp() {
       }
     });
 
-    // Fallback in case onAuthStateChange doesn't fire INITIAL_SESSION for some reason
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted || initialCheckDone) return;
       
@@ -241,13 +247,11 @@ export default function DashboardApp() {
       setJobs(jobsData);
       setStats(statsData);
 
-      // Fetch items and staff simply for display
       const { data: iData } = await supabase.from('items').select('*').order('name');
       if (iData) setItemsList(iData);
       const { data: sData } = await supabase.from('profiles').select('*').order('email');
       if (sData) setStaffList(sData);
 
-      // Fetch Cashflow, Suppliers, Section Images based on user role
       if (userRole === 'owner' || userRole === 'accounting') {
         const { data: cfData } = await supabase.from('cashflow').select('*').order('transaction_date', { ascending: false });
         if (cfData) setCashflowList(cfData);
@@ -260,7 +264,6 @@ export default function DashboardApp() {
         if (landData) setLandingList(landData);
       }
 
-      // Fetch Active Jobs mappings for Staff, Items, Suppliers
       const { data: activeJobsData } = await supabase
         .from('jobs')
         .select(`
@@ -271,7 +274,6 @@ export default function DashboardApp() {
         .eq('status', 'on_going');
       setActiveJobs(activeJobsData || []);
 
-      // Update Favicon based on site_logo
       const { data: contentData } = await supabase.from('site_content').select('content_value').eq('content_key', 'site_logo').single();
       if (contentData?.content_value && typeof document !== 'undefined') {
         let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
@@ -300,7 +302,6 @@ export default function DashboardApp() {
   useEffect(() => {
     if (!authReady) return;
 
-    // Subscribe to realtime changes on key tables
     const channel = supabase.channel('dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadDataRef.current(true); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, () => { loadDataRef.current(true); })
@@ -367,7 +368,6 @@ export default function DashboardApp() {
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 relative overflow-hidden">
-        {/* Background Effects */}
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-red-700/10 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
 
@@ -494,7 +494,7 @@ export default function DashboardApp() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 h-full overflow-y-auto p-6 lg:p-8">
+      <main className="flex-1 h-full overflow-y-auto p-4 md:p-6 lg:p-8">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
@@ -587,7 +587,6 @@ export default function DashboardApp() {
                   <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pengaturan Template</h1>
                   <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Ubah kop dokumen surat jalan, invoice, dan logo perusahaan</p>
                 </div>
-                {/* Company & Document Template Settings */}
                   <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
@@ -601,14 +600,12 @@ export default function DashboardApp() {
                     
                     <form onSubmit={async (e) => {
                       e.preventDefault();
-                      // Save to localStorage
-                      localStorage.setItem('bsb_company_name', compName);
-                      localStorage.setItem('bsb_company_address', compAddress);
-                      localStorage.setItem('bsb_company_email', compEmail);
-                      localStorage.setItem('bsb_company_phone', compPhone);
-                      localStorage.setItem('bsb_company_payment_info', compPayment);
+                      safeSetItem('bsb_company_name', compName);
+                      safeSetItem('bsb_company_address', compAddress);
+                      safeSetItem('bsb_company_email', compEmail);
+                      safeSetItem('bsb_company_phone', compPhone);
+                      safeSetItem('bsb_company_payment_info', compPayment);
                       
-                      // Sync to Supabase
                       const updates = [
                         { content_key: 'bsb_company_name', content_value: compName },
                         { content_key: 'bsb_company_address', content_value: compAddress },
@@ -667,7 +664,6 @@ export default function DashboardApp() {
                               reader.onloadend = () => {
                                 const base64 = reader.result as string;
                                 setCompLogo(base64);
-                                // localStorage.setItem('bsb_company_logo', base64); // Removed to avoid quota error
                               };
                               reader.readAsDataURL(file);
                             }
@@ -677,7 +673,6 @@ export default function DashboardApp() {
                               <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
                               <button type="button" onClick={() => {
                                 setCompLogo(null);
-                                // localStorage.removeItem('bsb_company_logo');
                               }} className="text-xs text-rose-500 hover:underline">Hapus</button>
                             </div>
                           )}
@@ -732,17 +727,17 @@ export default function DashboardApp() {
                 {/* Job Cards */}
                 <div className="space-y-3">
                   {jobs.map(job => (
-                    <div key={job.id} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-4 flex items-center justify-between hover:border-slate-600 transition group" >
-                      <div className="flex items-center gap-4 min-w-0 flex-1 cursor-pointer" onClick={() => setViewingJobId(job.id)}>
+                    <div key={job.id} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-600 transition group" >
+                      <div className="flex items-center gap-4 min-w-0 flex-1 w-full cursor-pointer" onClick={() => setViewingJobId(job.id)}>
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: JOB_STATUS_CONFIG[job.status].bg }}>
                           <Briefcase className="w-5 h-5" style={{ color: JOB_STATUS_CONFIG[job.status].color }} />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="text-slate-900 dark:text-white font-semibold truncate">{job.client_name}</div>
                           <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{job.venue} • {formatDate(job.job_date)}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-4">
+                      <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 w-full md:w-auto md:ml-4">
                         {canViewAll && <span className="text-red-500 font-semibold text-sm hidden lg:block">{formatRupiah(job.total_rental_fee)}</span>}
                         <select value={job.status} onChange={e => handleStatusChange(job.id, e.target.value as JobStatus)}
                           disabled={!canModify}
@@ -824,7 +819,6 @@ export default function DashboardApp() {
                   ) : (
                     <div className="space-y-2">
                       {itemsList.filter(item => item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) || item.category?.toLowerCase().includes(itemSearchQuery.toLowerCase())).map(item => {
-                        // Find active jobs using this item
                         const itemActiveJobs = activeJobs.filter(job => job.job_items?.some((ji: any) => ji.item_id === item.id));
                         const usedQuantity = itemActiveJobs.reduce((acc, job) => {
                           const ji = job.job_items.find((ji: any) => ji.item_id === item.id);
@@ -843,7 +837,10 @@ export default function DashboardApp() {
                                 <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Kategori: {item.category || '-'}</span>
                                 <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Stok Total: {item.quantity || 0}</span>
                                 {usedQuantity > 0 && (
-                                  <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded font-medium">Sedang Dipakai: {usedQuantity}</span>
+                                  <>
+                                    <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded font-medium">Sedang Dipakai: {usedQuantity}</span>
+                                    <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">Sisa Tersedia: {Math.max(0, (item.quantity || 0) - usedQuantity)}</span>
+                                  </>
                                 )}
                               </div>
                               {itemActiveJobs.length > 0 && (
@@ -1005,17 +1002,13 @@ export default function DashboardApp() {
                   </a>
                 </div>
 
-                {/* Mock Browser Container */}
                 <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-[2rem] overflow-hidden min-h-[500px]">
-                  {/* Browser Toolbar */}
                   <div className="flex items-center gap-4 px-6 py-3.5 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-                    {/* Navigation Dots */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="w-3 h-3 rounded-full bg-rose-400 block" />
                       <span className="w-3 h-3 rounded-full bg-amber-400 block" />
                       <span className="w-3 h-3 rounded-full bg-emerald-400 block" />
                     </div>
-                    {/* Address Bar */}
                     <div className="flex-1 flex items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
                       <div className="flex items-center gap-2 truncate">
                         <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -1029,7 +1022,6 @@ export default function DashboardApp() {
                       </button>
                     </div>
                   </div>
-                  {/* Web App Iframe */}
                   <div className="flex-1 relative bg-slate-50 dark:bg-slate-950">
                     <iframe 
                       src="https://cashflow.beragamsewabali.com" 
@@ -1317,7 +1309,7 @@ export default function DashboardApp() {
                       if (!categoriesList.includes(trimmed)) {
                         const updated = [...customCategories, trimmed];
                         setCustomCategories(updated);
-                        localStorage.setItem('bsb_custom_categories', JSON.stringify(updated));
+                        safeSetItem('bsb_custom_categories', JSON.stringify(updated));
                       } else {
                         alert('Kategori sudah ada!');
                       }
@@ -1676,7 +1668,7 @@ export default function DashboardApp() {
                 const newNickname = target.nickname.value.trim();
                 const nicknamesMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
                 nicknamesMap[payload.email] = newNickname;
-                localStorage.setItem('bsb_staff_nicknames', JSON.stringify(nicknamesMap));
+                safeSetItem('bsb_staff_nicknames', JSON.stringify(nicknamesMap));
 
                 loadData();
                 setStaffModalOpen(false);

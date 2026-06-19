@@ -23,8 +23,17 @@ export default function CashflowDashboard() {
 
   const setTab = (newTab: Tab) => {
     setTabState(newTab);
-    if (typeof window !== 'undefined') localStorage.setItem('bsb_cashflow_tab', newTab);
+    if (typeof window !== 'undefined') safeSetItem('bsb_cashflow_tab', newTab);
   };
+
+  const safeSetItem = (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn(`Failed to save to localStorage (${key})`, e);
+    }
+  };
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [trialBalance, setTrialBalance] = useState<TrialBalanceRow[]>([]);
   const [transactions, setTransactions] = useState<TxWithEntries[]>([]);
@@ -50,6 +59,7 @@ export default function CashflowDashboard() {
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('bsb_cashflow_tab') as Tab;
       if (savedTab) setTabState(savedTab);
+      try { localStorage.removeItem('bsb_company_logo'); } catch(e) {}
 
       // Fetch dynamic favicon
       supabase.from('site_content').select('content_value').eq('content_key', 'site_logo').single().then(({ data }) => {
