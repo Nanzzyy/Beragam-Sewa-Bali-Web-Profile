@@ -61,9 +61,8 @@ export default function CashflowDashboard() {
         const keysToRemove = ['bsb_company_logo', 'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info'];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k) {
-            const val = localStorage.getItem(k);
-            if (val && val.length > 100000) keysToRemove.push(k); // Remove any item > 100KB
+          if (k && !k.startsWith('sb-') && !k.includes('tab') && !k.includes('theme') && !k.includes('supabase')) {
+            keysToRemove.push(k);
           }
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));

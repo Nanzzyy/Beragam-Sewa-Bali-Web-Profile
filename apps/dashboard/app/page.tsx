@@ -6,7 +6,7 @@ import { fetchJobs, fetchDashboardStats, createJob, updateJob, updateJobStatus, 
 import JobDetailModal from '../components/JobDetailModal';
 import JobFormModal from '../components/JobFormModal';
 import GanttScheduler from '../components/GanttScheduler';
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'staff' | 'cashflow' | 'suppliers' | 'landing' | 'template';
@@ -34,9 +34,8 @@ export default function DashboardApp() {
         const keysToRemove = ['bsb_company_logo', 'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info'];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k) {
-            const val = localStorage.getItem(k);
-            if (val && val.length > 100000) keysToRemove.push(k); // Remove any item > 100KB
+          if (k && !k.startsWith('sb-') && !k.includes('tab') && !k.includes('theme') && !k.includes('supabase')) {
+            keysToRemove.push(k);
           }
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
@@ -72,6 +71,7 @@ export default function DashboardApp() {
   const [compPhone, setCompPhone] = useState('08123456789');
   const [compPayment, setCompPayment] = useState('Bank BCA: 1234567890 a.n Beragam Sewa Bali');
   const [compLogo, setCompLogo] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string>('');
 
   // Custom Inventory Categories
   const [customCategories, setCustomCategories] = useState<string[]>([]);
@@ -621,6 +621,13 @@ export default function DashboardApp() {
                       </div>
                     </div>
                     
+                    {saveSuccess && (
+                      <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-3 animate-fade-in">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">{saveSuccess}</p>
+                      </div>
+                    )}
+                    
                     <form onSubmit={async (e) => {
                       e.preventDefault();
                       safeSetItem('bsb_company_name', compName);
@@ -637,12 +644,18 @@ export default function DashboardApp() {
                         { content_key: 'bsb_company_payment_info', content_value: compPayment }
                       ];
                       
+                      if (compLogo !== null) {
+                        updates.push({ content_key: 'site_logo', content_value: compLogo });
+                      }
+                      
                       try {
                         const { error } = await supabase.from('site_content').upsert(updates, { onConflict: 'content_key' });
                         if (error) throw error;
-                        alert('Pengaturan template perusahaan berhasil disimpan dan disinkronisasikan!');
+                        setSaveSuccess('Pengaturan template perusahaan berhasil disimpan dan disinkronisasikan!');
+                        setTimeout(() => setSaveSuccess(''), 3000);
                       } catch (err) {
-                        alert('Tersimpan secara lokal, tapi gagal sinkron ke server: ' + (err as Error).message);
+                        setSaveSuccess('Tersimpan secara lokal, tapi gagal sinkron ke server: ' + (err as Error).message);
+                        setTimeout(() => setSaveSuccess(''), 5000);
                       }
                     }} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
