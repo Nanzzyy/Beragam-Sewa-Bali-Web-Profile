@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <!-- Halaman Utama / Landing Page -->
+    <url>
+        <loc>https://www.beragamsewabali.com/</loc>
+        <lastmod>2026-06-19T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <!-- Halaman Katalog -->
+    <url>
+        <loc>https://katalog.beragamsewabali.com/</loc>
+        <lastmod>2026-06-19T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+</urlset>
