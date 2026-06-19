@@ -303,7 +303,7 @@ export default function DashboardApp() {
   loadDataRef.current = loadData;
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, [loadData]);
 
   useEffect(() => {
@@ -349,7 +349,7 @@ export default function DashboardApp() {
     try {
       await deleteJob(id);
       setJobs(prev => prev.filter(j => j.id !== id));
-      loadData();
+      loadData(true);
     } catch (e) {
       alert((e as Error).message);
     }
@@ -358,7 +358,7 @@ export default function DashboardApp() {
   const handleStatusChange = async (id: string, newStatus: JobStatus) => {
     try {
       await updateJobStatus(id, newStatus);
-      loadData();
+      loadData(true);
     } catch (e) {
       alert((e as Error).message);
     }
