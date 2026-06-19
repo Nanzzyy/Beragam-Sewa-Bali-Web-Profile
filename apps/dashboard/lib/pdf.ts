@@ -3,31 +3,41 @@ import autoTable from 'jspdf-autotable';
 import type { Job, JobItem } from './supabase';
 import { formatRupiah, formatDate } from './supabase';
 
-function getCompanyConfig() {
-  if (typeof window === 'undefined') {
-    return {
-      name: 'Beragam Sewa Bali',
-      address: 'Jl. By Pass Ngurah Rai, Denpasar, Bali',
-      email: 'info@beragamsewabali.com',
-      phone: '08123456789',
-      payment: 'Bank BCA: 1234567890 a.n Beragam Sewa Bali',
-      logo: null
-    };
-  }
-  return {
-    name: localStorage.getItem('bsb_company_name') || 'Beragam Sewa Bali',
-    address: localStorage.getItem('bsb_company_address') || 'Jl. By Pass Ngurah Rai, Denpasar, Bali',
-    email: localStorage.getItem('bsb_company_email') || 'info@beragamsewabali.com',
-    phone: localStorage.getItem('bsb_company_phone') || '08123456789',
-    payment: localStorage.getItem('bsb_company_payment_info') || 'Bank BCA: 1234567890 a.n Beragam Sewa Bali',
-    logo: localStorage.getItem('bsb_company_logo') || null
+import { supabase } from './supabase';
+
+async function getCompanyConfig() {
+  const defaultConfig = {
+    name: 'Beragam Sewa Bali',
+    address: 'Jl. By Pass Ngurah Rai, Denpasar, Bali',
+    email: 'info@beragamsewabali.com',
+    phone: '08123456789',
+    payment: 'Bank BCA: 1234567890 a.n Beragam Sewa Bali',
+    logo: null as string | null
   };
+
+  try {
+    const { data } = await supabase.from('site_content').select('*');
+    if (data && data.length > 0) {
+      return {
+        name: data.find(d => d.content_key === 'bsb_company_name')?.content_value || defaultConfig.name,
+        address: data.find(d => d.content_key === 'bsb_company_address')?.content_value || defaultConfig.address,
+        email: data.find(d => d.content_key === 'bsb_company_email')?.content_value || defaultConfig.email,
+        phone: data.find(d => d.content_key === 'bsb_company_phone')?.content_value || defaultConfig.phone,
+        payment: data.find(d => d.content_key === 'bsb_company_payment_info')?.content_value || defaultConfig.payment,
+        logo: data.find(d => d.content_key === 'site_logo')?.content_value || null
+      };
+    }
+  } catch (e) {
+    console.error('Failed to fetch company config from Supabase:', e);
+  }
+
+  return defaultConfig;
 }
 
-export function generateSuratJalan(job: Job, items: JobItem[]) {
+export async function generateSuratJalan(job: Job, items: JobItem[]) {
   const doc = new jsPDF();
   const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-  const config = getCompanyConfig();
+  const config = await getCompanyConfig();
 
   // Header
   doc.setFontSize(20);
@@ -91,9 +101,9 @@ export function generateSuratJalan(job: Job, items: JobItem[]) {
   doc.save(`Surat_Jalan_${job.client_name.replace(/\s+/g, '_')}_${job.setup_date}.pdf`);
 }
 
-export function generateInvoice(job: Job, items: JobItem[]) {
+export async function generateInvoice(job: Job, items: JobItem[]) {
   const doc = new jsPDF();
-  const config = getCompanyConfig();
+  const config = await getCompanyConfig();
 
   // Header
   doc.setFontSize(22);
