@@ -373,8 +373,12 @@ export default function DashboardApp() {
 
         <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-8 w-full max-w-md animate-slide-up relative z-10" >
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-red-600/10 flex items-center justify-center mx-auto mb-4 border border-red-600/20 shadow-lg shadow-red-600/10">
-              <Briefcase className="w-8 h-8 text-red-500" />
+            <div className="w-16 h-16 rounded-2xl bg-red-600/10 flex items-center justify-center mx-auto mb-4 border border-red-600/20 shadow-lg shadow-red-600/10 overflow-hidden">
+              {compLogo ? (
+                <img src={compLogo} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Briefcase className="w-8 h-8 text-red-500" />
+              )}
             </div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Beragam Sewa Bali</h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">ERP Dashboard System</p>
@@ -419,8 +423,12 @@ export default function DashboardApp() {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-red-600/10 flex items-center justify-center">
-            <Briefcase className="w-4 h-4 text-red-500" />
+          <div className="w-8 h-8 rounded-lg bg-red-600/10 flex items-center justify-center overflow-hidden">
+            {compLogo ? (
+              <img src={compLogo} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <Briefcase className="w-4 h-4 text-red-500" />
+            )}
           </div>
           <div className="font-bold text-slate-900 dark:text-white">BSB Dashboard</div>
         </div>
@@ -438,8 +446,12 @@ export default function DashboardApp() {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 shrink-0 overflow-y-auto transition-transform duration-300 md:relative md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between px-2 mb-2">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-red-600/10 flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-red-500" />
+            <div className="w-9 h-9 rounded-xl bg-red-600/10 flex items-center justify-center overflow-hidden">
+              {compLogo ? (
+                <img src={compLogo} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Briefcase className="w-5 h-5 text-red-500" />
+              )}
             </div>
             <div>
               <div className="text-sm font-bold text-slate-900 dark:text-white">BSB Dashboard</div>
