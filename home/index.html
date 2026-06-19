@@ -87,6 +87,7 @@
     <link rel="dns-prefetch" href="https://img.icons8.com">
 
     <!-- Built Tailwind CSS (Critical - must load first) -->
+    <link rel="preload" as="style" href="./src/style/output.css">
     <link rel="stylesheet" href="./src/style/output.css">
 
     <!-- Font Awesome (deferred - not needed for FCP) -->
@@ -110,7 +111,7 @@
         .swiper-pagination-bullet{width:8px;height:8px;display:inline-block;border-radius:50%;background:#000;opacity:.2}
         .swiper-pagination-bullet-active{opacity:1}
         .swiper-button-next,.swiper-button-prev{position:absolute;top:50%;width:calc(44px/44*27);height:44px;margin-top:calc(0px - 44px/2);z-index:10;cursor:pointer}
-        .hero-slide-bg{position:absolute;inset:0;background-size:cover;background-position:center}
+        .hero-slide-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
     </style>
 
     <!-- Pre-fetch API Data to parallelize with HTML/JS parsing -->
@@ -118,6 +119,18 @@
         const __API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000/api' : '/api';
         window.__CONTENT_PROMISE__ = fetch(`${__API_BASE}/content`).then(r => r.ok ? r.json() : Promise.reject(r));
         window.__GALLERY_PROMISE__ = fetch(`${__API_BASE}/gallery`).then(r => r.ok ? r.json() : Promise.reject(r));
+        
+        // Instant LCP Preload
+        window.__CONTENT_PROMISE__.then(data => {
+            if (data?.home_slider?.[0]?.image_url) {
+                const link = document.createElement('link');
+                link.rel = 'preload';
+                link.as = 'image';
+                link.href = data.home_slider[0].image_url;
+                link.fetchPriority = 'high';
+                document.head.appendChild(link);
+            }
+        }).catch(() => {});
     </script>
     </head>
 

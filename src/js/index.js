@@ -58,17 +58,11 @@ async function initializePage() {
             data.home_slider.forEach((slide, index) => {
                 const slideEl = document.createElement('div');
                 slideEl.className = 'swiper-slide';
-                slideEl.innerHTML = `<div class="hero-slide-bg" style="background-image: url('${slide.image_url}')"></div>`;
-                homeSwiperWrapper.appendChild(slideEl);
                 
-                // Preload LCP image (first slide)
-                if (index === 0) {
-                    const preload = document.createElement('link');
-                    preload.rel = 'preload';
-                    preload.as = 'image';
-                    preload.href = slide.image_url;
-                    document.head.appendChild(preload);
-                }
+                const priorityAttr = index === 0 ? 'fetchpriority="high" loading="eager"' : 'loading="lazy"';
+                slideEl.innerHTML = `<img src="${slide.image_url}" class="hero-slide-bg" alt="Hero Image ${index + 1}" ${priorityAttr} decoding="async">`;
+                
+                homeSwiperWrapper.appendChild(slideEl);
             });
 
             new Swiper('.heroSwiper', {
