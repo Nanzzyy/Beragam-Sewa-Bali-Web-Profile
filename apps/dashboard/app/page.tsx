@@ -701,17 +701,17 @@ export default function DashboardApp() {
                             }
                           }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
                           {compLogo && (
-                            <div className="flex items-center gap-2">
-                              <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
-                              <button type="button" onClick={() => {
-                                setCompLogo(null);
-                              }} className="text-xs text-rose-500 hover:underline">Hapus</button>
-                            </div>
+                            <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
                           )}
                         </div>
                       </div>
 
-                      <div className="flex justify-end pt-2">
+                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        {compLogo && (
+                          <button type="button" onClick={() => setCompLogo(null)} className="px-4 py-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 font-bold rounded-xl text-xs transition">
+                            Hapus Logo
+                          </button>
+                        )}
                         <button type="submit" className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-red-500/25">
                           Simpan Pengaturan
                         </button>
