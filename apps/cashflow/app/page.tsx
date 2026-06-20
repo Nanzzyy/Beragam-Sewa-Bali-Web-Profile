@@ -4,13 +4,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Account, TrialBalanceRow, Transaction, JournalEntryWithAccount, JournalEntryInput } from '../lib/supabase';
 import { supabase } from '../lib/supabase';
 import { fetchAccounts, fetchTrialBalance, fetchTransactionsWithEntries, createTransaction, deleteTransaction, updateTransaction } from '../lib/accounting';
-import ExcelExportButton from '../components/ExcelExportButton';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import TransactionModal from '../components/TransactionModal';
 import Worksheet from '../components/Worksheet';
 import ChartOfAccountsGrid from '../components/ChartOfAccountsGrid';
 import FixedAssetsGrid from '../components/FixedAssetsGrid';
 import LedgerByAccount from '../components/LedgerByAccount';
-import DashboardChart from '../components/DashboardChart';
+import dynamic from 'next/dynamic';
+
+const ExcelExportButton = dynamic(() => import('../components/ExcelExportButton'), { ssr: false });
+const DashboardChart = dynamic(() => import('../components/DashboardChart'), { ssr: false });
 import { LayoutDashboard, BookOpen, BookText, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud, Pencil } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -174,10 +177,13 @@ export default function CashflowDashboard() {
     };
   }, []);
 
-  const loadData = useCallback(async () => {
-    if (!authReady || !currentUserId) return;
-    setLoading(true);
-    try {
+  const queryClient = useQueryClient();
+
+  // ======== TANSTACK QUERY ========
+  const { data: cashflowData, isLoading: queryLoading } = useQuery({
+    queryKey: ['cashflow_dashboard', currentUserId, userRole],
+    enabled: authReady && !!currentUserId,
+    queryFn: async () => {
       let activeRole = userRole;
       if (!activeRole) {
         const { data } = await supabase
@@ -193,17 +199,18 @@ export default function CashflowDashboard() {
         fetchTrialBalance(),
         fetchTransactionsWithEntries({ limit: 100 }),
       ]);
-      setAccounts(accs);
+
+      let finalTxs = txs;
+      let finalTB = tb;
 
       if (activeRole === 'guest') {
-        const filteredTxs = txs.filter(tx => tx.created_by === currentUserId);
-        setTransactions(filteredTxs);
+        finalTxs = txs.filter(tx => tx.created_by === currentUserId);
 
-        const localTB = accs.map(acc => {
+        finalTB = accs.map(acc => {
           let totalDebit = 0;
           let totalCredit = 0;
           
-          filteredTxs.forEach(tx => {
+          finalTxs.forEach(tx => {
             tx.journal_entries.forEach(je => {
               if (je.account_code === acc.account_code) {
                 totalDebit += je.debit;
@@ -226,17 +233,38 @@ export default function CashflowDashboard() {
             ending_balance: endingBalance
           };
         });
-        setTrialBalance(localTB);
-      } else {
-        setTransactions(txs);
-        setTrialBalance(tb);
       }
-    } catch (err) {
-      console.error('Load error:', err);
-    } finally {
+
+      return {
+        accs,
+        finalTxs,
+        finalTB
+      };
+    }
+  });
+
+  // Sync Query Data to State
+  useEffect(() => {
+    if (cashflowData) {
+      setAccounts(cashflowData.accs);
+      setTransactions(cashflowData.finalTxs);
+      setTrialBalance(cashflowData.finalTB);
       setLoading(false);
     }
-  }, [authReady, currentUserId, userRole]);
+  }, [cashflowData]);
+
+  // Handle loading state
+  useEffect(() => {
+    if (queryLoading && authReady) {
+      setLoading(true);
+    }
+  }, [queryLoading, authReady]);
+
+  // Backward compatibility for components expecting loadData
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    await queryClient.invalidateQueries({ queryKey: ['cashflow_dashboard'] });
+  }, [queryClient]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

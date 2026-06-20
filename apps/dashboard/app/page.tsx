@@ -3,9 +3,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, type Job, type JobStatus, type AppRole, JOB_STATUS_CONFIG, formatRupiah, formatDate } from '../lib/supabase';
 import { fetchJobs, fetchDashboardStats, createJob, updateJob, updateJobStatus, deleteJob, type DashboardStats } from '../lib/jobs';
-import JobDetailModal from '../components/JobDetailModal';
-import JobFormModal from '../components/JobFormModal';
-import GanttScheduler from '../components/GanttScheduler';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
+
+const JobDetailModal = dynamic(() => import('../components/JobDetailModal'), { ssr: false });
+const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: false });
+const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
 import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -240,10 +243,13 @@ export default function DashboardApp() {
   }, []);
 
   // ======== DATA LOADING ========
-  const loadData = useCallback(async (silent = false) => {
-    if (!authReady) return;
-    if (!silent) setLoading(true);
-    try {
+  const queryClient = useQueryClient();
+
+  // ======== TANSTACK QUERY ========
+  const { data: dashboardData, isLoading: queryLoading } = useQuery({
+    queryKey: ['dashboard', statusFilter, searchQuery, userRole],
+    enabled: authReady,
+    queryFn: async () => {
       const [jobsData, statsData] = await Promise.all([
         fetchJobs({
           status: statusFilter || undefined,
@@ -251,24 +257,24 @@ export default function DashboardApp() {
         }),
         fetchDashboardStats(),
       ]);
-      setJobs(jobsData);
-      setStats(statsData);
 
       const { data: iData } = await supabase.from('items').select('*').order('name');
-      if (iData) setItemsList(iData);
       const { data: sData } = await supabase.from('profiles').select('*').order('email');
-      if (sData) setStaffList(sData);
 
+      let cfData = null;
       if (userRole === 'owner' || userRole === 'accounting') {
-        const { data: cfData } = await supabase.from('cashflow').select('*').order('transaction_date', { ascending: false });
-        if (cfData) setCashflowList(cfData);
+        const { data } = await supabase.from('cashflow').select('*').order('transaction_date', { ascending: false });
+        cfData = data;
       }
+      
+      let supData = null;
+      let landData = null;
       if (userRole === 'owner') {
-        const { data: supData } = await supabase.from('suppliers').select('*').eq('is_deleted', false).order('name');
-        if (supData) setSuppliersList(supData);
+        const { data: suppliers } = await supabase.from('suppliers').select('*').eq('is_deleted', false).order('name');
+        supData = suppliers;
 
-        const { data: landData } = await supabase.from('section_images').select('*').order('id', { ascending: false });
-        if (landData) setLandingList(landData);
+        const { data: landing } = await supabase.from('section_images').select('*').order('id', { ascending: false });
+        landData = landing;
       }
 
       const { data: activeJobsData } = await supabase
@@ -279,47 +285,80 @@ export default function DashboardApp() {
           job_staff ( profile_id )
         `)
         .eq('status', 'on_going');
-      setActiveJobs(activeJobsData || []);
 
       const { data: contentData } = await supabase.from('site_content').select('content_value').eq('content_key', 'site_logo').single();
-      if (contentData?.content_value && typeof document !== 'undefined') {
+
+      return {
+        jobsData,
+        statsData,
+        iData: iData || [],
+        sData: sData || [],
+        cfData: cfData || [],
+        supData: supData || [],
+        landData: landData || [],
+        activeJobsData: activeJobsData || [],
+        siteLogo: contentData?.content_value || null,
+      };
+    }
+  });
+
+  // Sync Query Data to State
+  useEffect(() => {
+    if (dashboardData) {
+      setJobs(dashboardData.jobsData);
+      setStats(dashboardData.statsData);
+      setItemsList(dashboardData.iData);
+      setStaffList(dashboardData.sData);
+      if (userRole === 'owner' || userRole === 'accounting') setCashflowList(dashboardData.cfData);
+      if (userRole === 'owner') {
+        setSuppliersList(dashboardData.supData);
+        setLandingList(dashboardData.landData);
+      }
+      setActiveJobs(dashboardData.activeJobsData);
+
+      if (dashboardData.siteLogo && typeof document !== 'undefined') {
         let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
         if (!link) {
           link = document.createElement('link');
           link.rel = 'icon';
           document.head.appendChild(link);
         }
-        link.href = contentData.content_value + '?t=' + new Date().getTime();
+        link.href = dashboardData.siteLogo + '?t=' + new Date().getTime();
       }
-
-    } catch (e) {
-      console.error('Failed to load data:', e);
+      setLoading(false);
     }
-    if (!silent) setLoading(false);
-  }, [authReady, statusFilter, searchQuery, userRole]);
+  }, [dashboardData, userRole]);
+
+  // Handle loading state
+  useEffect(() => {
+    if (queryLoading && authReady) {
+      setLoading(true);
+    }
+  }, [queryLoading, authReady]);
+
+  // Backward compatibility for components expecting loadData
+  const loadData = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+  }, [queryClient]);
 
   // ======== SUPABASE REALTIME (no page refresh) ========
-  const loadDataRef = useRef(loadData);
-  loadDataRef.current = loadData;
-
-  useEffect(() => {
-    loadData(true);
-  }, [loadData]);
-
   useEffect(() => {
     if (!authReady) return;
 
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+
     const channel = supabase.channel('dashboard-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadDataRef.current(true); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, () => { loadDataRef.current(true); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { loadDataRef.current(true); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cashflow' }, () => { loadDataRef.current(true); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers' }, () => { loadDataRef.current(true); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'section_images' }, () => { loadDataRef.current(true); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cashflow' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'section_images' }, invalidate)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [authReady]);
+  }, [authReady, queryClient]);
 
   // ======== HANDLERS ========
   const handleLogin = async (e: React.FormEvent) => {

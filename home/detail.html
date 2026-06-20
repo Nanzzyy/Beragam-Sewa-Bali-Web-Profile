@@ -36,7 +36,7 @@
     <!-- Instant Site Logo & Favicon Loader (from Supabase via Cache) -->
     <script>
         (function() {
-            const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : '';
+            const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3005' : '';
             const cachedLogo = localStorage.getItem('bsb_site_logo');
             if (cachedLogo) applyLogo(cachedLogo);
             fetch(API + '/api/site/logo')

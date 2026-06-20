@@ -20,7 +20,7 @@
     <!-- Instant Site Logo & Favicon Loader (from Supabase via Cache) -->
     <script>
         (function() {
-            const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : '';
+            const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3005' : '';
             const cachedLogo = localStorage.getItem('bsb_site_logo');
             if (cachedLogo) applyLogo(cachedLogo);
             fetch(API + '/api/site/logo')
@@ -365,7 +365,7 @@
 <!-- Navbar -->
 <nav>
     <div class="nav-inner">
-        <a href="https://beragamsewabali.com" class="nav-brand">
+        <a href="/" class="nav-brand">
             <img src="/src/assets/images/logo-bsb.png" alt="Logo" id="nav-logo">
             <span>Beragam Sewa Bali</span>
         </a>
@@ -421,7 +421,7 @@
 
 <footer>
     &copy; <span id="footerYear"></span> <strong style="color:#fff">Beragam Sewa Bali</strong>.
-    Kunjungi <a href="https://beragamsewabali.com">website utama</a> kami.
+    Kunjungi <a href="/">website utama</a> kami.
 </footer>
 
 <script>
@@ -443,7 +443,7 @@
 
     // ── Data ──
     const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3000/api'
+        ? 'http://localhost:3005/api'
         : '/api';
 
     let allItems = [];
@@ -481,7 +481,7 @@
             const badgeLabel = type === 'service' ? 'Layanan' : 'Paket';
             const priceHTML = buildPriceLabel(item);
             const waMsg = encodeURIComponent(`Halo, saya tertarik dengan ${item.name || item.title || 'unit ini'}. Bisa info lebih lanjut?`);
-            const detailUrl = `https://beragamsewabali.com/detail.html?type=${type}&id=${item.id}&source=katalog`;
+            const detailUrl = `/detail.html?type=${type}&id=${item.id}&source=katalog`;
             const imgSrc = item.image_url || 'https://picsum.photos/seed/' + item.id + '/600/375';
 
             return `

@@ -3,6 +3,8 @@ node_modules/
 
 # Environment variables — JANGAN pernah commit ini!
 .env
+.env.local
+.env.*.local
 
 # Upload files (data user, bukan part of source code)
 uploads/*
@@ -19,3 +21,14 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Supabase Local Migration
+volumes/
+cloudflared
+cloudflared.rpm
+*.sql
+supabase_backup.sql
+latest_schema.sql
+.env.supabase
+apps/cashflow-build/dev/
+dev/

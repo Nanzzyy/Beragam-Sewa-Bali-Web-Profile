@@ -10,6 +10,20 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
+// Simple In-Memory Cache for lightning fast local performance
+const memoryCache = new Map();
+const CACHE_TTL = 60000; // 60 seconds
+
+async function getCached(key, fetcher) {
+    if (memoryCache.has(key)) {
+        const cached = memoryCache.get(key);
+        if (Date.now() - cached.time < CACHE_TTL) return cached.data;
+    }
+    const data = await fetcher();
+    memoryCache.set(key, { data, time: Date.now() });
+    return data;
+}
+
 // ─── Safe upsert untuk site_content ─────────────────────────────────────────
 // Bekerja dengan atau tanpa UNIQUE constraint di content_key
 async function upsertContent(key, value) {
@@ -27,8 +41,8 @@ async function upsertContent(key, value) {
 
 // Supabase client untuk image storage
 const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
+    process.env.SUPABASE_URL || process.env.API_EXTERNAL_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_KEY || process.env.SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 // Middleware
@@ -169,9 +183,11 @@ app.post('/api/admin/logout', (req, res) => {
 // GET /api/content — data gabungan untuk halaman utama
 app.get('/api/content', async (req, res) => {
     try {
-        // ORDER BY id DESC agar nilai terbaru selalu menang jika ada duplikat
-        const texts = await db.query('SELECT DISTINCT ON (content_key) * FROM site_content ORDER BY content_key, id DESC');
-        const images = await db.query('SELECT * FROM section_images ORDER BY id DESC');
+        const { texts, images } = await getCached('content', async () => {
+            const t = await db.query('SELECT DISTINCT ON (content_key) * FROM site_content ORDER BY content_key, id DESC');
+            const i = await db.query('SELECT * FROM section_images ORDER BY id DESC');
+            return { texts: t, images: i };
+        });
 
         const siteContent = texts.rows.reduce((a, r) => ({ ...a, [r.content_key]: r.content_value }), {});
         const groupedImages = images.rows.reduce((acc, img) => {
@@ -193,7 +209,7 @@ app.get('/api/content', async (req, res) => {
 // GET /api/gallery
 app.get('/api/gallery', async (req, res) => {
     try {
-        const result = await db.query("SELECT * FROM section_images WHERE section_key='gallery' ORDER BY id DESC");
+        const result = await getCached('gallery', () => db.query("SELECT * FROM section_images WHERE section_key='gallery' ORDER BY id DESC"));
         res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.json(result.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -594,34 +610,35 @@ app.get('/api/catalog/services', async (req, res) => {
 // GET /api/catalog/data — gabungan layanan, paket, dan logo dalam satu request
 app.get('/api/catalog/data', async (req, res) => {
     try {
-        const [servicesRes, packagesRes, logoRes] = await Promise.all([
-            db.query(
-                `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
-                        cp.price, cp.price_unit
-                 FROM section_images si
-                 LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'service'
-                 WHERE si.section_key IN ('service', 'catalog_service')
-                 ORDER BY si.id DESC`
-            ),
-            db.query(
-                `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
-                        cp.price, cp.price_unit
-                 FROM section_images si
-                 LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'package'
-                 WHERE si.section_key IN ('package', 'catalog_package')
-                 ORDER BY si.id DESC`
-            ),
-            db.query("SELECT content_value FROM site_content WHERE content_key = 'site_logo' LIMIT 1")
-        ]);
-
-        const logoUrl = logoRes.rows.length > 0 ? logoRes.rows[0].content_value : '';
+        const data = await getCached('catalog_data', async () => {
+            const [servicesRes, packagesRes, logoRes] = await Promise.all([
+                db.query(
+                    `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
+                            cp.price, cp.price_unit
+                     FROM section_images si
+                     LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'service'
+                     WHERE si.section_key IN ('service', 'catalog_service')
+                     ORDER BY si.id DESC`
+                ),
+                db.query(
+                    `SELECT si.id, si.title AS name, si.text AS description, si.long_text, si.image_url,
+                            cp.price, cp.price_unit
+                     FROM section_images si
+                     LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = 'package'
+                     WHERE si.section_key IN ('package', 'catalog_package')
+                     ORDER BY si.id DESC`
+                ),
+                db.query("SELECT content_value FROM site_content WHERE content_key = 'site_logo' LIMIT 1")
+            ]);
+            return {
+                services: servicesRes.rows,
+                packages: packagesRes.rows,
+                site_logo: logoRes.rows.length > 0 ? logoRes.rows[0].content_value : ''
+            };
+        });
 
         res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        res.json({
-            services: servicesRes.rows,
-            packages: packagesRes.rows,
-            site_logo: logoUrl
-        });
+        res.json(data);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -682,13 +699,24 @@ app.delete('/api/catalog/price/:type/:id', requireAdmin, async (req, res) => {
 
 
 
+// Local Dev Fallbacks (matching vercel.json)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../home/index.html'));
+});
+app.get('/detail.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../home/detail.html'));
+});
+
 // Vercel export
 module.exports = app;
 
 // Local dev server
 if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
+    const PORT = process.env.PORT || 3005;
+    const server = app.listen(PORT, () => {
         console.log(`✅ Server berjalan di http://localhost:${PORT}`);
+    });
+    server.on('error', (e) => {
+        console.error('Server error:', e);
     });
 }

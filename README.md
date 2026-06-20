@@ -1,41 +1,38 @@
-# Beragam Sewa Bali - Enterprise Resource Planning (ERP) System
+# Beragam Sewa Bali - Event Essentials Platform
 
-> **⚠️ PRIVATE REPOSITORY / INTERNAL USE ONLY**
-> Platform ini adalah sistem internal milik **Beragam Sewa Bali**. Sistem ini **TIDAK UNTUK PENGGUNAAN PUBLIK**. Segala bentuk akses tanpa izin, distribusi, atau penyalahgunaan kode sumber ini dilarang keras.
+Welcome to the **Beragam Sewa Bali** platform! We are your premier, synchronized ecosystem for event essentials in Bali. Whether it's a corporate gathering, an intimate wedding, or a massive concert, we provide a unified solution for all your event needs.
 
-Sistem *Point of Sale* (POS), penyewaan, dan manajemen inventaris komprehensif yang dirancang khusus untuk operasional penyewaan peralatan *event* di Bali. Aplikasi ini menyediakan alat yang terpusat untuk manajemen inventaris, pelacakan pesanan sewa, laporan keuangan, dan manajemen akses staf.
+## 🚀 Core Architecture
 
-## ✨ Fitur Utama
+Our platform is built on a modern, robust, and scalable technology stack:
 
-### 📦 Manajemen Inventaris (Inventory Management)
-- **Katalog Barang**: Mengelola seluruh daftar barang sewa dengan perhitungan kuantitas yang otomatis tersinkronisasi.
-- **Ketersediaan Real-Time**: Ketersediaan stok dihitung secara otomatis berdasarkan pemakaian barang di lapangan.
-- **Manajemen Kategori & Vendor**: Melacak *supplier* penyedia barang dan pengelompokan barang.
+- **Frontend:** Next.js & TypeScript
+- **Styling:** Tailwind CSS v4 (Pure Tailwind, no legacy Bootstrap)
+- **Backend & Database:** Dockerized Self-Hosted Supabase (PostgreSQL, Go true, PostgREST)
+- **Deployment:** Vercel (Frontend & Serverless API) & Local Docker Swarm
 
-### 🤝 Manajemen Sewa (Rental & Job Management)
-- **Siklus Penyewaan Lengkap**: Mengelola permintaan penyewaan, konfirmasi, penyusunan staf, hingga penyelesaian acara.
-- **Gantt Chart Jadwal**: Visualisasi jadwal *event* secara *real-time* dengan mode harian dan mingguan.
-- **Surat Jalan & Invoice**: Menghasilkan dokumen PDF secara otomatis dengan kop surat dan logo perusahaan yang dapat disesuaikan.
-- **Bukti Pengiriman & Pengembalian**: Mengunggah foto bukti serah terima dan pengembalian barang langsung ke *cloud storage*.
+This architecture ensures blazing-fast load times, complete data ownership, and a seamless experience across all devices.
 
-### 💰 Pencatatan Keuangan (Financial Tracking)
-- **Cashflow Ledger**: Melacak seluruh transaksi finansial (Pemasukan & Pengeluaran) menggunakan metode *double-entry accounting*.
-- **Sinkronisasi Jurnal**: Pendapatan dari penyewaan otomatis tercatat di sistem pembukuan saat status dikonfirmasi.
-- **Dashboard Statistik**: Metrik finansial bulanan yang mudah dipahami (Total Pemasukan, Total Pengeluaran, Saldo Bersih).
+## ✨ Key Features
 
-### 👥 Manajemen Staf & Akses (RBAC)
-- Tiga tingkat hak akses yang aman:
-  - **Owner**: Akses penuh ke seluruh fitur sistem, manajemen staf, pengaturan *template* dokumen, dan pembukuan absolut.
-  - **Accounting**: Akses ke manajemen jurnal kas dan persetujuan pencatatan.
-  - **Staff**: Akses operasional untuk mengelola status barang, kru, dan unggah foto bukti.
+The Beragam Sewa Bali platform is divided into four main ecosystems:
 
-## 🛠️ Teknologi yang Digunakan
+### 1. Landing Page (`apps/web`)
+A highly optimized, SEO-friendly public face of our business. It features dynamic content loading, extreme performance optimization, and an interactive catalog for potential clients to browse our services and packages.
 
-Platform ini dibangun dengan teknologi *modern web*:
-- **Frontend/Framework**: Next.js (App Router), React, TypeScript
-- **Styling**: Tailwind CSS, Lucide Icons
-- **Backend & Database**: Supabase (PostgreSQL, Row-Level Security, Real-time WebSockets, Cloud Storage)
-- **Generasi Dokumen**: jsPDF, autoTable
+### 2. Admin Manager (`/admin`)
+A secure, role-based portal for updating website content, uploading new gallery images, and managing the public catalog directly from the database without requiring code deployments.
+
+### 3. Dashboard Panel (`apps/dashboard`)
+Our internal ERP (Enterprise Resource Planning) system. It features:
+- Interactive Gantt chart scheduling to avoid booking conflicts.
+- Real-time inventory tracking and availability management.
+- Staff role assignment and job tracking.
+- Automated document generation (Invoices & Delivery Orders).
+
+### 4. Cashflow Management (`apps/cashflow`)
+A double-entry accounting system fully integrated with the Dashboard. Every completed job automatically syncs into the ledger, ensuring accurate financial reporting, PnL generation, and vendor cost tracking.
 
 ---
-*Copyright © 2026 Beragam Sewa Bali. All rights reserved.*
+
+*For technical documentation and deployment instructions, please refer to [README-DEVELOPER.md](./README-DEVELOPER.md).*

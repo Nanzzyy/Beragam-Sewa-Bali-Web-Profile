@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: "/api/:path*",
+        destination: "http://localhost:3005/api/:path*",
+      },
+      {
         source: "/",
         destination: "/home/index.html",
       },

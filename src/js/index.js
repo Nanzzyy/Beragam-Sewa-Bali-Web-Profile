@@ -2,7 +2,7 @@
 async function initializePage() {
     try {
         const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-            ? 'http://localhost:3000/api' 
+            ? 'http://localhost:3005/api' 
             : '/api';
             
         let data;
@@ -188,7 +188,7 @@ async function initializePage() {
                 galleryData = await window.__GALLERY_PROMISE__;
             } else {
                 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                    ? 'http://localhost:3000/api' 
+                    ? 'http://localhost:3005/api' 
                     : '/api';
                 const galleryResponse = await fetch(`${API_BASE}/gallery`);
                 galleryData = await galleryResponse.json();
