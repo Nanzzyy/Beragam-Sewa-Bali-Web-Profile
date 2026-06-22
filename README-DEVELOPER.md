@@ -114,18 +114,31 @@ To correctly migrate your fully working setup (with all data, profiles, and cred
 
 **On your CURRENT (Developer) PC:**
 1. Stop the containers safely: `docker compose down`
-2. Compress your environment and database data into a single file:
+2. Compress your environment and database data into a single file. Choose your operating system:
+
+   **🟢 For Linux / macOS:**
    ```bash
    tar -czvf bsb_server_migration.tar.gz volumes/ .env apps/cashflow/.env.local apps/dashboard/.env.local
    ```
-3. Transfer `bsb_server_migration.tar.gz` to your new server PC (via `scp`, USB, or any secure file transfer).
+   **🔵 For Windows (PowerShell):**
+   ```powershell
+   Compress-Archive -Path volumes, .env, apps\cashflow\.env.local, apps\dashboard\.env.local -DestinationPath bsb_server_migration.zip
+   ```
+
+3. Transfer the compressed file (`.tar.gz` or `.zip`) to your new server PC (via `scp`, USB, or any secure file transfer).
 
 **On your NEW Server PC:**
 1. Clone the repository as usual: `git clone https://github.com/Nanzzyy/Beragam-Sewa-Bali-Web-Profile.git`
 2. Navigate into the folder: `cd Beragam-Sewa-Bali-Web-Profile`
-3. Move the transferred `.tar.gz` file into this folder and extract it:
+3. Move the transferred compressed file into this folder and extract it. Choose your operating system:
+
+   **🟢 For Linux / macOS:**
    ```bash
    tar -xzvf bsb_server_migration.tar.gz
+   ```
+   **🔵 For Windows (PowerShell):**
+   ```powershell
+   Expand-Archive -Path bsb_server_migration.zip -DestinationPath . -Force
    ```
 4. Now, run the infrastructure. Docker will read the restored `volumes/` directory and start with all your original data intact!
    ```bash
