@@ -102,3 +102,33 @@ To generate a new schema snapshot before committing major structural changes:
 docker exec -i supabase-db pg_dump -U postgres -d postgres --schema-only > latest_schema.sql
 ```
 This ensures developers always have a clean, reproducible database state.
+
+---
+
+## 🚚 Migrating to a New Server PC (Preserving Your Data)
+
+If you clone this repository onto a completely new server PC, **your database will be completely empty and login will fail with "invalid credentials."** 
+This is because the actual database data (users, jobs, inventory) and the `.env` secrets are securely excluded from Git by `.gitignore` (specifically the `volumes/` folder).
+
+To correctly migrate your fully working setup (with all data, profiles, and credentials intact) to a new server PC 24/7, follow these steps:
+
+**On your CURRENT (Developer) PC:**
+1. Stop the containers safely: `docker compose down`
+2. Compress your environment and database data into a single file:
+   ```bash
+   tar -czvf bsb_server_migration.tar.gz volumes/ .env apps/cashflow/.env.local apps/dashboard/.env.local
+   ```
+3. Transfer `bsb_server_migration.tar.gz` to your new server PC (via `scp`, USB, or any secure file transfer).
+
+**On your NEW Server PC:**
+1. Clone the repository as usual: `git clone https://github.com/Nanzzyy/Beragam-Sewa-Bali-Web-Profile.git`
+2. Navigate into the folder: `cd Beragam-Sewa-Bali-Web-Profile`
+3. Move the transferred `.tar.gz` file into this folder and extract it:
+   ```bash
+   tar -xzvf bsb_server_migration.tar.gz
+   ```
+4. Now, run the infrastructure. Docker will read the restored `volumes/` directory and start with all your original data intact!
+   ```bash
+   docker compose up -d
+   ```
+*(Note: Because we updated the project name in `docker-compose.yml`, your containers will now properly show up as `beragam-sewa-bali-web-profile-xxxx` in Docker Desktop!)*
