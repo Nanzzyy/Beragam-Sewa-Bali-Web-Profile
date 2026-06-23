@@ -1,9 +1,7 @@
 // Fungsi untuk mengisi konten dinamis dan menginisialisasi library
 async function initializePage() {
     try {
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-            ? 'http://localhost:3000/api' 
-            : '/api';
+        const API_BASE = '/api';
             
         let data;
         if (window.__CONTENT_PROMISE__) {
@@ -190,9 +188,7 @@ async function initializePage() {
             if (window.__GALLERY_PROMISE__) {
                 galleryData = await window.__GALLERY_PROMISE__;
             } else {
-                const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                    ? 'http://localhost:3000/api' 
-                    : '/api';
+                const API_BASE = '/api';
                 const galleryResponse = await fetch(`${API_BASE}/gallery`);
                 galleryData = await galleryResponse.json();
             }

@@ -13,7 +13,7 @@
     <!-- Instant Site Logo & Favicon Loader (from Supabase via Cache) -->
     <script>
         (function() {
-            const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : '';
+            const API = '';
             const cachedLogo = localStorage.getItem('bsb_site_logo');
             if (cachedLogo) applyLogo(cachedLogo);
             fetch(API + '/api/site/logo')
@@ -365,9 +365,7 @@
     </div>
 
     <script>
-        const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-            ? 'http://localhost:3000' 
-            : '';
+        const API = '';
         async function checkAuth() {
             try {
                 const res = await fetch(`${API}/api/admin/status`, { credentials: 'include' });
