@@ -123,6 +123,7 @@ export default function DashboardApp() {
   // Landing Page Content Modal State
   const [landingModalOpen, setLandingModalOpen] = useState(false);
   const [landingModalData, setLandingModalData] = useState<{ id?: string; section_key: string; title: string; text: string; long_text: string; image_url: string } | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Confirm Modal State
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -1681,9 +1682,31 @@ export default function DashboardApp() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">URL Gambar / Foto</label>
-                <input type="text" name="image_url" defaultValue={landingModalData.image_url} placeholder="https://example.com/foto.jpg"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Gambar / Foto (Upload)</label>
+                <div className="flex flex-col gap-3">
+                  {landingModalData.image_url && (
+                    <img src={landingModalData.image_url} alt="Preview" className="w-48 h-32 object-cover rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100" />
+                  )}
+                  <input type="file" accept="image/*" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setIsUploadingImage(true);
+                    try {
+                      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+                      const fileName = `landing/img_${Date.now()}.${ext}`;
+                      const { error } = await supabase.storage.from('job-proofs').upload(fileName, file, { upsert: true, contentType: file.type });
+                      if (error) throw error;
+                      const { data: urlData } = supabase.storage.from('job-proofs').getPublicUrl(fileName);
+                      setLandingModalData(prev => prev ? { ...prev, image_url: urlData.publicUrl } : null);
+                    } catch (err) {
+                      alert('Gagal upload gambar: ' + (err as Error).message);
+                    } finally {
+                      setIsUploadingImage(false);
+                    }
+                  }} className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400 cursor-pointer" disabled={isUploadingImage} />
+                  {isUploadingImage && <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold animate-pulse">Mengunggah gambar, mohon tunggu...</p>}
+                  <input type="hidden" name="image_url" value={landingModalData.image_url || ''} />
+                </div>
               </div>
 
               <div className="flex gap-3 justify-end pt-6 border-t border-slate-100 dark:border-slate-800 mt-2">
