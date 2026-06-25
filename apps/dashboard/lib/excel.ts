@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { Job, JobItem } from './supabase';
@@ -216,7 +217,7 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     saveAs(new Blob([buffer]), `${filenameType}_Excel_${job.client_name.replace(/\s+/g, '_')}_${job.job_date}.xlsx`);
   } catch (error) {
     console.error(`Error generating Excel ${type}:`, error);
-    alert(`Gagal membuat Excel ${type}: ` + (error as Error).message);
+    toast.error(`Gagal membuat Excel ${type}: ` + (error as Error).message);
   }
 }
 

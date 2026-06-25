@@ -5,6 +5,8 @@ import type { Job, JobItem, JobStaff, JobProof, JobStatus, AppRole } from '../li
 import { JOB_STATUS_CONFIG, formatRupiah, formatDate } from '../lib/supabase';
 import { fetchJobById, fetchJobItems, fetchJobStaff, fetchJobProofs, uploadProofPhoto, addJobProof, updateJobStatus } from '../lib/jobs';
 import { X, MapPin, Calendar, Phone, Mail, Package, Users, Camera, FileText, Upload, CheckCircle2, Truck, RotateCcw } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { showConfirm } from '../lib/confirm';
 
 interface JobDetailModalProps {
   jobId: string;
@@ -116,7 +118,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
         await addJobProof({ job_id: job.id, type, photo_url: url, uploaded_by: user?.id || null });
         loadDetails();
       } catch (e) {
-        alert((e as Error).message);
+        toast.error((e as Error).message);
       }
       setUploading(false);
     };
@@ -130,7 +132,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
       onStatusChange(job.id, newStatus);
       loadDetails();
     } catch (e) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     }
   };
 
@@ -361,7 +363,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     const newTotal = currentItemsTotal + newItemTotal;
 
                     if (newTotal > job.total_rental_fee) {
-                      const adjust = confirm(`Total harga barang (${formatRupiah(newTotal)}) melebihi Total Biaya Sewa Job (${formatRupiah(job.total_rental_fee)}). Apakah Anda ingin menyesuaikan Total Biaya Sewa Job secara otomatis?`);
+                      const adjust = await showConfirm(`Total harga barang (${formatRupiah(newTotal)}) melebihi Total Biaya Sewa Job (${formatRupiah(job.total_rental_fee)}). Apakah Anda ingin menyesuaikan Total Biaya Sewa Job secara otomatis?`);
                       if (adjust) {
                         await import('../lib/jobs').then(m => m.updateJob(job.id, { total_rental_fee: newTotal }));
                         job.total_rental_fee = newTotal; // update local state reference
@@ -385,7 +387,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     target.price.value = '';
                     loadDetails();
                   } catch (err) {
-                    alert((err as Error).message);
+                    toast.error((err as Error).message);
                   }
                   setUploading(false);
                 }} className="flex flex-col sm:flex-row gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -426,18 +428,18 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                         </div>
                         {canModify && (
                           <button onClick={async () => {
-                            if (!confirm('Hapus barang ini?')) return;
+                            if (!await showConfirm('Hapus barang ini?')) return;
                             try {
                               const deletedItemTotal = item.quantity * (item.sub_rent_cost || 0);
                               const remainingTotal = job.total_rental_fee - deletedItemTotal;
                               
-                              if (remainingTotal >= 0 && confirm(`Apakah Anda ingin mengurangi Total Biaya Sewa Job sebesar ${formatRupiah(deletedItemTotal)} (menjadi ${formatRupiah(remainingTotal)})?`)) {
+                              if (remainingTotal >= 0 && await showConfirm(`Apakah Anda ingin mengurangi Total Biaya Sewa Job sebesar ${formatRupiah(deletedItemTotal)} (menjadi ${formatRupiah(remainingTotal)})?`)) {
                                 await import('../lib/jobs').then(m => m.updateJob(job.id, { total_rental_fee: remainingTotal }));
                               }
 
                               await import('../lib/jobs').then(m => m.removeJobItem(item.id));
                               loadDetails();
-                            } catch (e) { alert((e as Error).message); }
+                            } catch (e) { toast.error((e as Error).message); }
                           }} className="text-red-500 hover:text-red-600 p-1">
                             <X className="w-4 h-4" />
                           </button>
@@ -472,7 +474,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     target.role.value = '';
                     loadDetails();
                   } catch (err) {
-                    alert((err as Error).message);
+                    toast.error((err as Error).message);
                   }
                   setUploading(false);
                 }} className="flex flex-col sm:flex-row gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -506,11 +508,11 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                         </div>
                       {canModify && (
                         <button onClick={async () => {
-                          if (!confirm('Hapus staf ini dari tugas?')) return;
+                          if (!await showConfirm('Hapus staf ini dari tugas?')) return;
                           try {
                             await import('../lib/jobs').then(m => m.removeJobStaff(s.id));
                             loadDetails();
-                          } catch (e) { alert((e as Error).message); }
+                          } catch (e) { toast.error((e as Error).message); }
                         }} className="text-red-500 hover:text-red-600 p-1">
                           <X className="w-4 h-4" />
                         </button>

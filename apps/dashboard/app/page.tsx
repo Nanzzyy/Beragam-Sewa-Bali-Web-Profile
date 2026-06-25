@@ -11,7 +11,8 @@ const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: 
 const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
 import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-
+import { toast } from 'react-hot-toast';
+import { showConfirm } from '../lib/confirm';
 type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'staff' | 'cashflow' | 'suppliers' | 'landing' | 'template';
 
 export default function DashboardApp() {
@@ -392,13 +393,13 @@ export default function DashboardApp() {
   };
 
   const handleDeleteJob = async (id: string) => {
-    if (!confirm('Yakin ingin menghapus job ini? Data tidak dapat dikembalikan.')) return;
+    if (!(await showConfirm('Yakin ingin menghapus job ini? Data tidak dapat dikembalikan.'))) return;
     try {
       await deleteJob(id);
       setJobs(prev => prev.filter(j => j.id !== id));
       loadData(true);
     } catch (e) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     }
   };
 
@@ -412,7 +413,7 @@ export default function DashboardApp() {
     } catch (e) {
       // Rollback on error
       setJobs(previousJobs);
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     }
   };
 
@@ -1107,7 +1108,7 @@ export default function DashboardApp() {
                       </div>
                       <button onClick={() => {
                         navigator.clipboard.writeText('https://cashflow.beragamsewabali.com');
-                        alert('URL disalin ke papan klip!');
+                        toast.success('URL disalin ke papan klip!');
                       }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-slate-600 transition">
                         <Copy className="w-3.5 h-3.5" />
                       </button>
@@ -1242,7 +1243,7 @@ export default function DashboardApp() {
                       </div>
                       <button onClick={() => {
                         navigator.clipboard.writeText('https://admin.beragamsewabali.com');
-                        alert('URL disalin ke papan klip!');
+                        toast.success('URL disalin ke papan klip!');
                       }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-slate-600 transition">
                         <Copy className="w-3.5 h-3.5" />
                       </button>
@@ -1326,7 +1327,7 @@ export default function DashboardApp() {
                   loadData(true);
                   setItemModalOpen(false);
                 } catch (err) {
-                  alert((err as Error).message);
+                  toast.error((err as Error).message);
                 }
               }} className="space-y-6">
               
@@ -1466,7 +1467,7 @@ export default function DashboardApp() {
                 loadData(true);
                 setCashflowModalOpen(false);
               } catch (err) {
-                alert((err as Error).message);
+                toast.error((err as Error).message);
               }
             }} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1566,7 +1567,7 @@ export default function DashboardApp() {
                 loadData(true);
                 setSupplierModalOpen(false);
               } catch (err) {
-                alert((err as Error).message);
+                toast.error((err as Error).message);
               }
             }} className="space-y-4">
               <div>
@@ -1652,7 +1653,7 @@ export default function DashboardApp() {
                 loadData(true);
                 setLandingModalOpen(false);
               } catch (err) {
-                alert((err as Error).message);
+                toast.error((err as Error).message);
               }
             }} className="space-y-4">
               <div>
@@ -1703,7 +1704,7 @@ export default function DashboardApp() {
                       const { data: urlData } = supabase.storage.from('job-proofs').getPublicUrl(fileName);
                       setLandingModalData(prev => prev ? { ...prev, image_url: urlData.publicUrl } : null);
                     } catch (err) {
-                      alert('Gagal upload gambar: ' + (err as Error).message);
+                      toast.error('Gagal upload gambar: ' + (err as Error).message);
                     } finally {
                       setIsUploadingImage(false);
                     }
@@ -1775,7 +1776,7 @@ export default function DashboardApp() {
                 loadData();
                 setStaffModalOpen(false);
               } catch (err) {
-                alert((err as Error).message);
+                toast.error((err as Error).message);
               }
             }} className="space-y-6">
               
