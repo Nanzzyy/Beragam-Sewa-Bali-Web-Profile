@@ -9,6 +9,7 @@
 #
 
 name: beragam-sewa-bali-web-profile
+version: '3.8'
 
 services:
 
@@ -275,7 +276,7 @@ services:
       # PostgREST accepts a plain-text symmetric secret, a single JWK, or a JWKS.
       # For Podman, use either PGRST_JWT_SECRET: ${JWT_SECRET} or
       # PGRST_JWT_SECRET: ${JWT_JWKS}
-      PGRST_JWT_SECRET: ${JWT_JWKS:-${JWT_SECRET}}
+      PGRST_JWT_SECRET: ${JWT_SECRET}
 
       PGRST_DB_USE_LEGACY_GUCS: "false"
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
