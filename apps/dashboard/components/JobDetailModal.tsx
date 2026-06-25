@@ -276,11 +276,18 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     </button>
                   )}
                   {(userRole === 'owner' || userRole === 'accounting') && (
-                    <button onClick={() => {
-                      import('../lib/pdf').then(({ generateInvoice }) => generateInvoice(job, items));
-                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded-lg transition border border-red-600/20">
-                      <FileText className="w-3.5 h-3.5" /> Invoice
-                    </button>
+                    <>
+                      <button onClick={() => {
+                        import('../lib/pdf').then(({ generateInvoice }) => generateInvoice(job, items));
+                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded-lg transition border border-red-600/20">
+                        <FileText className="w-3.5 h-3.5" /> Invoice PDF
+                      </button>
+                      <button onClick={() => {
+                        import('../lib/excel').then(({ generateExcelInvoice }) => generateExcelInvoice(job, items));
+                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 rounded-lg transition border border-emerald-600/20">
+                        <FileText className="w-3.5 h-3.5" /> Invoice Excel
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
