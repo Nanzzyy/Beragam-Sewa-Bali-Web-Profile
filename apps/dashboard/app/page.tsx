@@ -9,7 +9,8 @@ import dynamic from 'next/dynamic';
 const JobDetailModal = dynamic(() => import('../components/JobDetailModal'), { ssr: false });
 const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: false });
 const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useTheme } from 'next-themes';
 import { toast } from 'react-hot-toast';
 import { showConfirm } from '../lib/confirm';
@@ -55,6 +56,21 @@ export default function DashboardApp() {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<AppRole>('guest');
   const [currentUserId, setCurrentUserId] = useState('');
+  
+  interface UserPreferences {
+    sidebarCollapsed: boolean;
+    showCharts: boolean;
+  }
+  const [userPref, setUserPref] = useState<UserPreferences>({ sidebarCollapsed: false, showCharts: true });
+
+  const updatePreference = async (key: keyof UserPreferences, value: boolean) => {
+    const newPref = { ...userPref, [key]: value };
+    setUserPref(newPref);
+    if (currentUserId) {
+      await supabase.from('profiles').update({ preferences: newPref }).eq('id', currentUserId);
+    }
+  };
+
   const [authReady, setAuthReady] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
@@ -214,8 +230,16 @@ export default function DashboardApp() {
         setUserEmail(session.user.email || '');
         setCurrentUserId(session.user.id);
         try {
-          const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-          if (mounted) setUserRole((data?.role as AppRole) || 'guest');
+          const { data } = await supabase.from('profiles').select('role, preferences').eq('id', session.user.id).single();
+          if (mounted) {
+            setUserRole((data?.role as AppRole) || 'guest');
+            if (data?.preferences) {
+              setUserPref({
+                sidebarCollapsed: !!(data.preferences as any).sidebarCollapsed,
+                showCharts: (data.preferences as any).showCharts !== false,
+              });
+            }
+          }
         } catch { 
           if (mounted) setUserRole('guest'); 
         }
@@ -235,8 +259,16 @@ export default function DashboardApp() {
         setUserEmail(session.user.email || '');
         setCurrentUserId(session.user.id);
         try {
-          const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-          if (mounted) setUserRole((data?.role as AppRole) || 'guest');
+          const { data } = await supabase.from('profiles').select('role, preferences').eq('id', session.user.id).single();
+          if (mounted) {
+            setUserRole((data?.role as AppRole) || 'guest');
+            if (data?.preferences) {
+              setUserPref({
+                sidebarCollapsed: !!(data.preferences as any).sidebarCollapsed,
+                showCharts: (data.preferences as any).showCharts !== false,
+              });
+            }
+          }
         } catch { 
           if (mounted) setUserRole('guest'); 
         }
@@ -480,12 +512,21 @@ export default function DashboardApp() {
     );
   }
 
+  const jobStatusChartData = useMemo(() => {
+    if (!stats) return [];
+    return (Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(status => ({
+      name: JOB_STATUS_CONFIG[status].label,
+      value: stats.jobsByStatus[status],
+      color: JOB_STATUS_CONFIG[status].color
+    })).filter(d => d.value > 0);
+  }, [stats]);
+
   // ======== SIDEBAR ========
   const SidebarItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: Tab }) => (
-    <button onClick={() => setTab(value)}
-      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === value ? 'bg-red-600/10 text-red-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-white dark:bg-slate-800'}`}>
-      <Icon className="w-5 h-5" />
-      {label}
+    <button onClick={() => setTab(value)} title={userPref.sidebarCollapsed && !mobileMenuOpen ? label : undefined}
+      className={`flex items-center transition-all ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'justify-center w-12 h-12 p-0 rounded-xl mx-auto' : 'w-full gap-3 px-4 py-2.5 rounded-xl'} text-sm font-medium ${tab === value ? 'bg-red-600/10 text-red-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-white dark:bg-slate-800'}`}>
+      <Icon className="w-5 h-5 shrink-0" />
+      {!(userPref.sidebarCollapsed && !mobileMenuOpen) && <span>{label}</span>}
     </button>
   );
 
@@ -515,30 +556,39 @@ export default function DashboardApp() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 shrink-0 overflow-y-auto transition-transform duration-300 md:relative md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between px-2 mb-2">
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-50 ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'w-20 px-2' : 'w-64 px-4'} bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col py-4 shrink-0 overflow-y-auto transition-[width,transform] duration-300 md:relative md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`flex items-center ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'justify-center' : 'justify-between px-2'} mb-2`}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-red-600/10 flex items-center justify-center overflow-hidden">
+            <div className="w-9 h-9 rounded-xl bg-red-600/10 flex items-center justify-center overflow-hidden shrink-0">
               {compLogo ? (
                 <img src={compLogo} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 <Briefcase className="w-5 h-5 text-red-500" />
               )}
             </div>
-            <div>
-              <div className="text-sm font-bold text-slate-900 dark:text-white">BSB Dashboard</div>
-              <div className="text-xs text-slate-500">{userRole.toUpperCase()}</div>
-            </div>
+            {!(userPref.sidebarCollapsed && !mobileMenuOpen) && (
+              <div className="overflow-hidden">
+                <div className="text-sm font-bold text-slate-900 dark:text-white truncate">BSB Dashboard</div>
+                <div className="text-xs text-slate-500">{userRole.toUpperCase()}</div>
+              </div>
+            )}
           </div>
-          <button className="md:hidden text-slate-400 hover:text-slate-900 dark:hover:text-white transition p-1" onClick={() => setMobileMenuOpen(false)}>
-            <X className="w-5 h-5" />
-          </button>
+          {!(userPref.sidebarCollapsed && !mobileMenuOpen) && (
+            <button className="md:hidden text-slate-400 hover:text-slate-900 dark:hover:text-white transition p-1" onClick={() => setMobileMenuOpen(false)}>
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
-        <div className="mt-6 space-y-1">
+        <div className={`mt-6 space-y-1 ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'w-full flex flex-col items-center' : 'w-full'}`}>
           <SidebarItem icon={LayoutDashboard} label="Overview" value="dashboard" />
           <SidebarItem icon={Briefcase} label="Jobs & Events" value="jobs" />
           <SidebarItem icon={CalendarDays} label="Schedule" value="schedule" />
-          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Master Data</div>
+          
+          {!(userPref.sidebarCollapsed && !mobileMenuOpen) ? (
+            <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Master Data</div>
+          ) : <div className="pt-4 pb-2"><div className="w-4 h-px bg-slate-200 dark:bg-slate-800" /></div>}
+          
           <SidebarItem icon={Package} label="Menu Barang" value="inventory" />
           <SidebarItem icon={Users} label="Daftar Karyawan" value="staff" />
           {userRole === 'owner' && (
@@ -546,28 +596,48 @@ export default function DashboardApp() {
           )}
           {userRole === 'owner' && (
             <>
-              <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Super Admin</div>
+              {!(userPref.sidebarCollapsed && !mobileMenuOpen) ? (
+                <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Super Admin</div>
+              ) : <div className="pt-4 pb-2"><div className="w-4 h-px bg-slate-200 dark:bg-slate-800" /></div>}
               <SidebarItem icon={FileSpreadsheet} label="Pengaturan Template" value="template" />
               <SidebarItem icon={Wallet} label="Cashflow" value="cashflow" />
               <SidebarItem icon={Globe} label="Landing Page" value="landing" />
-              <a href="https://beragamsewabali.com" target="_blank" rel="noopener noreferrer"
-                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800">
-                <ExternalLink className="w-5 h-5" />
-                Buka Website
-              </a>
+              {!(userPref.sidebarCollapsed && !mobileMenuOpen) ? (
+                <a href="https://beragamsewabali.com" target="_blank" rel="noopener noreferrer"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800">
+                  <ExternalLink className="w-5 h-5 shrink-0" />
+                  Buka Website
+                </a>
+              ) : (
+                <a href="https://beragamsewabali.com" target="_blank" rel="noopener noreferrer" title="Buka Website"
+                  className="flex items-center justify-center w-12 h-12 rounded-xl mx-auto text-sm font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800">
+                  <ExternalLink className="w-5 h-5 shrink-0" />
+                </a>
+              )}
             </>
           )}
         </div>
-        <div className="mt-auto space-y-2 pt-4">
-          <div className="px-4 py-2 text-xs text-slate-500 truncate">{userEmail}</div>
+        <div className={`mt-auto space-y-2 pt-4 ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'w-full flex flex-col items-center' : 'w-full'}`}>
+          {!(userPref.sidebarCollapsed && !mobileMenuOpen) && (
+            <div className="px-4 py-2 text-xs text-slate-500 truncate">{userEmail}</div>
+          )}
+          
+          <button onClick={() => updatePreference('sidebarCollapsed', !userPref.sidebarCollapsed)} title={userPref.sidebarCollapsed && !mobileMenuOpen ? 'Expand Sidebar' : 'Collapse Sidebar'}
+            className={`flex items-center transition-all ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'justify-center w-12 h-12 p-0 rounded-xl mx-auto' : 'w-full gap-3 px-4 py-2 rounded-xl'} text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800`}>
+            {userPref.sidebarCollapsed && !mobileMenuOpen ? <PanelLeftOpen className="w-5 h-5 shrink-0" /> : <><PanelLeftClose className="w-5 h-5 shrink-0" /> <span>Minimize Sidebar</span></>}
+          </button>
+
           {mounted && (
-            <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-white dark:bg-slate-800 transition">
-              {resolvedTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              {resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            <button onClick={toggleTheme} title={resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              className={`flex items-center transition-all ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'justify-center w-12 h-12 p-0 rounded-xl mx-auto' : 'w-full gap-3 px-4 py-2 rounded-xl'} text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800`}>
+              {resolvedTheme === 'dark' ? <Sun className="w-5 h-5 shrink-0" /> : <Moon className="w-5 h-5 shrink-0" />}
+              {!(userPref.sidebarCollapsed && !mobileMenuOpen) && <span>{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
             </button>
           )}
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition">
-            <LogOut className="w-4 h-4" /> Logout
+          <button onClick={handleLogout} title="Logout"
+            className={`flex items-center transition-all ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'justify-center w-12 h-12 p-0 rounded-xl mx-auto' : 'w-full gap-3 px-4 py-2 rounded-xl'} text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10`}>
+            <LogOut className="w-5 h-5 shrink-0" /> 
+            {!(userPref.sidebarCollapsed && !mobileMenuOpen) && <span>Logout</span>}
           </button>
         </div>
       </aside>
@@ -613,16 +683,52 @@ export default function DashboardApp() {
                 </div>
 
                 {/* Status Distribution */}
-                <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-6" >
-                  <h3 className="text-slate-900 dark:text-white font-semibold mb-4">Distribusi Status Job</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                    {(Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(status => (
-                      <div key={status} className="text-center p-3 rounded-xl" style={{ background: JOB_STATUS_CONFIG[status].bg }}>
-                        <div className="text-2xl font-bold" style={{ color: JOB_STATUS_CONFIG[status].color }}>{stats.jobsByStatus[status]}</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{JOB_STATUS_CONFIG[status].label}</div>
-                      </div>
-                    ))}
+                <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-slate-900 dark:text-white font-semibold">Distribusi Status Job</h3>
+                    <button onClick={() => updatePreference('showCharts', !userPref.showCharts)}
+                      className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <ChartPie className="w-4 h-4" />
+                      {userPref.showCharts ? 'Tampilan Ringkas' : 'Tampilan Grafik'}
+                    </button>
                   </div>
+                  
+                  {userPref.showCharts ? (
+                    <div className="flex flex-col md:flex-row items-center gap-6 h-64">
+                      <div className="w-full md:w-1/2 h-full min-h-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={jobStatusChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                              {jobStatusChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} itemStyle={{ fontWeight: 'bold' }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="w-full md:w-1/2 flex flex-col justify-center space-y-3">
+                        {jobStatusChartData.map(d => (
+                          <div key={d.name} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full" style={{ background: d.color }} />
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{d.name}</span>
+                            </div>
+                            <span className="font-bold text-slate-900 dark:text-white">{d.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                      {(Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(status => (
+                        <div key={status} className="text-center p-3 rounded-xl" style={{ background: JOB_STATUS_CONFIG[status].bg }}>
+                          <div className="text-2xl font-bold" style={{ color: JOB_STATUS_CONFIG[status].color }}>{stats.jobsByStatus[status]}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{JOB_STATUS_CONFIG[status].label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Recent Jobs */}
