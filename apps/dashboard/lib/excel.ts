@@ -47,9 +47,19 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(arrayBuffer);
 
-    // Get the BOQ worksheet or fallback
-    const ws = wb.getWorksheet('BOQ') || wb.getWorksheet('Sheet1') || wb.worksheets[0];
-    if (!ws) throw new Error('Worksheet not found in the template');
+    const targetSheetName = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
+    const boqSheet = wb.getWorksheet('BOQ') || wb.getWorksheet('Sheet1') || wb.worksheets[0];
+    if (!boqSheet) throw new Error('Worksheet not found in the template');
+    boqSheet.name = targetSheetName;
+
+    // Remove all other sheets to keep only 1 worksheet
+    wb.worksheets.forEach(sheet => {
+      if (sheet.id !== boqSheet.id) {
+        wb.removeWorksheet(sheet.id);
+      }
+    });
+
+    const ws = boqSheet;
 
     // Fetch config for right column
     const { getCompanyConfig } = await import('./pdf');
@@ -123,6 +133,9 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
       }
     }
 
+    // Determine if any item has price
+    const hasItemizedPricing = items.some(item => (item.sub_rent_cost || 0) > 0);
+
     // Write Items starting on Row 18
     let currentRow = 18;
     
@@ -133,7 +146,7 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
       row.getCell(4).value = item.quantity;
       row.getCell(5).value = 'unit';
       row.getCell(6).value = 1; // Default 1 day
-      row.getCell(7).value = 0; // Itemized pricing is packet-based (0)
+      row.getCell(7).value = hasItemizedPricing ? (item.sub_rent_cost || 0) : 0;
       
       row.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
       row.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
@@ -147,23 +160,25 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
       currentRow++;
     });
 
-    // Write package row
-    const pkgRow = ws.getRow(currentRow);
-    pkgRow.getCell(1).value = items.length + 1;
-    pkgRow.getCell(3).value = 'Paket Sewa & Jasa Pengiriman Peralatan';
-    pkgRow.getCell(4).value = 1;
-    pkgRow.getCell(5).value = 'pkg';
-    pkgRow.getCell(6).value = 1;
-    pkgRow.getCell(7).value = job.total_rental_fee;
-    
-    pkgRow.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-    pkgRow.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-    pkgRow.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-    
-    pkgRow.getCell(7).numFmt = '#,##0';
-    pkgRow.getCell(8).numFmt = '#,##0';
-    pkgRow.getCell(9).numFmt = '#,##0';
-    pkgRow.getCell(10).numFmt = '#,##0';
+    if (!hasItemizedPricing) {
+      // Write package row
+      const pkgRow = ws.getRow(currentRow);
+      pkgRow.getCell(1).value = items.length + 1;
+      pkgRow.getCell(3).value = 'Paket Sewa & Jasa Pengiriman Peralatan';
+      pkgRow.getCell(4).value = 1;
+      pkgRow.getCell(5).value = 'pkg';
+      pkgRow.getCell(6).value = 1;
+      pkgRow.getCell(7).value = job.total_rental_fee;
+      
+      pkgRow.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+      pkgRow.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+      pkgRow.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+      
+      pkgRow.getCell(7).numFmt = '#,##0';
+      pkgRow.getCell(8).numFmt = '#,##0';
+      pkgRow.getCell(9).numFmt = '#,##0';
+      pkgRow.getCell(10).numFmt = '#,##0';
+    }
 
     // Totals
     ws.getCell('H42').value = { formula: 'SUM(H18:H41)' };
@@ -179,7 +194,10 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     ws.getCell('J44').value = { formula: 'H42-H43' };
 
     // Terbilang
-    ws.getCell('C51').value = `( ${terbilang(job.total_rental_fee)} Rupiah )`;
+    const finalTotal = hasItemizedPricing
+      ? items.reduce((sum, item) => sum + (item.quantity || 1) * (item.sub_rent_cost || 0), 0)
+      : job.total_rental_fee;
+    ws.getCell('C51').value = `( ${terbilang(finalTotal)} Rupiah )`;
 
     // Date and Signatures
     const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });

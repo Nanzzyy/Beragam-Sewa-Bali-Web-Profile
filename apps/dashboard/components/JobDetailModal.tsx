@@ -278,7 +278,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   {(userRole === 'owner' || userRole === 'accounting') && (
                     <>
                       <button onClick={() => {
-                        import('../lib/pdf').then(({ generateQuotation }) => generateQuotation(job, items));
+                        window.open(`/api/documents/quotation/${job.id}/pdf`, '_blank');
                       }} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 rounded-lg transition border border-blue-600/20">
                         <FileText className="w-3.5 h-3.5" /> Quotation PDF
                       </button>
@@ -288,7 +288,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                         <FileText className="w-3.5 h-3.5" /> Quotation Excel
                       </button>
                       <button onClick={() => {
-                        import('../lib/pdf').then(({ generateInvoice }) => generateInvoice(job, items));
+                        window.open(`/api/documents/invoice/${job.id}/pdf`, '_blank');
                       }} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded-lg transition border border-red-600/20">
                         <FileText className="w-3.5 h-3.5" /> Invoice PDF
                       </button>
@@ -298,7 +298,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                         <FileText className="w-3.5 h-3.5" /> Invoice Excel
                       </button>
                       <button onClick={() => {
-                        import('../lib/pdf').then(({ generateReceipt }) => generateReceipt(job, items));
+                        window.open(`/api/documents/receipt/${job.id}/pdf`, '_blank');
                       }} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-500 rounded-lg transition border border-amber-600/20">
                         <FileText className="w-3.5 h-3.5" /> Kuitansi PDF
                       </button>
@@ -349,21 +349,40 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   const target = e.target as typeof e.target & {
                     item_id: { value: string };
                     quantity: { value: string };
+                    price: { value: string };
                   };
-                  if (!target.item_id.value || !target.quantity.value) return;
+                  if (!target.item_id.value || !target.quantity.value || !target.price.value) return;
                   setUploading(true);
                   try {
+                    const price = parseFloat(target.price.value) || 0;
+                    const qty = parseInt(target.quantity.value) || 1;
+                    const newItemTotal = price * qty;
+                    const currentItemsTotal = items.reduce((sum, item) => sum + (item.quantity * (item.sub_rent_cost || 0)), 0);
+                    const newTotal = currentItemsTotal + newItemTotal;
+
+                    if (newTotal > job.total_rental_fee) {
+                      const adjust = confirm(`Total harga barang (${formatRupiah(newTotal)}) melebihi Total Biaya Sewa Job (${formatRupiah(job.total_rental_fee)}). Apakah Anda ingin menyesuaikan Total Biaya Sewa Job secara otomatis?`);
+                      if (adjust) {
+                        await import('../lib/jobs').then(m => m.updateJob(job.id, { total_rental_fee: newTotal }));
+                        job.total_rental_fee = newTotal; // update local state reference
+                      } else {
+                        setUploading(false);
+                        return;
+                      }
+                    }
+
                     await import('../lib/jobs').then(m => m.addJobItem({
                       job_id: job.id,
                       item_id: target.item_id.value,
                       item_name_custom: null,
-                      quantity: parseInt(target.quantity.value),
+                      quantity: qty,
                       source_vendor_id: null,
-                      sub_rent_cost: 0,
+                      sub_rent_cost: price,
                       is_returned: false
                     }));
                     target.item_id.value = '';
                     target.quantity.value = '1';
+                    target.price.value = '';
                     loadDetails();
                   } catch (err) {
                     alert((err as Error).message);
@@ -378,7 +397,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                       </option>
                     ))}
                   </select>
-                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full sm:w-24 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                  <input type="number" name="price" placeholder="Harga per unit (Rp)" min="0" required className="w-full sm:w-40 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full sm:w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
                   <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
                 </form>
               )}
@@ -395,9 +415,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                         <div>
                           <div className="text-sm font-bold text-slate-900 dark:text-white">{item.item_name || item.item_name_custom || '-'}</div>
                           <div className="text-xs text-slate-500 font-medium mt-0.5">
-                            Qty: {item.quantity}
+                            Qty: {item.quantity} • Harga: {formatRupiah(item.sub_rent_cost || 0)}
                             {item.vendor_name && ` • Vendor: ${item.vendor_name}`}
-                            {item.sub_rent_cost > 0 && ` • ${formatRupiah(item.sub_rent_cost)}`}
                           </div>
                         </div>
                       </div>
@@ -409,6 +428,13 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                           <button onClick={async () => {
                             if (!confirm('Hapus barang ini?')) return;
                             try {
+                              const deletedItemTotal = item.quantity * (item.sub_rent_cost || 0);
+                              const remainingTotal = job.total_rental_fee - deletedItemTotal;
+                              
+                              if (remainingTotal >= 0 && confirm(`Apakah Anda ingin mengurangi Total Biaya Sewa Job sebesar ${formatRupiah(deletedItemTotal)} (menjadi ${formatRupiah(remainingTotal)})?`)) {
+                                await import('../lib/jobs').then(m => m.updateJob(job.id, { total_rental_fee: remainingTotal }));
+                              }
+
                               await import('../lib/jobs').then(m => m.removeJobItem(item.id));
                               loadDetails();
                             } catch (e) { alert((e as Error).message); }

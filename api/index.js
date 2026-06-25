@@ -697,6 +697,282 @@ app.delete('/api/catalog/price/:type/:id', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Helper functions for document generation
+function docTerbilang(angka) {
+    const huruf = [
+        '', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'
+    ];
+    let hasil = '';
+
+    if (angka < 12) {
+        hasil = huruf[Math.floor(angka)];
+    } else if (angka < 20) {
+        hasil = docTerbilang(angka - 10) + ' Belas';
+    } else if (angka < 100) {
+        hasil = docTerbilang(angka / 10) + ' Puluh ' + docTerbilang(angka % 10);
+    } else if (angka < 200) {
+        hasil = 'Seratus ' + docTerbilang(angka - 100);
+    } else if (angka < 1000) {
+        hasil = docTerbilang(angka / 100) + ' Ratus ' + docTerbilang(angka % 100);
+    } else if (angka < 2000) {
+        hasil = 'Seribu ' + docTerbilang(angka - 1000);
+    } else if (angka < 1000000) {
+        hasil = docTerbilang(angka / 1000) + ' Ribu ' + docTerbilang(angka % 1000);
+    } else if (angka < 1000000000) {
+        hasil = docTerbilang(angka / 1000000) + ' Juta ' + docTerbilang(angka % 1000000);
+    } else if (angka < 1000000000000) {
+        hasil = docTerbilang(angka / 1000000000) + ' Milyar ' + docTerbilang(angka % 1000000000);
+    } else if (angka < 1000000000000000) {
+        hasil = docTerbilang(angka / 1000000000000) + ' Trilyun ' + docTerbilang(angka % 1000000000000);
+    }
+
+    return hasil.trim();
+}
+
+function docGetRomanMonth(date) {
+    return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][date.getMonth()];
+}
+
+// GET /api/documents/:type/:jobId/pdf
+app.get('/api/documents/:type/:jobId/pdf', async (req, res) => {
+    const { type, jobId } = req.params;
+    const ExcelJS = require('exceljs');
+    const { exec } = require('child_process');
+    const fs = require('fs');
+
+    // Normalize type
+    let docType = type.toLowerCase();
+    if (docType === 'receipt') docType = 'receipt';
+    if (docType === 'kuitansi') docType = 'receipt';
+
+    if (!['invoice', 'quotation', 'receipt'].includes(docType)) {
+        return res.status(400).json({ error: 'Invalid document type' });
+    }
+
+    try {
+        // 1. Fetch job details
+        const jobRes = await db.query('SELECT * FROM public.jobs WHERE id = $1', [jobId]);
+        if (jobRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+        const job = jobRes.rows[0];
+
+        // 2. Fetch job items
+        const itemsRes = await db.query(`
+            SELECT ji.*, i.name AS item_name, s.name AS vendor_name
+            FROM public.job_items ji
+            LEFT JOIN public.items i ON ji.item_id = i.id
+            LEFT JOIN public.suppliers s ON ji.source_vendor_id = s.id
+            WHERE ji.job_id = $1
+            ORDER BY ji.created_at
+        `, [jobId]);
+        const items = itemsRes.rows;
+
+        // 3. Fetch company configuration
+        const contentRes = await db.query('SELECT * FROM public.site_content');
+        const contentData = contentRes.rows;
+        const config = {
+            name: contentData.find(d => d.content_key === 'bsb_company_name')?.content_value || 'Beragam Sewa Bali',
+            address: contentData.find(d => d.content_key === 'bsb_company_address')?.content_value || 'Jl. By Pass Ngurah Rai, Denpasar, Bali',
+            email: contentData.find(d => d.content_key === 'bsb_company_email')?.content_value || 'info@beragamsewabali.com',
+            phone: contentData.find(d => d.content_key === 'bsb_company_phone')?.content_value || '08123456789',
+            payment: contentData.find(d => d.content_key === 'bsb_company_payment_info')?.content_value || 'Bank BCA: 1234567890 a.n Beragam Sewa Bali'
+        };
+
+        // 4. Parse payment info dynamically
+        let bankName = 'BCA';
+        let bankNumber = '6110252194';
+        let bankOwner = 'an. Eka Sutrisna Putra';
+
+        if (config.payment) {
+            const paymentStr = config.payment;
+            const bankMatch = paymentStr.match(/Bank\s+([A-Za-z0-9]+)/i);
+            const numMatch = paymentStr.match(/(?:No\.?\s*Rek\.?\s*)?(\d{5,20})/i);
+            const ownerMatch = paymentStr.match(/(?:a\.n\.?|an\.?)\s*([^,\n]+)/i);
+
+            if (bankMatch) bankName = bankMatch[1].toUpperCase();
+            if (numMatch) bankNumber = numMatch[1];
+            if (ownerMatch) bankOwner = 'an. ' + ownerMatch[1].trim();
+        }
+
+        // 5. Load Excel template
+        const templatePath = path.join(__dirname, '../apps/dashboard/public/templates/invoice_template.xlsx');
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(templatePath);
+
+        // Get target sheet and rename
+        const targetSheetName = docType === 'invoice' ? 'INV' : docType === 'quotation' ? 'QUO' : 'KWT';
+        const boqSheet = wb.getWorksheet('BOQ') || wb.getWorksheet('Sheet1') || wb.worksheets[0];
+        if (!boqSheet) throw new Error('BOQ sheet not found in template');
+        boqSheet.name = targetSheetName;
+
+        // Remove other sheets to ensure exactly 1 sheet
+        wb.worksheets.forEach(sheet => {
+            if (sheet.id !== boqSheet.id) {
+                wb.removeWorksheet(sheet.id);
+            }
+        });
+
+        const ws = boqSheet;
+
+        // 6. Write client and event info
+        ws.getCell('C7').value = job.client_name;
+        ws.getCell('C8').value = job.client_name;
+        ws.getCell('C9').value = job.venue || '-';
+        ws.getCell('C10').value = job.client_email || '-';
+        ws.getCell('C11').value = job.client_phone || '-';
+        ws.getCell('C12').value = job.description || 'EVENT';
+
+        const formatDateStr = (dateStr) => {
+            if (!dateStr) return '-';
+            return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        };
+        ws.getCell('C13').value = `TGL ${formatDateStr(job.setup_date)} s/d ${formatDateStr(job.completion_date)}`;
+
+        // Write office/company info
+        ws.getCell('I8').value = config.address;
+        ws.getCell('J8').value = config.address;
+        ws.getCell('I9').value = config.phone;
+        ws.getCell('J9').value = config.phone;
+        ws.getCell('I10').value = config.email;
+        ws.getCell('J10').value = config.email;
+        ws.getCell('I11').value = bankName;
+        ws.getCell('J11').value = bankName;
+        ws.getCell('I12').value = bankNumber;
+        ws.getCell('J12').value = bankNumber;
+        ws.getCell('I13').value = bankOwner;
+        ws.getCell('J13').value = bankOwner;
+
+        // Clear leftover lines
+        for (let r = 14; r <= 17; r++) {
+            ws.getRow(r).getCell(9).value = null;
+            ws.getRow(r).getCell(10).value = null;
+        }
+
+        // Title & Doc No
+        const title = docType === 'receipt' ? 'KUITANSI' : docType.toUpperCase();
+        ws.getCell('A15').value = title;
+        ws.getCell('C15').value = title;
+
+        const date = new Date(job.created_at || Date.now());
+        const docNo = `NO : 01/BSB/${targetSheetName}/${docGetRomanMonth(date)}/${date.getFullYear()}`;
+        ws.getCell('J15').value = docNo;
+
+        // Clear template rows A18:J41
+        for (let r = 18; r <= 41; r++) {
+            const row = ws.getRow(r);
+            for (let c = 1; c <= 10; c++) {
+                row.getCell(c).value = null;
+            }
+        }
+
+        // Determine if any item has price
+        const hasItemizedPricing = items.some(item => (Number(item.sub_rent_cost) || 0) > 0);
+
+        // Write actual items with prices
+        let currentRow = 18;
+        items.forEach((item, index) => {
+            const row = ws.getRow(currentRow);
+            row.getCell(1).value = index + 1;
+            row.getCell(3).value = item.item_name || item.item_name_custom || '-';
+            row.getCell(4).value = parseInt(item.quantity) || 1;
+            row.getCell(5).value = 'unit';
+            row.getCell(6).value = 1;
+            row.getCell(7).value = hasItemizedPricing ? (Number(item.sub_rent_cost) || 0) : 0;
+
+            row.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+            row.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+            row.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+
+            row.getCell(7).numFmt = '#,##0';
+            row.getCell(8).numFmt = '#,##0';
+            row.getCell(9).numFmt = '#,##0';
+            row.getCell(10).numFmt = '#,##0';
+
+            currentRow++;
+        });
+
+        if (!hasItemizedPricing) {
+            // Write package row
+            const pkgRow = ws.getRow(currentRow);
+            pkgRow.getCell(1).value = items.length + 1;
+            pkgRow.getCell(3).value = 'Paket Sewa & Jasa Pengiriman Peralatan';
+            pkgRow.getCell(4).value = 1;
+            pkgRow.getCell(5).value = 'pkg';
+            pkgRow.getCell(6).value = 1;
+            pkgRow.getCell(7).value = Number(job.total_rental_fee) || 0;
+
+            pkgRow.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+            pkgRow.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+            pkgRow.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
+
+            pkgRow.getCell(7).numFmt = '#,##0';
+            pkgRow.getCell(8).numFmt = '#,##0';
+            pkgRow.getCell(9).numFmt = '#,##0';
+            pkgRow.getCell(10).numFmt = '#,##0';
+        }
+
+        // Totals
+        ws.getCell('H42').value = { formula: 'SUM(H18:H41)' };
+        ws.getCell('I42').value = { formula: 'SUM(H18:H41)' };
+        ws.getCell('J42').value = { formula: 'SUM(H18:H41)' };
+
+        ws.getCell('H43').value = 0;
+        ws.getCell('I43').value = 0;
+        ws.getCell('J43').value = 0;
+
+        ws.getCell('H44').value = { formula: 'H42-H43' };
+        ws.getCell('I44').value = { formula: 'H42-H43' };
+        ws.getCell('J44').value = { formula: 'H42-H43' };
+
+        // Terbilang
+        const finalTotal = hasItemizedPricing
+            ? items.reduce((sum, item) => sum + (parseInt(item.quantity) || 1) * (Number(item.sub_rent_cost) || 0), 0)
+            : Number(job.total_rental_fee) || 0;
+        ws.getCell('C51').value = `( ${docTerbilang(finalTotal)} Rupiah )`;
+
+        // Date & Signature
+        const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        ws.getCell('J46').value = `Denpasar, ${currentDate}`;
+        ws.getCell('J47').value = config.name;
+
+        let signatureName = 'Eka Sutrisna Putra';
+        if (bankOwner) {
+            signatureName = bankOwner.replace(/^(?:a\.n\.?|an\.?)\s*/i, '').trim();
+        }
+        ws.getCell('J53').value = signatureName;
+
+        // Save to unique temp file
+        const tempXlsxPath = path.join('/tmp', `doc_${jobId}_${Date.now()}.xlsx`);
+        await wb.xlsx.writeFile(tempXlsxPath);
+
+        // Convert using LibreOffice
+        exec(`libreoffice --headless --convert-to pdf --outdir /tmp ${tempXlsxPath}`, (err, stdout, stderr) => {
+            if (err) {
+                console.error('LibreOffice conversion failed:', err);
+                try { fs.unlinkSync(tempXlsxPath); } catch (e) {}
+                return res.status(500).json({ error: 'Failed to convert document to PDF' });
+            }
+
+            const pdfPath = tempXlsxPath.replace('.xlsx', '.pdf');
+            const downloadFilename = `${targetSheetName}_${job.client_name.replace(/\s+/g, '_')}_${job.job_date}.pdf`;
+
+            res.download(pdfPath, downloadFilename, (downloadErr) => {
+                // Cleanup temp files
+                try { fs.unlinkSync(tempXlsxPath); } catch (e) {}
+                try { fs.unlinkSync(pdfPath); } catch (e) {}
+                if (downloadErr && !res.headersSent) {
+                    console.error('Error during file transfer:', downloadErr);
+                }
+            });
+        });
+    } catch (e) {
+        console.error('Failed to generate PDF document:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+
 
 
 // Local Dev Fallbacks (matching vercel.json)
