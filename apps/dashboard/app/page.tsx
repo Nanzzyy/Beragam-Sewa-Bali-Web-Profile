@@ -452,6 +452,11 @@ export default function DashboardApp() {
   const canModify = userRole === 'owner' || userRole === 'staff';
   const canViewAll = userRole === 'owner' || userRole === 'accounting';
 
+  const generateSkuForCategory = (category: string) => {
+    const prefix = category.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase() || 'IT';
+    return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+  };
+
   const jobStatusChartData = useMemo(() => {
     if (!stats) return [];
     return (Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(status => ({
@@ -997,7 +1002,7 @@ export default function DashboardApp() {
                   </div>
                   {canModify && (
                     <button onClick={() => {
-                      setItemModalData({ name: '', category: 'other', quantity: 1, sku: `SKU-${Date.now()}` });
+                      setItemModalData({ name: '', category: 'other', quantity: 1, sku: generateSkuForCategory('other') });
                       setItemModalOpen(true);
                     }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 w-full sm:w-auto justify-center">
                       <Plus className="w-4 h-4" /> Tambah Barang
@@ -1451,8 +1456,8 @@ export default function DashboardApp() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">SKU</label>
-                  <input type="text" name="sku" defaultValue={itemModalData.sku} required placeholder="Contoh: SKU-12345" 
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">SKU / Kode Barang</label>
+                  <input type="text" name="sku" value={itemModalData.sku} onChange={e => setItemModalData({...itemModalData, sku: e.target.value.toUpperCase()})} required placeholder="Contoh: LG-1234" 
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
                 </div>
                 <div>
@@ -1492,7 +1497,11 @@ export default function DashboardApp() {
                             setCustomCategories(updated);
                             localStorage.setItem('bsb_custom_categories', JSON.stringify(updated));
                           }
-                          setItemModalData({...itemModalData, category: trimmed});
+                          setItemModalData({
+                            ...itemModalData, 
+                            category: trimmed,
+                            ...(!itemModalData.id ? { sku: generateSkuForCategory(trimmed) } : {})
+                          });
                           setShowNewCategoryInput(false);
                           setNewCategoryName('');
                         }
@@ -1506,7 +1515,14 @@ export default function DashboardApp() {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Filter className="h-5 w-5 text-slate-400" />
                   </div>
-                  <select name="category" value={itemModalData.category} onChange={e => setItemModalData({...itemModalData, category: e.target.value})} 
+                  <select name="category" value={itemModalData.category} onChange={e => {
+                      const newCat = e.target.value;
+                      setItemModalData({
+                        ...itemModalData, 
+                        category: newCat,
+                        ...(!itemModalData.id ? { sku: generateSkuForCategory(newCat) } : {})
+                      });
+                    }}
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium appearance-none">
                     {categoriesList.map(cat => (
                       <option key={cat} value={cat} className="capitalize">{cat}</option>
