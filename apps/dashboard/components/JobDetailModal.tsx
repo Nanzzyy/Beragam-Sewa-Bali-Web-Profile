@@ -278,14 +278,34 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   {(userRole === 'owner' || userRole === 'accounting') && (
                     <>
                       <button onClick={() => {
+                        import('../lib/pdf').then(({ generateQuotation }) => generateQuotation(job, items));
+                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 rounded-lg transition border border-blue-600/20">
+                        <FileText className="w-3.5 h-3.5" /> Quotation PDF
+                      </button>
+                      <button onClick={() => {
+                        import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'quotation'));
+                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-lg transition border border-blue-600/20">
+                        <FileText className="w-3.5 h-3.5" /> Quotation Excel
+                      </button>
+                      <button onClick={() => {
                         import('../lib/pdf').then(({ generateInvoice }) => generateInvoice(job, items));
                       }} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded-lg transition border border-red-600/20">
                         <FileText className="w-3.5 h-3.5" /> Invoice PDF
                       </button>
                       <button onClick={() => {
-                        import('../lib/excel').then(({ generateExcelInvoice }) => generateExcelInvoice(job, items));
+                        import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'invoice'));
                       }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 rounded-lg transition border border-emerald-600/20">
                         <FileText className="w-3.5 h-3.5" /> Invoice Excel
+                      </button>
+                      <button onClick={() => {
+                        import('../lib/pdf').then(({ generateReceipt }) => generateReceipt(job, items));
+                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-500 rounded-lg transition border border-amber-600/20">
+                        <FileText className="w-3.5 h-3.5" /> Kuitansi PDF
+                      </button>
+                      <button onClick={() => {
+                        import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'receipt'));
+                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-600 dark:text-amber-400 rounded-lg transition border border-amber-600/20">
+                        <FileText className="w-3.5 h-3.5" /> Kuitansi Excel
                       </button>
                     </>
                   )}

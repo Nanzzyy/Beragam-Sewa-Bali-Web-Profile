@@ -270,7 +270,7 @@ export default function DashboardApp() {
     refetchOnWindowFocus: false, // Don't refetch just because user alt-tabs
     queryFn: async () => {
       // Run ALL queries in parallel for maximum speed
-      const promises: Promise<any>[] = [
+      const promises: any[] = [
         fetchJobs({ status: statusFilter || undefined, search: debouncedSearch || undefined }),
         fetchDashboardStats(),
         supabase.from('items').select('*').order('name'),
