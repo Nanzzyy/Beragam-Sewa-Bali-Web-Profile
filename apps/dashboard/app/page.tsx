@@ -695,7 +695,7 @@ export default function DashboardApp() {
                   </div>
                   
                   {userPref.showCharts ? (
-                    <div className="flex flex-col md:flex-row items-center gap-6 h-64">
+                    <div className="flex flex-col md:flex-row items-center gap-6 md:h-64">
                       <div className="w-full md:w-1/2 h-full min-h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
