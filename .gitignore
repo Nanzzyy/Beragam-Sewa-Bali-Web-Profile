@@ -23,10 +23,13 @@ Thumbs.db
 npm-debug.log*
 
 # Supabase Local Migration
-volumes/
+volumes/db/data/
+volumes/storage/
+volumes/functions/
+volumes/snippets/
 cloudflared
 cloudflared.rpm
-*.sql
+/*.sql
 supabase_backup.sql
 latest_schema.sql
 .env.supabase
