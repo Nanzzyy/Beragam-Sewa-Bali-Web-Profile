@@ -9,7 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // TYPE DEFINITIONS — Job/Rental Management Schema
 // ============================================================
 
-export type JobStatus = 'draft' | 'confirmed' | 'on_going' | 'completed' | 'cancelled';
+export type JobStatus = 'draft' | 'negotiation' | 'pending_payment' | 'confirmed' | 'on_going' | 'completed' | 'cancelled';
 export type ProofType = 'delivery' | 'return';
 export type AppRole = 'owner' | 'accounting' | 'staff' | 'guest';
 
@@ -90,6 +90,8 @@ export function formatDate(dateStr: string): string {
 
 export const JOB_STATUS_CONFIG: Record<JobStatus, { label: string; color: string; bg: string }> = {
   draft: { label: 'Draft', color: '#64748B', bg: '#64748B20' },
+  negotiation: { label: 'Negosiasi', color: '#8B5CF6', bg: '#8B5CF620' },
+  pending_payment: { label: 'Menunggu Pembayaran', color: '#EAB308', bg: '#EAB30820' },
   confirmed: { label: 'Confirmed', color: '#3B82F6', bg: '#3B82F620' },
   on_going: { label: 'On Going', color: '#F59E0B', bg: '#F59E0B20' },
   completed: { label: 'Completed', color: '#10B981', bg: '#10B98120' },

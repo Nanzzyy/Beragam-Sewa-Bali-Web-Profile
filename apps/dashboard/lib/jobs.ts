@@ -83,7 +83,8 @@ export async function createJob(input: Omit<Job, 'id' | 'created_at' | 'updated_
   const jobId = data!.id;
 
   // Auto-journal Cashflow
-  if (input.total_rental_fee && Number(input.total_rental_fee) > 0) {
+  const ACTIVE_CASHFLOW_STATUSES = ['confirmed', 'on_going', 'completed'];
+  if (input.total_rental_fee && Number(input.total_rental_fee) > 0 && ACTIVE_CASHFLOW_STATUSES.includes(input.status)) {
     const cfPayload = {
       type: 'inflow',
       category: 'client_rental',
@@ -111,35 +112,46 @@ export async function updateJob(id: string, updates: Partial<Job>): Promise<void
   if (error) throw new DashboardError(error.message, 'UPDATE_JOB_FAILED');
 
   // Sync Cashflow if fields changed
-  if ('total_rental_fee' in updates || 'client_name' in updates || 'venue' in updates || 'job_date' in updates) {
-    const { data: job } = await supabase.from('jobs').select('*').eq('id', id).single();
-    if (job) {
-      if (job.cashflow_tx_id) {
-        if (Number(job.total_rental_fee) > 0) {
-          await supabase.from('cashflow').update({
-            amount: Number(job.total_rental_fee),
-            description: `Pemasukan Job: ${job.client_name} - ${job.venue}`,
-            transaction_date: job.job_date || new Date().toISOString()
-          }).eq('id', job.cashflow_tx_id);
-        } else {
-          await supabase.from('cashflow').delete().eq('id', job.cashflow_tx_id);
-          await supabase.from('jobs').update({ cashflow_tx_id: null }).eq('id', id);
-        }
-      } else if (Number(job.total_rental_fee) > 0) {
-        const cfPayload = {
-          type: 'inflow',
-          category: 'client_rental',
-          amount: Number(job.total_rental_fee),
-          description: `Pemasukan Job: ${job.client_name} - ${job.venue}`,
-          reference_id: id,
-          transaction_date: job.job_date || new Date().toISOString(),
-          created_by: job.created_by
-        };
-        const { data: cfData } = await supabase.from('cashflow').insert(cfPayload).select('id').single();
-        if (cfData) {
-          await supabase.from('jobs').update({ cashflow_tx_id: cfData.id }).eq('id', id);
-        }
+  if ('total_rental_fee' in updates || 'client_name' in updates || 'venue' in updates || 'job_date' in updates || 'status' in updates) {
+    await syncJobCashflow(id);
+  }
+}
+
+export async function syncJobCashflow(jobId: string): Promise<void> {
+  const { data: job } = await supabase.from('jobs').select('*').eq('id', jobId).single();
+  if (!job) return;
+
+  const ACTIVE_CASHFLOW_STATUSES = ['confirmed', 'on_going', 'completed'];
+  const isActive = ACTIVE_CASHFLOW_STATUSES.includes(job.status);
+  const amount = Number(job.total_rental_fee);
+
+  if (isActive && amount > 0) {
+    if (job.cashflow_tx_id) {
+      await supabase.from('cashflow').update({
+        amount,
+        description: `Pemasukan Job: ${job.client_name} - ${job.venue}`,
+        transaction_date: job.job_date || new Date().toISOString()
+      }).eq('id', job.cashflow_tx_id);
+    } else {
+      const cfPayload = {
+        type: 'inflow',
+        category: 'client_rental',
+        amount,
+        description: `Pemasukan Job: ${job.client_name} - ${job.venue}`,
+        reference_id: jobId,
+        transaction_date: job.job_date || new Date().toISOString(),
+        created_by: job.created_by
+      };
+      const { data: cfData } = await supabase.from('cashflow').insert(cfPayload).select('id').single();
+      if (cfData) {
+        await supabase.from('jobs').update({ cashflow_tx_id: cfData.id }).eq('id', jobId);
       }
+    }
+  } else {
+    // If not active or amount is 0, delete the cashflow if it exists
+    if (job.cashflow_tx_id) {
+      await supabase.from('cashflow').delete().eq('id', job.cashflow_tx_id);
+      await supabase.from('jobs').update({ cashflow_tx_id: null }).eq('id', jobId);
     }
   }
 }
@@ -151,6 +163,8 @@ export async function updateJobStatus(id: string, status: JobStatus): Promise<vo
     .eq('id', id);
 
   if (error) throw new DashboardError(error.message, 'UPDATE_STATUS_FAILED');
+  
+  await syncJobCashflow(id);
 }
 
 export async function deleteJob(id: string): Promise<void> {
@@ -328,7 +342,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
     totalRevenue: jobs.filter(j => j.status === 'completed').reduce((s, j) => s + Number(j.total_rental_fee), 0),
     totalVendorCost: jobs.filter(j => j.status === 'completed').reduce((s, j) => s + Number(j.total_vendor_cost), 0),
     netProfit: 0,
-    jobsByStatus: { draft: 0, confirmed: 0, on_going: 0, completed: 0, cancelled: 0 },
+    jobsByStatus: { draft: 0, negotiation: 0, confirmed: 0, on_going: 0, pending_payment: 0, completed: 0, cancelled: 0 },
     totalInventory: 0,
     totalSuppliers: 0,
     cashflowIn: 0,

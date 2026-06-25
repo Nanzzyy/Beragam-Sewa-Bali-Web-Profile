@@ -351,7 +351,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
               {/* Quick Status Changes */}
               {canModify && (
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                  {job.status === 'draft' && (
+                  {(job.status === 'draft' || job.status === 'negotiation') && (
                     <button onClick={() => handleStatusQuickChange('confirmed')} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/20 transition">
                       <CheckCircle2 className="w-4 h-4" /> Konfirmasi
                     </button>
@@ -362,8 +362,18 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     </button>
                   )}
                   {job.status === 'on_going' && (
+                    <>
+                      <button onClick={() => handleStatusQuickChange('pending_payment')} className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg text-sm font-medium hover:bg-yellow-500/20 transition">
+                        <FileText className="w-4 h-4" /> Menunggu Pembayaran
+                      </button>
+                      <button onClick={() => handleStatusQuickChange('completed')} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 text-red-500 rounded-lg text-sm font-medium hover:bg-red-600/20 transition">
+                        <CheckCircle2 className="w-4 h-4" /> Selesai
+                      </button>
+                    </>
+                  )}
+                  {job.status === 'pending_payment' && (
                     <button onClick={() => handleStatusQuickChange('completed')} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 text-red-500 rounded-lg text-sm font-medium hover:bg-red-600/20 transition">
-                      <CheckCircle2 className="w-4 h-4" /> Selesai
+                      <CheckCircle2 className="w-4 h-4" /> Lunas & Selesai
                     </button>
                   )}
                   {job.status !== 'cancelled' && job.status !== 'completed' && (
