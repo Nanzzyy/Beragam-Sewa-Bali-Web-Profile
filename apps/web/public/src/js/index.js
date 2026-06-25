@@ -4,12 +4,23 @@ async function initializePage() {
         const API_BASE = '/api';
             
         let data;
-        if (window.__CONTENT_PROMISE__) {
-            data = await window.__CONTENT_PROMISE__;
-        } else {
-            const response = await fetch(`${API_BASE}/content`);
-            if (!response.ok) throw new Error(`Gagal mengambil data: ${response.statusText}`);
-            data = await response.json();
+        try {
+            if (window.__CONTENT_PROMISE__) {
+                data = await window.__CONTENT_PROMISE__;
+            } else {
+                const response = await fetch(`${API_BASE}/content`);
+                if (!response.ok) throw new Error(`Gagal mengambil data: ${response.statusText}`);
+                data = await response.json();
+            }
+            localStorage.setItem('bsb_content_cache', JSON.stringify(data));
+        } catch (fetchError) {
+            console.warn("Failed to fetch fresh content, trying cache...", fetchError);
+            const cached = localStorage.getItem('bsb_content_cache');
+            if (cached) {
+                data = JSON.parse(cached);
+            } else {
+                throw fetchError;
+            }
         }
 
         const protectBrand = (text) => {
@@ -185,12 +196,24 @@ async function initializePage() {
         const mainGallerySwiperWrapper = document.getElementById('main-gallery-swiper-wrapper');
         try {
             let galleryData;
-            if (window.__GALLERY_PROMISE__) {
-                galleryData = await window.__GALLERY_PROMISE__;
-            } else {
-                const API_BASE = '/api';
-                const galleryResponse = await fetch(`${API_BASE}/gallery`);
-                galleryData = await galleryResponse.json();
+            try {
+                if (window.__GALLERY_PROMISE__) {
+                    galleryData = await window.__GALLERY_PROMISE__;
+                } else {
+                    const API_BASE = '/api';
+                    const galleryResponse = await fetch(`${API_BASE}/gallery`);
+                    if (!galleryResponse.ok) throw new Error('Failed to fetch gallery');
+                    galleryData = await galleryResponse.json();
+                }
+                localStorage.setItem('bsb_gallery_cache', JSON.stringify(galleryData));
+            } catch (galleryError) {
+                console.warn("Failed to fetch fresh gallery, trying cache...", galleryError);
+                const cachedGallery = localStorage.getItem('bsb_gallery_cache');
+                if (cachedGallery) {
+                    galleryData = JSON.parse(cachedGallery);
+                } else {
+                    throw galleryError;
+                }
             }
 
             if (mainGallerySwiperWrapper && galleryData) {
@@ -228,7 +251,45 @@ async function initializePage() {
 
     } catch (error) {
         console.error("Initialization failed:", error);
-        // Fallback logic remains similar but with improved CSS classes if needed
+        
+        const protectBrand = (text) => {
+            if (!text) return '';
+            return text.replace(/Beragam Sewa Bali/gi, '<span class="notranslate">$&</span>');
+        };
+
+        // Fallback UI rendering
+        document.getElementById('home_title').innerHTML = protectBrand('Beragam Sewa Bali');
+        document.getElementById('home_subtitle').innerHTML = 'Solusi Sewa Perlengkapan Event Terpercaya di Bali';
+        document.getElementById('about_title').innerHTML = protectBrand('Tentang Beragam Sewa Bali');
+        document.getElementById('about_text').innerHTML = 'Beragam Sewa Bali adalah penyedia jasa sewa perlengkapan event terpercaya di Bali. Kami siap melayani kebutuhan sound system, lighting, multimedia, tenda, panggung, dan perlengkapan lainnya untuk mensukseskan acara Anda.';
+        
+        const homeSwiperWrapper = document.getElementById('home-swiper-wrapper');
+        if (homeSwiperWrapper) {
+            homeSwiperWrapper.innerHTML = `
+                <div class="swiper-slide">
+                    <div class="hero-slide-bg bg-black/60 flex items-center justify-center text-white/50">
+                        <span>Offline Mode - Silakan hubungi kami via WhatsApp</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        const servicesWrapper = document.getElementById('services-swiper-wrapper');
+        if (servicesWrapper) {
+            servicesWrapper.innerHTML = `
+                <div class="text-center py-8 text-text-muted w-full">
+                    <p data-i18n="offline_services">Layanan sementara tidak dapat dimuat. Silakan periksa koneksi Anda.</p>
+                </div>
+            `;
+        }
+        const packagesWrapper = document.getElementById('packages-swiper-wrapper');
+        if (packagesWrapper) {
+            packagesWrapper.innerHTML = `
+                <div class="text-center py-8 text-text-muted w-full">
+                    <p data-i18n="offline_packages">Paket sementara tidak dapat dimuat. Silakan periksa koneksi Anda.</p>
+                </div>
+            `;
+        }
     }
 }
 

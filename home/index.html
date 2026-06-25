@@ -47,7 +47,7 @@
             const cachedLogo = localStorage.getItem('bsb_site_logo');
             if (cachedLogo) applyLogo(cachedLogo);
             fetch(API + '/api/site/logo')
-                .then(r => r.json())
+                .then(r => r.ok ? r.json() : Promise.reject(r))
                 .then(data => {
                     if (data.site_logo) {
                         localStorage.setItem('bsb_site_logo', data.site_logo);
@@ -167,6 +167,7 @@
                 </div>
 
                 <a href="#gallery" class="nav-link text-text-body text-[0.95rem] font-semibold hover:text-brand-red transition-colors" data-i18n="nav_gallery">Gallery</a>
+                <a href="https://admin.beragamsewabali.com" target="_blank" rel="noopener noreferrer" class="nav-link text-text-body text-[0.95rem] font-semibold hover:text-brand-red transition-colors">Admin</a>
 
                 <!-- Language & Theme Toggles -->
                 <div class="flex items-center gap-4 px-4 py-1.5 bg-black/5 rounded-full">
@@ -224,6 +225,7 @@
                     <a href="#service" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors" data-i18n="nav_service">Service</a>
                     <a href="#package" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors" data-i18n="nav_package">Package</a>
                     <a href="#gallery" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors" data-i18n="nav_gallery">Gallery</a>
+                    <a href="https://admin.beragamsewabali.com" target="_blank" rel="noopener noreferrer" class="mobile-nav-link block px-6 py-3.5 text-text-primary text-[0.95rem] font-medium border-b border-black/8 hover:bg-bg-base hover:text-brand-red transition-colors">Admin Dashboard</a>
                 </nav>
                 <div class="p-6 space-y-4 mt-auto">
                     <div class="flex items-center justify-center gap-4 py-3 bg-black/5 rounded-2xl">

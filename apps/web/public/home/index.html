@@ -40,7 +40,7 @@
             const cachedLogo = localStorage.getItem('bsb_site_logo');
             if (cachedLogo) applyLogo(cachedLogo);
             fetch(API + '/api/site/logo')
-                .then(r => r.json())
+                .then(r => r.ok ? r.json() : Promise.reject(r))
                 .then(data => {
                     if (data.site_logo) {
                         localStorage.setItem('bsb_site_logo', data.site_logo);

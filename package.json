@@ -7,9 +7,14 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:web": "npm run dev --workspace=apps/web",
-    "dev:cashflow": "npm run dev --workspace=apps/cashflow",
-    "dev:dashboard": "npm run dev --workspace=apps/dashboard",
+    "dev:api": "node --watch api/index.js",
+    "dev:web:only": "npm run dev --workspace=apps/web",
+    "dev:cashflow:only": "npm run dev --workspace=apps/cashflow",
+    "dev:dashboard:only": "npm run dev --workspace=apps/dashboard",
+    "dev:web": "concurrently -n \"API,WEB\" -c \"blue,green\" \"npm run dev:api\" \"npm run dev:web:only\"",
+    "dev:cashflow": "concurrently -n \"API,CASHFLOW\" -c \"blue,yellow\" \"npm run dev:api\" \"npm run dev:cashflow:only\"",
+    "dev:dashboard": "concurrently -n \"API,DASHBOARD\" -c \"blue,magenta\" \"npm run dev:api\" \"npm run dev:dashboard:only\"",
+    "dev:all": "concurrently -n \"API,WEB,CASHFLOW,DASHBOARD\" -c \"blue,green,yellow,magenta\" \"npm run dev:api\" \"npm run dev:web:only\" \"npm run dev:cashflow:only\" \"npm run dev:dashboard:only\"",
     "dev": "node --watch api/index.js",
     "start": "node api/index.js"
   },
@@ -44,6 +49,7 @@
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.0",
+    "concurrently": "^10.0.3",
     "tailwindcss": "^4.3.0"
   }
 }
