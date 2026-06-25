@@ -452,6 +452,15 @@ export default function DashboardApp() {
   const canModify = userRole === 'owner' || userRole === 'staff';
   const canViewAll = userRole === 'owner' || userRole === 'accounting';
 
+  const jobStatusChartData = useMemo(() => {
+    if (!stats) return [];
+    return (Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(status => ({
+      name: JOB_STATUS_CONFIG[status].label,
+      value: stats.jobsByStatus[status],
+      color: JOB_STATUS_CONFIG[status].color
+    })).filter(d => d.value > 0);
+  }, [stats]);
+
   // ======== LANDING ATAU LOGIN SCREEN ========
   // Show spinner during initial load to prevent landing page flash
   if (loading) {
@@ -512,14 +521,6 @@ export default function DashboardApp() {
     );
   }
 
-  const jobStatusChartData = useMemo(() => {
-    if (!stats) return [];
-    return (Object.keys(JOB_STATUS_CONFIG) as JobStatus[]).map(status => ({
-      name: JOB_STATUS_CONFIG[status].label,
-      value: stats.jobsByStatus[status],
-      color: JOB_STATUS_CONFIG[status].color
-    })).filter(d => d.value > 0);
-  }, [stats]);
 
   // ======== SIDEBAR ========
   const SidebarItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: Tab }) => (
