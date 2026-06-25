@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   async rewrites() {
@@ -32,6 +33,9 @@ const nextConfig: NextConfig = {
         destination: "/src/:path*",
       },
     ];
+  },
+  turbopack: {
+    root: path.resolve(__dirname, "../../"),
   },
 };
 
