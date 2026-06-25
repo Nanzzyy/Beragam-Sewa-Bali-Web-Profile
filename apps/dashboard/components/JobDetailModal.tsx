@@ -282,7 +282,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   {exportDropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setExportDropdownOpen(false)}></div>
-                      <div className="absolute right-0 sm:left-0 sm:right-auto mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-left">
+                      <div className="absolute right-0 bottom-full mb-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 origin-bottom-right">
                         <div className="py-1">
                           {(userRole === 'owner' || userRole === 'staff' || userRole === 'accounting') && (
                             <button onClick={() => {
