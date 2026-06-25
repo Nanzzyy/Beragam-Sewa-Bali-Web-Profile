@@ -110,6 +110,15 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     ws.getCell('I13').value = bankOwner;
     ws.getCell('J13').value = bankOwner;
 
+    // Apply text wrapping to prevent overlapping text
+    const wrapCells = ['C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13', 'I8', 'J8', 'I9', 'J9', 'I10', 'J10', 'I11', 'J11', 'I12', 'J12', 'I13', 'J13'];
+    wrapCells.forEach(c => {
+      const cell = ws.getCell(c);
+      cell.alignment = { ...cell.alignment, wrapText: true, vertical: 'middle' };
+      const rowNum = parseInt(c.replace(/[A-Z]/g, ''), 10);
+      (ws.getRow(rowNum) as any).height = undefined; // auto-height
+    });
+
     // Clear any leftover values in rows 14-17 (office info columns)
     for (let r = 14; r <= 17; r++) {
       ws.getRow(r).getCell(9).value = null;
@@ -153,6 +162,9 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
       row.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
       row.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
       
+      row.getCell(3).alignment = { ...row.getCell(3).alignment, wrapText: true, vertical: 'middle' };
+      (row as any).height = undefined; // auto-height for items
+
       row.getCell(7).numFmt = '#,##0';
       row.getCell(8).numFmt = '#,##0';
       row.getCell(9).numFmt = '#,##0';
@@ -175,6 +187,9 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
       pkgRow.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
       pkgRow.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
       
+      pkgRow.getCell(3).alignment = { ...pkgRow.getCell(3).alignment, wrapText: true, vertical: 'middle' };
+      (pkgRow as any).height = undefined;
+
       pkgRow.getCell(7).numFmt = '#,##0';
       pkgRow.getCell(8).numFmt = '#,##0';
       pkgRow.getCell(9).numFmt = '#,##0';
@@ -198,7 +213,11 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     const finalTotal = hasItemizedPricing
       ? items.reduce((sum, item) => sum + (item.quantity || 1) * (item.sub_rent_cost || 0), 0)
       : job.total_rental_fee;
-    ws.getCell('C51').value = `( ${terbilang(finalTotal)} Rupiah )`;
+      
+    const terbilangCell = ws.getCell('C51');
+    terbilangCell.value = `( ${terbilang(finalTotal)} Rupiah )`;
+    terbilangCell.alignment = { ...terbilangCell.alignment, wrapText: true, vertical: 'top' };
+    (ws.getRow(51) as any).height = undefined;
 
     // Date and Signatures
     const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });

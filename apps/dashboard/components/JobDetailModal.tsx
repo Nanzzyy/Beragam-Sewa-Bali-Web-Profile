@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Job, JobItem, JobStaff, JobProof, JobStatus, AppRole } from '../lib/supabase';
 import { JOB_STATUS_CONFIG, formatRupiah, formatDate } from '../lib/supabase';
 import { fetchJobById, fetchJobItems, fetchJobStaff, fetchJobProofs, uploadProofPhoto, addJobProof, updateJobStatus } from '../lib/jobs';
-import { X, MapPin, Calendar, Phone, Mail, Package, Users, Camera, FileText, Upload, CheckCircle2, Truck, RotateCcw } from 'lucide-react';
+import { X, MapPin, Calendar, Phone, Mail, Package, Users, Camera, FileText, Upload, CheckCircle2, Truck, RotateCcw, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { showConfirm } from '../lib/confirm';
 
@@ -24,6 +24,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'items' | 'staff' | 'proofs'>('info');
   const [uploading, setUploading] = useState(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
 
   // Lists of all available items and staff for the dropdowns
   const [availableItems, setAvailableItems] = useState<{ id: string; name: string; available?: number; total?: number }[]>([]);
@@ -268,47 +269,80 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   {job.cashflow_tx_id && <span className="ml-2 text-red-500">✓ Jurnal Tersinkron</span>}
                 </div>
                 
-                {/* PDF Generation Buttons */}
-                <div className="flex gap-2">
-                  {(userRole === 'owner' || userRole === 'staff' || userRole === 'accounting') && (
-                    <button onClick={() => {
-                      import('../lib/pdf').then(({ generateSuratJalan }) => generateSuratJalan(job, items));
-                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition border border-slate-200 dark:border-slate-700">
-                      <FileText className="w-3.5 h-3.5" /> Surat Jalan
-                    </button>
-                  )}
-                  {(userRole === 'owner' || userRole === 'accounting') && (
+                {/* PDF Generation Buttons Dropdown */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition border border-slate-200 dark:border-slate-700 font-medium"
+                  >
+                    <FileText className="w-4 h-4" /> Export Dokumen
+                    <svg className={`w-4 h-4 transition-transform ${exportDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </button>
+                  
+                  {exportDropdownOpen && (
                     <>
-                      <button onClick={() => {
-                        window.open(`/api/documents/quotation/${job.id}/pdf`, '_blank');
-                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 rounded-lg transition border border-blue-600/20">
-                        <FileText className="w-3.5 h-3.5" /> Quotation PDF
-                      </button>
-                      <button onClick={() => {
-                        import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'quotation'));
-                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-lg transition border border-blue-600/20">
-                        <FileText className="w-3.5 h-3.5" /> Quotation Excel
-                      </button>
-                      <button onClick={() => {
-                        window.open(`/api/documents/invoice/${job.id}/pdf`, '_blank');
-                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded-lg transition border border-red-600/20">
-                        <FileText className="w-3.5 h-3.5" /> Invoice PDF
-                      </button>
-                      <button onClick={() => {
-                        import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'invoice'));
-                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 rounded-lg transition border border-emerald-600/20">
-                        <FileText className="w-3.5 h-3.5" /> Invoice Excel
-                      </button>
-                      <button onClick={() => {
-                        window.open(`/api/documents/receipt/${job.id}/pdf`, '_blank');
-                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-500 rounded-lg transition border border-amber-600/20">
-                        <FileText className="w-3.5 h-3.5" /> Kuitansi PDF
-                      </button>
-                      <button onClick={() => {
-                        import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'receipt'));
-                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-600 dark:text-amber-400 rounded-lg transition border border-amber-600/20">
-                        <FileText className="w-3.5 h-3.5" /> Kuitansi Excel
-                      </button>
+                      <div className="fixed inset-0 z-40" onClick={() => setExportDropdownOpen(false)}></div>
+                      <div className="absolute right-0 sm:left-0 sm:right-auto mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-left">
+                        <div className="py-1">
+                          {(userRole === 'owner' || userRole === 'staff' || userRole === 'accounting') && (
+                            <button onClick={() => {
+                              import('../lib/pdf').then(({ generateSuratJalan }) => generateSuratJalan(job, items));
+                              setExportDropdownOpen(false);
+                            }} className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors">
+                              <Truck className="w-4 h-4 text-slate-500" /> Surat Jalan
+                            </button>
+                          )}
+                          
+                          {(userRole === 'owner' || userRole === 'accounting') && (
+                            <>
+                              <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
+                              <div className="px-3 py-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Quotation</div>
+                              <button onClick={() => {
+                                window.open(`/api/documents/quotation/${job.id}/pdf`, '_blank');
+                                setExportDropdownOpen(false);
+                              }} className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 flex items-center gap-2 transition-colors">
+                                <FileText className="w-4 h-4" /> Export PDF
+                              </button>
+                              <button onClick={() => {
+                                import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'quotation'));
+                                setExportDropdownOpen(false);
+                              }} className="w-full text-left px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 flex items-center gap-2 transition-colors">
+                                <FileSpreadsheet className="w-4 h-4" /> Export Excel
+                              </button>
+
+                              <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
+                              <div className="px-3 py-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Invoice</div>
+                              <button onClick={() => {
+                                window.open(`/api/documents/invoice/${job.id}/pdf`, '_blank');
+                                setExportDropdownOpen(false);
+                              }} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2 transition-colors">
+                                <FileText className="w-4 h-4" /> Export PDF
+                              </button>
+                              <button onClick={() => {
+                                import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'invoice'));
+                                setExportDropdownOpen(false);
+                              }} className="w-full text-left px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 flex items-center gap-2 transition-colors">
+                                <FileSpreadsheet className="w-4 h-4" /> Export Excel
+                              </button>
+
+                              <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
+                              <div className="px-3 py-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Kuitansi</div>
+                              <button onClick={() => {
+                                window.open(`/api/documents/receipt/${job.id}/pdf`, '_blank');
+                                setExportDropdownOpen(false);
+                              }} className="w-full text-left px-4 py-2 text-sm text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 flex items-center gap-2 transition-colors">
+                                <FileText className="w-4 h-4" /> Export PDF
+                              </button>
+                              <button onClick={() => {
+                                import('../lib/excel').then(({ generateExcel }) => generateExcel(job, items, 'receipt'));
+                                setExportDropdownOpen(false);
+                              }} className="w-full text-left px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 flex items-center gap-2 transition-colors">
+                                <FileSpreadsheet className="w-4 h-4" /> Export Excel
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>
