@@ -696,8 +696,8 @@ export default function DashboardApp() {
                   
                   {userPref.showCharts ? (
                     <div className="flex flex-col md:flex-row items-center gap-6 md:h-64">
-                      <div className="w-full md:w-1/2 h-full min-h-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                      <div className="w-full md:w-1/2 h-48 md:h-full">
+                        <ResponsiveContainer width="100%" height="100%" minHeight={192}>
                           <PieChart>
                             <Pie data={jobStatusChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
                               {jobStatusChartData.map((entry, index) => (
