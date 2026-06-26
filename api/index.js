@@ -1008,7 +1008,7 @@ module.exports = app;
 // Local dev server
 if (require.main === module) {
     const PORT = process.env.PORT || 3005;
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ Server berjalan di http://localhost:${PORT}`);
     });
     server.on('error', (e) => {
