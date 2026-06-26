@@ -504,7 +504,7 @@ services:
         COPY ./volumes/pooler/pooler.exs /etc/pooler/pooler.exs
     restart: unless-stopped
     ports:
-      - ${POSTGRES_PORT}:5436
+      # - ${POSTGRES_PORT}:5436
       - ${POOLER_PROXY_PORT_TRANSACTION}:6543
     healthcheck:
       test:
