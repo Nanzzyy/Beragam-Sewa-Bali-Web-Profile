@@ -57,9 +57,29 @@ Sistem Akuntansi yang dibangun menjadi static HTML (`output: 'export'`).
 - **Publish Directory:** `/apps/cashflow-build` (Telah dikonfigurasi melalui `next.config.ts`)
 - **Environment Variables:** Masukkan rahasia yang ada di `apps/cashflow/.env.local`
 
-## 3. Deploy Supabase Self-Hosted
-Repositori ini sudah berisi `docker-compose.yml` untuk Supabase. Di Coolify, Anda dapat menggunakan layanan "Docker Compose" deployment:
-1. Buat *resource* baru di Coolify berjenis **Docker Compose**.
-2. *Copy-paste* isi file `docker-compose.yml` dari repositori Anda.
-3. *Copy-paste* isi `.env.supabase` lokal Anda ke tab **Environment Variables**.
-4. Deploy!
+## 3. Deploy Supabase Self-Hosted (Solusi Bersih)
+
+**⚠️ PERINGATAN PENTING**: Jangan menggunakan metode "Copy-Paste docker-compose" biasa di Coolify untuk Supabase. Hal ini akan menyebabkan container `kong` dan `db` menjadi **Unhealthy** karena mereka membutuhkan file konfigurasi fisik (seperti `kong.yml` dan `kong-entrypoint.sh`) yang berada di folder `volumes/`.
+
+**Langkah-langkah yang Benar (Git Repository Mode):**
+1. Di Coolify, buat resource baru (Project -> Environment -> New).
+2. Pilih tipe sumber **Git Repository**.
+3. Hubungkan akun GitHub/GitLab Anda dan pilih repositori `Beragam-Sewa-Bali-Web-Profile` ini.
+4. Pada tipe *Build Pack*, pilih **Docker Compose**.
+5. Atur **Base Directory** ke `/` (root repositori) agar Coolify bisa menemukan file `docker-compose.yml` dan memetakan folder `volumes/` secara otomatis.
+6. Buka tab **Environment Variables** di Coolify, lalu *paste* seluruh isi file `.env.supabase` (atau `.env` gabungan Anda) ke fitur *Paste .env*.
+7. Klik **Deploy**!
+Karena berbasis Git, Coolify akan melakukan `git clone` dan mem-mount file-file seperti `volumes/api/kong.yml` dengan benar, sehingga Gateway Kong dan Database akan berjalan dengan status **Healthy**.
+
+## 4. Migrasi / Load Data Database (Post-Deploy)
+
+Karena file dump SQL (seperti `supabase_data_full.sql` atau `latest_schema.sql`) diabaikan oleh `.gitignore` demi keamanan rahasia, file tersebut tidak ikut ter-deploy oleh Coolify.
+
+Setelah Supabase berstatus Healthy, lakukan migrasi data:
+1. **Upload File Dump**: Gunakan SFTP/SCP untuk mengunggah file SQL Anda (misal `latest_schema.sql`) ke server VPS Anda. Letakkan file ini di direktori di mana repositori Coolify berada.
+2. **Jalankan Helper Script**: Kami telah menyediakan script pembantu untuk otomatisasi. Masuk ke terminal server Anda melalui SSH, lalu arahkan ke direktori repositori Anda, dan jalankan:
+   ```bash
+   ./scripts/coolify_restore_db.sh /path/to/latest_schema.sql
+   ```
+   Script ini akan mem-pipe file dump langsung ke dalam container PostgreSQL.
+3. Cek Dashboard Supabase Studio Anda untuk memastikan seluruh skema, tabel, dan akun (auth) telah termuat dengan benar.
