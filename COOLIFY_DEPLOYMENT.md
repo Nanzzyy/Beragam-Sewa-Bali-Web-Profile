@@ -66,7 +66,7 @@ Sistem Akuntansi yang dibangun menjadi static HTML (`output: 'export'`).
 2. Pilih tipe sumber **Git Repository**.
 3. Hubungkan akun GitHub/GitLab Anda dan pilih repositori `Beragam-Sewa-Bali-Web-Profile` ini.
 4. Pada tipe *Build Pack*, pilih **Docker Compose**.
-5. Atur **Base Directory** ke `/` (root repositori) agar Coolify bisa menemukan file `docker-compose.yml` dan memetakan folder `volumes/` secara otomatis.
+5. Atur **Base Directory** ke `/` (root repositori). **SANGAT PENTING:** Ubah nilai pada kolom **Docker Compose Location** menjadi `/docker-compose.yml` (hilangkan huruf 'a' pada `.yaml`). File compose di repo kita menggunakan ekstensi `.yml`.
 6. Buka tab **Environment Variables** di Coolify, lalu *paste* seluruh isi file `.env.supabase` (atau `.env` gabungan Anda) ke fitur *Paste .env*.
 7. Klik **Deploy**!
 Karena berbasis Git, Coolify akan melakukan `git clone` dan mem-mount file-file seperti `volumes/api/kong.yml` dengan benar, sehingga Gateway Kong dan Database akan berjalan dengan status **Healthy**.
