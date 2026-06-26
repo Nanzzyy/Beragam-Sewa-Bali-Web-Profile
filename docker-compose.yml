@@ -479,7 +479,7 @@ services:
     image: supabase/postgres:17.6.1.136
     restart: unless-stopped
     ports:
-      - "5436:5434"
+      - "5435:5434"
     volumes:
       - ./volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
       # Must be superuser to create event trigger
