@@ -397,7 +397,6 @@ services:
       # S3 protocol endpoint configuration
       S3_PROTOCOL_ACCESS_KEY_ID: ${S3_PROTOCOL_ACCESS_KEY_ID}
       S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET}
-    restart: unless-stopped
     volumes:
       - storage-data:/var/lib/storage:z
 
@@ -593,3 +592,5 @@ services:
 volumes:
   db-config:
   deno-cache:
+  db-data:
+  storage-data:
