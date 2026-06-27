@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Hapus kata /api di destination jika backend Express kamu aslinya langsung menggunakan root path (/)
-        destination: "http://172.17.0.1:3005/:path*",
+        // Alihkan masking langsung ke domain API publik yang sudah melewati Cloudflare Tunnel
+        destination: "https://api.beragamsewabali.com/api/:path*",
       },
       {
         source: "/",
