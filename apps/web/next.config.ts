@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Tembak langsung port backend di host docker via bridge IP untuk menghindari blokir Cloudflare Bot Management
-        destination: "http://172.17.0.1:3005/api/:path*",
+        // WAJIB DIISI DI COOLIFY: Masukkan URL Internal DNS Backend Anda ke dalam variabel NEXT_PRIVATE_API_URL
+        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://TOLONG-ISI-VARIABLE-INI-DI-COOLIFY:3005"}/api/:path*`,
       },
       {
         source: "/",
