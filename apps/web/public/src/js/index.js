@@ -64,7 +64,7 @@ async function initializePage() {
             data.home_slider.forEach((slide, index) => {
                 const slideEl = document.createElement('div');
                 slideEl.className = 'swiper-slide';
-                slideEl.innerHTML = `<div class="hero-slide-bg" style="background-image: url('${slide.image_url}')"></div>`;
+                slideEl.innerHTML = `<img src="${slide.image_url}" class="hero-slide-bg w-full h-full object-cover" alt="Hero Image" decoding="async">`;
                 homeSwiperWrapper.appendChild(slideEl);
                 
                 // Preload LCP image (first slide)
