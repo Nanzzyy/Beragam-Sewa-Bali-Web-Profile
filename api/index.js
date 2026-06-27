@@ -47,7 +47,24 @@ const supabase = createClient(
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
+const allowedOrigins = [
+  'https://www.beragamsewabali.com',
+  'https://beragamsewabali.com'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Izinkan jika origin ada di whitelist atau request datang dari tool seperti Postman/Mobile Apps (null/undefined)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Blocked by CORS policy for Beragam Sewa Bali'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
 app.use(cookieParser(process.env.SESSION_SECRET || 'bsb_secret_key'));
 app.use(express.json());
 

@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // MENGHAPUS /api/ PADA DESTINATION AGAR LANGSUNG MENEMBAK ENDPOINT ASLI BACKEND
-        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://localhost:3005"}/api/:path*`,
+        // Tembak langsung gateway internal Docker tempat backend api-bsb kamu berjalan
+        destination: "http://172.17.0.1:3005/api/:path*",
       },
       {
         source: "/",
