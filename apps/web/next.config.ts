@@ -8,7 +8,8 @@ const nextConfig: NextConfig = {
       {
         source: "/api/:path*",
         // MENGHAPUS /api/ PADA DESTINATION AGAR LANGSUNG MENEMBAK ENDPOINT ASLI BACKEND
-destination: `${process.env.NEXT_PRIVATE_API_URL || "http://localhost:3005"}/api/:path*`,      },
+        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://localhost:3005"}/api/:path*`,
+      },
       {
         source: "/",
         destination: "/home/index.html",
