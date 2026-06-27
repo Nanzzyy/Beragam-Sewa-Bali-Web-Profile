@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Menggunakan variabel lingkungan, dengan fallback otomatis ke Cloudflare Tunnel publik jika kosong
-        destination: `${process.env.NEXT_PRIVATE_API_URL || "https://api.beragamsewabali.com"}/api/:path*`,
+        // Tembak langsung port backend di host docker via bridge IP untuk menghindari blokir Cloudflare Bot Management
+        destination: "http://172.17.0.1:3005/api/:path*",
       },
       {
         source: "/",
