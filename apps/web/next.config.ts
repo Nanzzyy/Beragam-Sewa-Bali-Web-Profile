@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Menggunakan env variable, jika tidak ada baru fallback ke localhost (untuk dev lokal)
-        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://localhost:3005"}/api/:path*`,
+        // MENGHAPUS /api/ PADA DESTINATION AGAR LANGSUNG MENEMBAK ENDPOINT ASLI BACKEND
+        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://localhost:3005"}/:path*`,
       },
       {
         source: "/",
