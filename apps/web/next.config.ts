@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Tembak langsung gateway internal Docker tempat backend api-bsb kamu berjalan
-        destination: "http://172.17.0.1:3005/api/:path*",
+        // Hapus kata /api di destination jika backend Express kamu aslinya langsung menggunakan root path (/)
+        destination: "http://172.17.0.1:3005/:path*",
       },
       {
         source: "/",
