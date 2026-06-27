@@ -41,7 +41,7 @@ async function upsertContent(key, value) {
 
 // Supabase client untuk image storage
 const supabase = createClient(
-    process.env.SUPABASE_URL || process.env.API_EXTERNAL_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_INTERNAL_URL || process.env.SUPABASE_URL || process.env.API_EXTERNAL_URL,
     process.env.SUPABASE_KEY || process.env.SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
@@ -81,6 +81,11 @@ async function uploadToSupabase(fileBuffer, mimetype, folder = 'uploads') {
         .upload(filename, fileBuffer, { contentType: mimetype, upsert: false });
     if (error) throw new Error(error.message);
     const { data } = supabase.storage.from('beragam-sewa-bali-images').getPublicUrl(filename);
+    const internalUrl = process.env.SUPABASE_INTERNAL_URL || process.env.SUPABASE_URL;
+    const publicHost = process.env.API_EXTERNAL_URL;
+    if (internalUrl && publicHost && data.publicUrl.startsWith(internalUrl)) {
+        return data.publicUrl.replace(internalUrl, publicHost);
+    }
     return data.publicUrl;
 }
 
