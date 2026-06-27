@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const db = require('../db');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -70,6 +71,20 @@ app.use(express.json());
 
 // Serve static files (HTML, CSS, JS, gambar) — hanya efektif saat local dev
 app.use(express.static(path.join(__dirname, '..')));
+
+// ─── Reverse Proxy untuk Supabase ──────────────────────────────────────────
+// Karena api-bsb dan Supabase berada di domain yang sama (api.beragamsewabali.com),
+// api-bsb akan mencuri semua request. Kita harus mem-proxy path spesifik Supabase kembali ke internal.
+const supabaseProxyTarget = process.env.SUPABASE_INTERNAL_URL || 'http://172.17.0.1:8001';
+const supabaseProxy = createProxyMiddleware({
+    target: supabaseProxyTarget,
+    changeOrigin: true,
+    ws: true,
+});
+app.use('/rest', supabaseProxy);
+app.use('/auth', supabaseProxy);
+app.use('/storage', supabaseProxy);
+app.use('/graphql', supabaseProxy);
 
 // ─── Helper: Upload gambar ke Supabase Storage ───────────────────────────────
 // Menerima Buffer atau base64, mengembalikan public URL
