@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // WAJIB DIISI DI COOLIFY: Masukkan URL Internal DNS Backend Anda ke dalam variabel NEXT_PRIVATE_API_URL
-        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://TOLONG-ISI-VARIABLE-INI-DI-COOLIFY:3005"}/api/:path*`,
+        // DNS Internal Docker Coolify berdasarkan UUID backend saat ini
+        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://g7c36wo1s0spua1t96holzc4:3005"}/api/:path*`,
       },
       {
         source: "/",
