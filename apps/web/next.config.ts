@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Menggunakan variabel lingkungan agar fleksibel untuk DNS Internal Docker Coolify
-        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://localhost:3005"}/api/:path*`,
+        // Menggunakan variabel lingkungan, dengan fallback otomatis ke Cloudflare Tunnel publik jika kosong
+        destination: `${process.env.NEXT_PRIVATE_API_URL || "https://api.beragamsewabali.com"}/api/:path*`,
       },
       {
         source: "/",
