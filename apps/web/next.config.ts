@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Alihkan masking langsung ke domain API publik yang sudah melewati Cloudflare Tunnel
-        destination: "https://api.beragamsewabali.com/api/:path*",
+        // Menggunakan variabel lingkungan agar fleksibel untuk DNS Internal Docker Coolify
+        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://localhost:3005"}/api/:path*`,
       },
       {
         source: "/",
