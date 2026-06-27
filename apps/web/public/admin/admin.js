@@ -3,7 +3,7 @@
  * Optimized image previews with uniform box sizes.
  */
 
-const API_URL = '/api';
+const API_URL = 'https://api.beragamsewabali.com/api';
 const FETCH_OPTS = { credentials: 'include' };
 
 const el = (id) => document.getElementById(id);

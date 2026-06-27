@@ -15,11 +15,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      {
-        source: "/api/:path*",
-        // DNS Internal Docker Coolify berdasarkan UUID backend saat ini
-        destination: `${process.env.NEXT_PRIVATE_API_URL || "http://g7c36wo1s0spua1t96holzc4:3005"}/api/:path*`,
-      },
+
       {
         source: "/",
         destination: "/home/index.html",

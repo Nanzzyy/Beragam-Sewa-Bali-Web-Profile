@@ -1,7 +1,7 @@
 // Fungsi untuk mengisi konten dinamis dan menginisialisasi library
 async function initializePage() {
     try {
-        const API_BASE = '/api';
+        const API_BASE = 'https://api.beragamsewabali.com/api';
             
         let data;
         try {
@@ -200,7 +200,7 @@ async function initializePage() {
                 if (window.__GALLERY_PROMISE__) {
                     galleryData = await window.__GALLERY_PROMISE__;
                 } else {
-                    const API_BASE = '/api';
+                    const API_BASE = 'https://api.beragamsewabali.com/api';
                     const galleryResponse = await fetch(`${API_BASE}/gallery`);
                     if (!galleryResponse.ok) throw new Error('Failed to fetch gallery');
                     galleryData = await galleryResponse.json();
