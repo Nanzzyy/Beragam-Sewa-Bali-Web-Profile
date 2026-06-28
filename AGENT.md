@@ -83,7 +83,7 @@ PORT=3005
 - **Base Directory**: `apps/cashflow` atau `apps/dashboard`
 - **Build Command**: `npm install && npm run build`
 - **Start Command**: `npm run start` (internally runs `node .next/standalone/server.js`)
-- **Port**: Sesuai tabel di atas (3002 untuk Dashboard, 3003 untuk Cashflow)
+- **Port**: `3000` (Secara default Next.js `standalone` jalan di port 3000, di dalam Docker/Coolify port ini aman karena terisolasi antar kontainer)
 
 ---
 *Dengan mematuhi panduan agen (Agent Guidelines) ini secara mutlak, kita memastikan bahwa seluruh ekosistem Beragam Sewa Bali (Web, Cashflow, Dashboard, Admin) tetap stabil, anti kehilangan data (No Data Loss), dan infrastruktur dapat dipelihara dengan aman oleh Developer atau AI mana pun di masa depan.*
