@@ -82,7 +82,7 @@ PORT=3005
 - **Build Pack**: Nixpacks
 - **Base Directory**: `apps/cashflow` atau `apps/dashboard`
 - **Build Command**: `npm install && npm run build`
-- **Start Command**: `npm run start` (internally runs `node .next/standalone/server.js`)
+- **Start Command**: `npm run start` (secara internal menjalankan `HOSTNAME=0.0.0.0 node .next/standalone/server.js` agar bisa diakses oleh Nginx/Traefik Docker)
 - **Port**: `3000` (Secara default Next.js `standalone` jalan di port 3000, di dalam Docker/Coolify port ini aman karena terisolasi antar kontainer)
 
 ---
