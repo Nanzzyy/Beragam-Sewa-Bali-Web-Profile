@@ -73,8 +73,7 @@ NODE_ENV=production
 PORT=3005
 ```
 
-### Aturan `next.config.ts` untuk Coolify
-- Gunakan `output: "standalone"` (BUKAN `"export"`). Standalone mode menghasilkan server mandiri yang langsung dijalankan oleh Coolify tanpa perlu Nginx/Caddy tambahan.
+- Biarkan Next.js berjalan dalam mode server standar. JANGAN gunakan `output: "export"` atau `"standalone"`. Mode standar memungkinkan Next.js untuk mengatur file statis dan routing otomatis.
 - JANGAN gunakan `turbopack.root` dengan `path.resolve(__dirname, "../../")` — ini menyebabkan error di dalam container Docker karena path monorepo tidak sama dengan path lokal.
 - JANGAN hardcode `distDir` ke folder di luar `apps/` — biarkan Next.js menggunakan default `.next/`.
 
@@ -82,7 +81,7 @@ PORT=3005
 - **Build Pack**: Nixpacks
 - **Base Directory**: `apps/cashflow` atau `apps/dashboard`
 - **Build Command**: `npm install && npm run build`
-- **Start Command**: `npm run start` (secara internal menjalankan `HOSTNAME=0.0.0.0 node .next/standalone/server.js` agar bisa diakses oleh Nginx/Traefik Docker)
+- **Start Command**: `npm run start` (secara internal menjalankan `HOSTNAME=0.0.0.0 next start` agar bisa diakses oleh Nginx/Traefik Docker)
 - **Port**: `3000` (Secara default Next.js `standalone` jalan di port 3000, di dalam Docker/Coolify port ini aman karena terisolasi antar kontainer)
 
 ---
