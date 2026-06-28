@@ -14,7 +14,7 @@
     <!-- Instant Site Logo & Favicon Loader (from Supabase via Cache) -->
     <script>
         (function() {
-            const API = '';
+            const API = 'https://api.beragamsewabali.com';
             const cachedLogo = localStorage.getItem('bsb_site_logo');
             if (cachedLogo) applyLogo(cachedLogo);
             fetch(API + '/api/site/logo')
