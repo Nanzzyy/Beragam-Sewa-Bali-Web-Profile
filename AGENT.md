@@ -41,6 +41,50 @@ Jika tugas Anda mengharuskan memindahkan, me- *restore*, atau mem- *backup* data
    ```
 3. **Ketahanan Volume Docker di Coolify**:
    Saat layanan (kontainer) dihapus dari Dashboard Coolify, *Docker Volume* yang menampung file database dan *storage* **TIDAK** otomatis terhapus (Kecuali opsi *Delete Volumes* dicentang secara manual). Jika Anda tidak sengaja menghapus sebuah proyek, seluruh data bisa dipanggil kembali menggunakan konfigurasi `external: true` pada block `volumes` di `docker-compose.yml`.
+---
+
+## 4. ARSITEKTUR DEPLOYMENT & ENVIRONMENT VARIABLES
+
+### Peta Layanan Aktif di Server
+| Layanan | Tipe | Port Internal | URL Publik |
+|---|---|---|---|
+| Supabase Kong (API Gateway) | Docker Compose | `8001` (HTTP), `8443` (HTTPS) | `https://api.beragamsewabali.com` |
+| Supabase Postgres (DB) | Docker Compose | `5435` | — (Internal Only) |
+| Supabase Auth (GoTrue) | Docker Compose | `9999` | Via Kong |
+| Supabase Storage | Docker Compose | `5000` | Via Kong |
+| API BSB (Express.js) | Coolify App | `3005` | `https://api.beragamsewabali.com` (proxied) |
+| Web Profile (Next.js) | Coolify App | `3000` | `https://www.beragamsewabali.com` |
+| BSB Cashflow (Next.js) | Coolify App | `3003` | TBD (assign domain di Coolify) |
+| BSB Dashboard (Next.js) | Coolify App | `3002` | TBD (assign domain di Coolify) |
+
+### Aturan Environment Variable per Aplikasi
+
+**Cashflow & Dashboard (Next.js `standalone` mode):**
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://api.beragamsewabali.com
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+```
+> **PENTING**: `NEXT_PUBLIC_*` harus tersedia saat **build time** karena dibake ke dalam bundle JavaScript.
+
+**API BSB (Express.js):**
+```env
+DATABASE_URL=postgresql://postgres:your-super-secret-and-long-postgres-password@172.17.0.1:5435/postgres
+NODE_ENV=production
+PORT=3005
+```
+
+### Aturan `next.config.ts` untuk Coolify
+- Gunakan `output: "standalone"` (BUKAN `"export"`). Standalone mode menghasilkan server mandiri yang langsung dijalankan oleh Coolify tanpa perlu Nginx/Caddy tambahan.
+- JANGAN gunakan `turbopack.root` dengan `path.resolve(__dirname, "../../")` — ini menyebabkan error di dalam container Docker karena path monorepo tidak sama dengan path lokal.
+- JANGAN hardcode `distDir` ke folder di luar `apps/` — biarkan Next.js menggunakan default `.next/`.
+
+### Aturan Coolify App Settings
+- **Build Pack**: Nixpacks
+- **Base Directory**: `apps/cashflow` atau `apps/dashboard`
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm run start`
+- **Port**: Sesuai tabel di atas (3002 untuk Dashboard, 3003 untuk Cashflow)
 
 ---
 *Dengan mematuhi panduan agen (Agent Guidelines) ini secara mutlak, kita memastikan bahwa seluruh ekosistem Beragam Sewa Bali (Web, Cashflow, Dashboard, Admin) tetap stabil, anti kehilangan data (No Data Loss), dan infrastruktur dapat dipelihara dengan aman oleh Developer atau AI mana pun di masa depan.*
+
