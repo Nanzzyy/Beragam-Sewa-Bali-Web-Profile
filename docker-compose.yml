@@ -552,6 +552,14 @@ services:
 
 volumes:
   db-config:
+    external: true
+    name: h46kluhqstf23qr75qhw50eu_db-config
   deno-cache:
+    external: true
+    name: h46kluhqstf23qr75qhw50eu_deno-cache
   db-data:
+    external: true
+    name: h46kluhqstf23qr75qhw50eu_db-data
   storage-data:
+    external: true
+    name: h46kluhqstf23qr75qhw50eu_storage-data
