@@ -82,7 +82,7 @@ PORT=3005
 - **Build Pack**: Nixpacks
 - **Base Directory**: `apps/cashflow` atau `apps/dashboard`
 - **Build Command**: `npm install && npm run build`
-- **Start Command**: `npm run start`
+- **Start Command**: `npm run start` (internally runs `node .next/standalone/server.js`)
 - **Port**: Sesuai tabel di atas (3002 untuk Dashboard, 3003 untuk Cashflow)
 
 ---
