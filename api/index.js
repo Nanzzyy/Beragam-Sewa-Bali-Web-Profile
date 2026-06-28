@@ -240,7 +240,7 @@ app.get('/api/content', async (req, res) => {
 
         res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.json({ ...siteContent, ...groupedImages });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message, stack: e.stack }); }
 });
 
 // GET /api/gallery
