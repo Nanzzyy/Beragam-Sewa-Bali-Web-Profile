@@ -614,7 +614,7 @@ app.delete('/api/gallery/:id', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/site/logo
+// POST /api/site/logo/:appType
 app.post('/api/site/logo/:appType', requireAdmin, async (req, res) => {
     try {
         const { appType } = req.params;
@@ -627,11 +627,6 @@ app.post('/api/site/logo/:appType', requireAdmin, async (req, res) => {
         
         const url = await uploadToSupabase(file.buffer, file.mimetype, 'logos');
         await upsertContent('site_logo_' + appType, url);
-        res.json({ message: 'Updated', url });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-        const url = await uploadToSupabase(file.buffer, file.mimetype, 'logos');
-        await upsertContent('site_logo', url);
         res.json({ message: 'Updated', url });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -693,7 +688,7 @@ app.get('/api/catalog/data', async (req, res) => {
     }
 });
 
-// GET /api/site/logo — hanya mengambil logo tanpa data content yang besar
+// GET /api/site/logos — mengambil ketiga logo
 app.get('/api/site/logos', async (req, res) => {
     try {
         const result = await db.query("SELECT content_key, content_value FROM site_content WHERE content_key IN ('site_logo_web', 'site_logo_dashboard', 'site_logo_cashflow')");
@@ -704,10 +699,6 @@ app.get('/api/site/logos', async (req, res) => {
         };
         res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
         res.json(logos);
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
