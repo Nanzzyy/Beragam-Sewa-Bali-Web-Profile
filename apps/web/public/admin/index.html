@@ -14,7 +14,7 @@
     <script>
         (function() {
             const API = 'https://api.beragamsewabali.com';
-            const cachedLogo = localStorage.getItem('bsb_site_logo');
+            const cachedLogo = localStorage.getItem('bsb_site_logo_web');
             if (cachedLogo) applyLogo(cachedLogo);
             fetch(API + '/api/site/logos')
                 .then(r => r.json())
@@ -25,6 +25,21 @@
                         applyLogo(url);
                     }
                 }).catch(e => {});
+
+            function applyLogo(url) {
+                let favicon = document.getElementById('favicon');
+                if (!favicon) {
+                    favicon = document.createElement('link');
+                    favicon.rel = 'icon';
+                    favicon.id = 'favicon';
+                    document.head.appendChild(favicon);
+                }
+                if (favicon.href !== url) favicon.href = url;
+                const updateDOM = () => {
+                    ['login-logo', 'nav-logo', 'footer-logo'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && el.src !== url) el.src = url;
+                    });
                 };
                 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateDOM);
                 else updateDOM();
