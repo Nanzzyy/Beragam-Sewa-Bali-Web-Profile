@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'api.beragamsewabali.com',
+        hostname: 'supabase.beragamsewabali.com',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
@@ -15,7 +15,28 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-
+      // Domain-based rewrites for admin panel
+      {
+        source: "/",
+        has: [
+          {
+            type: "host",
+            value: "admin.beragamsewabali.com",
+          },
+        ],
+        destination: "/admin/index.html",
+      },
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "admin.beragamsewabali.com",
+          },
+        ],
+        destination: "/admin/:path*",
+      },
+      // Normal path-based rewrites for main domain
       {
         source: "/",
         destination: "/home/index.html",
