@@ -24,7 +24,7 @@ export async function getCompanyConfig() {
         email: data.find(d => d.content_key === 'bsb_company_email')?.content_value || defaultConfig.email,
         phone: data.find(d => d.content_key === 'bsb_company_phone')?.content_value || defaultConfig.phone,
         payment: data.find(d => d.content_key === 'bsb_company_payment_info')?.content_value || defaultConfig.payment,
-        logo: data.find(d => d.content_key === 'site_logo')?.content_value || null
+        logo: data.find(d => d.content_key === 'site_logo_dashboard')?.content_value || null
       };
     }
   } catch (e) {

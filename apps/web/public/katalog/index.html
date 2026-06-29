@@ -21,13 +21,13 @@
     <script>
         (function() {
             const API = 'https://api.beragamsewabali.com';
-            const cachedLogo = localStorage.getItem('bsb_site_logo');
+            const cachedLogo = localStorage.getItem('bsb_site_logo_web');
             if (cachedLogo) applyLogo(cachedLogo);
             fetch(API + '/api/site/logo')
                 .then(r => r.json())
                 .then(data => {
                     if (data.site_logo) {
-                        localStorage.setItem('bsb_site_logo', data.site_logo);
+                        localStorage.setItem('bsb_site_logo_web', data.site_logo);
                         applyLogo(data.site_logo);
                     }
                 })

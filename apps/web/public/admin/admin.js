@@ -146,20 +146,22 @@ async function loadSection(section) {
             const gal = await fetch(`${API_URL}/gallery`, FETCH_OPTS).then(r => r.json());
             renderCards('gallery-list', gal, 'gallery');
         } else if (section === 'content') {
-            const content = await fetch(`${API_URL}/content`, FETCH_OPTS).then(r => r.json());
-            if (content.site_logo) {
-                const logoUrl = content.site_logo + '?t=' + new Date().getTime();
+            const content = await fetch(`${API_URL}/site/logos`, FETCH_OPTS).then(r => r.json());
+            const ts = '?t=' + new Date().getTime();
+            
+            if (content.web) {
+                if (el('admin-site-logo-web')) el('admin-site-logo-web').src = content.web + ts;
+                if (el('login-logo')) el('login-logo').src = content.web + ts;
+                if (el('nav-logo')) el('nav-logo').src = content.web + ts;
+                
                 let favicon = document.getElementById('favicon') || document.querySelector("link[rel~='icon']");
-                if (!favicon) {
-                    favicon = document.createElement('link');
-                    favicon.rel = 'icon';
-                    favicon.id = 'favicon';
-                    document.head.appendChild(favicon);
-                }
-                favicon.href = logoUrl;
-                if (el('admin-site-logo-preview')) el('admin-site-logo-preview').src = content.site_logo;
-                if (el('login-logo')) el('login-logo').src = content.site_logo;
-                if (el('nav-logo')) el('nav-logo').src = content.site_logo;
+                if (favicon) favicon.href = content.web + ts;
+            }
+            if (content.dashboard) {
+                if (el('admin-site-logo-dashboard')) el('admin-site-logo-dashboard').src = content.dashboard + ts;
+            }
+            if (content.cashflow) {
+                if (el('admin-site-logo-cashflow')) el('admin-site-logo-cashflow').src = content.cashflow + ts;
             }
         }
     } catch (e) { console.error(`Error loading section ${section}:`, e); }
@@ -317,8 +319,8 @@ document.addEventListener('click', async (e) => {
             tBtn.disabled = false; 
             tBtn.textContent = 'Upload Success';
             setTimeout(() => {
-                tBtn.textContent = tBtn.id === 'btn-upload-logo' ? 'Update Site Logo' : (tBtn.id === 'btn-upload-hero' ? 'Update Hero Image' : 'Update About Image');
-                loadSection(tBtn.id === 'btn-upload-logo' ? 'content' : (tBtn.id === 'btn-upload-hero' ? 'hero' : 'about'));
+                tBtn.textContent = tBtn.id.includes('logo') ? 'Update Logo' : (tBtn.id === 'btn-upload-hero' ? 'Update Hero Image' : 'Update About Image');
+                loadSection(tBtn.id.includes('logo') ? 'content' : (tBtn.id === 'btn-upload-hero' ? 'hero' : 'about'));
             }, 2000);
         } catch (err) {
             alert(err.message);
@@ -329,7 +331,9 @@ document.addEventListener('click', async (e) => {
 
     if (t.id === 'btn-upload-hero') return handleUpload('hero-image-upload', `${API_URL}/hero/image`, t);
     if (t.id === 'btn-upload-about') return handleUpload('about-image-upload', `${API_URL}/about/image`, t);
-    if (t.id === 'btn-upload-logo') return handleUpload('logo-upload', `${API_URL}/site/logo`, t);
+    if (t.id === 'btn-upload-logo-web') return handleUpload('logo-upload-web', `${API_URL}/site/logo/web`, t);
+    if (t.id === 'btn-upload-logo-dashboard') return handleUpload('logo-upload-dashboard', `${API_URL}/site/logo/dashboard`, t);
+    if (t.id === 'btn-upload-logo-cashflow') return handleUpload('logo-upload-cashflow', `${API_URL}/site/logo/cashflow`, t);
     
     if (t.id === 'btn-upload-gallery') {
         const files = el('gallery-image-upload').files;

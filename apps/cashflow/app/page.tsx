@@ -75,7 +75,7 @@ export default function CashflowDashboard() {
       if (savedTab) setTabState(savedTab);
 
       // Fetch dynamic favicon
-      supabase.from('site_content').select('content_value').eq('content_key', 'site_logo').single().then(({ data }) => {
+      supabase.from('site_content').select('content_value').eq('content_key', 'site_logo_cashflow').single().then(({ data }) => {
         if (data?.content_value) {
           let favicon = (document.getElementById('favicon') as HTMLLinkElement) || (document.querySelector("link[rel~='icon']") as HTMLLinkElement);
           if (!favicon) {

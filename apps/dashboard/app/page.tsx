@@ -171,7 +171,7 @@ export default function DashboardApp() {
       }
       
       supabase.from('site_content').select('*').in('content_key', [
-        'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo', 'bsb_staff_nicknames'
+        'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'bsb_staff_nicknames'
       ]).then(({ data }) => {
         if (data && data.length > 0) {
           const getVal = (key: string, def: string) => data.find(d => d.content_key === key)?.content_value || def;
@@ -191,7 +191,7 @@ export default function DashboardApp() {
           const dbPayment = getVal('bsb_company_payment_info', '');
           if (dbPayment) setCompPayment(dbPayment);
           
-          const dbLogo = getVal('site_logo', '');
+          const dbLogo = getVal('site_logo_dashboard', '');
           if (dbLogo) setCompLogo(dbLogo);
           
           const dbNicknames = getVal('bsb_staff_nicknames', '');
@@ -309,7 +309,7 @@ export default function DashboardApp() {
         supabase.from('items').select('*').order('name'),
         supabase.from('profiles').select('*').order('email'),
         supabase.from('jobs').select(`id, client_name, venue, job_items ( item_id, source_vendor_id, quantity ), job_staff ( profile_id )`).eq('status', 'on_going'),
-        supabase.from('site_content').select('content_value').eq('content_key', 'site_logo').single(),
+        supabase.from('site_content').select('content_value').eq('content_key', 'site_logo_dashboard').single(),
       ];
 
       // Conditionally add owner/accounting queries
@@ -813,7 +813,7 @@ export default function DashboardApp() {
                       ];
                       
                       if (compLogo !== null) {
-                        updates.push({ content_key: 'site_logo', content_value: compLogo });
+                        updates.push({ content_key: 'site_logo_dashboard', content_value: compLogo });
                       }
                       
                       try {
