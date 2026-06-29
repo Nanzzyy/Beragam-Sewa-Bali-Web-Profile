@@ -145,48 +145,78 @@
                 
                 <!-- OVERVIEW SECTION -->
                 <div id="overview-content" class="tab-content-pane active">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                        <!-- Stats Cards -->
-                        <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-sm hover:shadow-xl transition-shadow">
-                            <div class="w-12 h-12 rounded-2xl bg-brand-red/10 flex items-center justify-center text-brand-red mb-4">
-                                <i class="fa-solid fa-boxes-stacked text-xl"></i>
+                    
+                    <!-- BRANDING (LOGOS) -->
+                    <div class="premium-card mb-8 bg-gradient-to-r from-gray-50 to-white">
+                        <h3 class="text-lg font-black mb-6 flex items-center gap-3"><i class="fa-solid fa-layer-group text-brand-red"></i> App Branding</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- WEB LOGO -->
+                            <div class="flex flex-col items-center p-5 bg-white rounded-3xl border border-gray-100 shadow-sm text-center hover:shadow-md transition">
+                                <h4 class="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">Web / Katalog</h4>
+                                <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden mb-4 p-2">
+                                    <img id="admin-site-logo-web" src="/src/assets/images/logo-bsb.png" class="w-full h-full object-contain">
+                                </div>
+                                <input type="file" id="logo-upload-web" class="hidden" accept="image/*">
+                                <label for="logo-upload-web" class="text-xs font-bold text-brand-red cursor-pointer block mb-3 hover:underline">Change</label>
+                                <button type="button" id="btn-upload-logo-web" class="btn-main btn-dark w-full py-2 text-xs">Save</button>
                             </div>
-                            <h4 class="text-gray-500 font-bold text-sm mb-1">Total Services</h4>
-                            <p class="text-3xl font-black" id="stat-services">-</p>
+                            <!-- DASH LOGO -->
+                            <div class="flex flex-col items-center p-5 bg-white rounded-3xl border border-gray-100 shadow-sm text-center hover:shadow-md transition">
+                                <h4 class="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">Dashboard</h4>
+                                <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden mb-4 p-2">
+                                    <img id="admin-site-logo-dashboard" src="/src/assets/images/logo-bsb.png" class="w-full h-full object-contain">
+                                </div>
+                                <input type="file" id="logo-upload-dashboard" class="hidden" accept="image/*">
+                                <label for="logo-upload-dashboard" class="text-xs font-bold text-brand-red cursor-pointer block mb-3 hover:underline">Change</label>
+                                <button type="button" id="btn-upload-logo-dashboard" class="btn-main btn-dark w-full py-2 text-xs">Save</button>
+                            </div>
+                            <!-- CASHFLOW LOGO -->
+                            <div class="flex flex-col items-center p-5 bg-white rounded-3xl border border-gray-100 shadow-sm text-center hover:shadow-md transition">
+                                <h4 class="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">Cashflow</h4>
+                                <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden mb-4 p-2">
+                                    <img id="admin-site-logo-cashflow" src="/src/assets/images/logo-bsb.png" class="w-full h-full object-contain">
+                                </div>
+                                <input type="file" id="logo-upload-cashflow" class="hidden" accept="image/*">
+                                <label for="logo-upload-cashflow" class="text-xs font-bold text-brand-red cursor-pointer block mb-3 hover:underline">Change</label>
+                                <button type="button" id="btn-upload-logo-cashflow" class="btn-main btn-dark w-full py-2 text-xs">Save</button>
+                            </div>
                         </div>
-                        <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-sm hover:shadow-xl transition-shadow">
-                            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-4">
-                                <i class="fa-solid fa-box-open text-xl"></i>
-                            </div>
-                            <h4 class="text-gray-500 font-bold text-sm mb-1">Total Packages</h4>
-                            <p class="text-3xl font-black" id="stat-packages">-</p>
+                    </div>
+
+                    <!-- STATISTICS -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-white rounded-3xl p-5 border border-black/5 shadow-sm">
+                            <h4 class="text-gray-400 font-bold text-xs uppercase tracking-wider mb-2">Services</h4>
+                            <p class="text-2xl font-black text-slate-800" id="stat-services">-</p>
                         </div>
-                        <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-sm hover:shadow-xl transition-shadow">
-                            <div class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-4">
-                                <i class="fa-solid fa-images text-xl"></i>
-                            </div>
-                            <h4 class="text-gray-500 font-bold text-sm mb-1">Gallery Media</h4>
-                            <p class="text-3xl font-black" id="stat-gallery">-</p>
+                        <div class="bg-white rounded-3xl p-5 border border-black/5 shadow-sm">
+                            <h4 class="text-gray-400 font-bold text-xs uppercase tracking-wider mb-2">Packages</h4>
+                            <p class="text-2xl font-black text-slate-800" id="stat-packages">-</p>
                         </div>
-                        <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-sm hover:shadow-xl transition-shadow">
-                            <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 mb-4">
-                                <i class="fa-solid fa-warehouse text-xl"></i>
-                            </div>
-                            <h4 class="text-gray-500 font-bold text-sm mb-1">Total Inventory</h4>
-                            <p class="text-3xl font-black" id="stat-inventory">-</p>
+                        <div class="bg-white rounded-3xl p-5 border border-black/5 shadow-sm">
+                            <h4 class="text-gray-400 font-bold text-xs uppercase tracking-wider mb-2">Gallery</h4>
+                            <p class="text-2xl font-black text-slate-800" id="stat-gallery">-</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-5 border border-black/5 shadow-sm">
+                            <h4 class="text-gray-400 font-bold text-xs uppercase tracking-wider mb-2">Inventory</h4>
+                            <p class="text-2xl font-black text-slate-800" id="stat-inventory">-</p>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                        <div class="premium-card bg-gradient-to-br from-emerald-500 to-teal-700 text-white border-0">
-                            <h3 class="text-lg font-black mb-2 opacity-90">Total Inflow Cashflow</h3>
-                            <p class="text-4xl font-black tracking-tight mb-6" id="stat-cashflow-in">Rp 0</p>
-                            <p class="text-sm opacity-80 font-medium">Recorded income from rentals & services</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="premium-card bg-emerald-50 border-emerald-100 flex items-center justify-between p-6">
+                            <div>
+                                <h3 class="text-sm font-bold text-emerald-800 mb-1">Total Inflow</h3>
+                                <p class="text-xs opacity-70 text-emerald-700">Income from rentals</p>
+                            </div>
+                            <p class="text-2xl font-black text-emerald-600 tracking-tight" id="stat-cashflow-in">Rp 0</p>
                         </div>
-                        <div class="premium-card bg-gradient-to-br from-red-500 to-rose-700 text-white border-0">
-                            <h3 class="text-lg font-black mb-2 opacity-90">Total Outflow Cashflow</h3>
-                            <p class="text-4xl font-black tracking-tight mb-6" id="stat-cashflow-out">Rp 0</p>
-                            <p class="text-sm opacity-80 font-medium">Recorded expenses & maintenance costs</p>
+                        <div class="premium-card bg-rose-50 border-rose-100 flex items-center justify-between p-6">
+                            <div>
+                                <h3 class="text-sm font-bold text-rose-800 mb-1">Total Outflow</h3>
+                                <p class="text-xs opacity-70 text-rose-700">Expenses & maintenance</p>
+                            </div>
+                            <p class="text-2xl font-black text-rose-600 tracking-tight" id="stat-cashflow-out">Rp 0</p>
                         </div>
                     </div>
                 </div>
@@ -209,41 +239,6 @@
                                 <input type="file" id="hero-image-upload" class="hidden" accept="image/*">
                                 <label for="hero-image-upload" class="text-xs font-bold text-brand-red cursor-pointer block mb-6 hover:underline">Click to browse slide image</label>
                                 <button type="button" id="btn-upload-hero" class="btn-main btn-success w-full">Upload New Slide</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="premium-card mt-10">
-                        <h3 class="text-lg font-black mb-8 flex items-center gap-3"><span class="w-1.5 h-6 bg-brand-red rounded-full"></span>App Logos</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <!-- WEB LOGO -->
-                            <div class="flex flex-col items-center p-6 bg-bg-soft rounded-3xl border-2 border-dashed border-gray-200 text-center">
-                                <h4 class="text-sm font-bold text-gray-500 mb-4">Web / Katalog</h4>
-                                <div class="w-24 h-24 bg-white rounded-2xl shadow-sm border border-black/5 flex items-center justify-center overflow-hidden mb-6">
-                                    <img id="admin-site-logo-web" src="/src/assets/images/logo-bsb.png" class="w-full h-full object-contain">
-                                </div>
-                                <input type="file" id="logo-upload-web" class="hidden" accept="image/*">
-                                <label for="logo-upload-web" class="text-xs font-bold text-brand-red cursor-pointer block mb-6 hover:underline">Browse Logo</label>
-                                <button type="button" id="btn-upload-logo-web" class="btn-main btn-success w-full py-2">Update</button>
-                            </div>
-                            <!-- DASH LOGO -->
-                            <div class="flex flex-col items-center p-6 bg-bg-soft rounded-3xl border-2 border-dashed border-gray-200 text-center">
-                                <h4 class="text-sm font-bold text-gray-500 mb-4">POS Dashboard</h4>
-                                <div class="w-24 h-24 bg-white rounded-2xl shadow-sm border border-black/5 flex items-center justify-center overflow-hidden mb-6">
-                                    <img id="admin-site-logo-dashboard" src="/src/assets/images/logo-bsb.png" class="w-full h-full object-contain">
-                                </div>
-                                <input type="file" id="logo-upload-dashboard" class="hidden" accept="image/*">
-                                <label for="logo-upload-dashboard" class="text-xs font-bold text-brand-red cursor-pointer block mb-6 hover:underline">Browse Logo</label>
-                                <button type="button" id="btn-upload-logo-dashboard" class="btn-main btn-success w-full py-2">Update</button>
-                            </div>
-                            <!-- CASHFLOW LOGO -->
-                            <div class="flex flex-col items-center p-6 bg-bg-soft rounded-3xl border-2 border-dashed border-gray-200 text-center">
-                                <h4 class="text-sm font-bold text-gray-500 mb-4">Cashflow App</h4>
-                                <div class="w-24 h-24 bg-white rounded-2xl shadow-sm border border-black/5 flex items-center justify-center overflow-hidden mb-6">
-                                    <img id="admin-site-logo-cashflow" src="/src/assets/images/logo-bsb.png" class="w-full h-full object-contain">
-                                </div>
-                                <input type="file" id="logo-upload-cashflow" class="hidden" accept="image/*">
-                                <label for="logo-upload-cashflow" class="text-xs font-bold text-brand-red cursor-pointer block mb-6 hover:underline">Browse Logo</label>
-                                <button type="button" id="btn-upload-logo-cashflow" class="btn-main btn-success w-full py-2">Update</button>
                             </div>
                         </div>
                     </div>

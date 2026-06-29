@@ -107,13 +107,32 @@ let overviewRefreshInterval = null;
 async function loadSection(section) {
     try {
         if (section === 'overview') {
-            const data = await fetch(`${API_URL}/admin/overview`, FETCH_OPTS).then(r => r.json());
+            const [data, logosData] = await Promise.all([
+                fetch(`${API_URL}/admin/overview`, FETCH_OPTS).then(r => r.json()),
+                fetch(`${API_URL}/site/logos`, FETCH_OPTS).then(r => r.json())
+            ]);
+            
             if (el('stat-services')) el('stat-services').textContent = data.services || 0;
             if (el('stat-packages')) el('stat-packages').textContent = data.packages || 0;
             if (el('stat-gallery')) el('stat-gallery').textContent = data.gallery || 0;
             if (el('stat-inventory')) el('stat-inventory').textContent = data.inventory || 0;
             if (el('stat-cashflow-in')) el('stat-cashflow-in').textContent = window.formatPriceLabel ? window.formatPriceLabel(data.cashflow?.inflow || 0) : `Rp ${data.cashflow?.inflow || 0}`;
             if (el('stat-cashflow-out')) el('stat-cashflow-out').textContent = window.formatPriceLabel ? window.formatPriceLabel(data.cashflow?.outflow || 0) : `Rp ${data.cashflow?.outflow || 0}`;
+            
+            const ts = '?t=' + new Date().getTime();
+            if (logosData.web) {
+                if (el('admin-site-logo-web')) el('admin-site-logo-web').src = logosData.web + ts;
+                if (el('login-logo')) el('login-logo').src = logosData.web + ts;
+                if (el('nav-logo')) el('nav-logo').src = logosData.web + ts;
+                let favicon = document.getElementById('favicon') || document.querySelector("link[rel~='icon']");
+                if (favicon) favicon.href = logosData.web + ts;
+            }
+            if (logosData.dashboard) {
+                if (el('admin-site-logo-dashboard')) el('admin-site-logo-dashboard').src = logosData.dashboard + ts;
+            }
+            if (logosData.cashflow) {
+                if (el('admin-site-logo-cashflow')) el('admin-site-logo-cashflow').src = logosData.cashflow + ts;
+            }
             
             // Setup real-time monitoring (refresh every 15 seconds)
             if (!overviewRefreshInterval) {
@@ -145,24 +164,6 @@ async function loadSection(section) {
         } else if (section === 'gallery') {
             const gal = await fetch(`${API_URL}/gallery`, FETCH_OPTS).then(r => r.json());
             renderCards('gallery-list', gal, 'gallery');
-        } else if (section === 'content') {
-            const content = await fetch(`${API_URL}/site/logos`, FETCH_OPTS).then(r => r.json());
-            const ts = '?t=' + new Date().getTime();
-            
-            if (content.web) {
-                if (el('admin-site-logo-web')) el('admin-site-logo-web').src = content.web + ts;
-                if (el('login-logo')) el('login-logo').src = content.web + ts;
-                if (el('nav-logo')) el('nav-logo').src = content.web + ts;
-                
-                let favicon = document.getElementById('favicon') || document.querySelector("link[rel~='icon']");
-                if (favicon) favicon.href = content.web + ts;
-            }
-            if (content.dashboard) {
-                if (el('admin-site-logo-dashboard')) el('admin-site-logo-dashboard').src = content.dashboard + ts;
-            }
-            if (content.cashflow) {
-                if (el('admin-site-logo-cashflow')) el('admin-site-logo-cashflow').src = content.cashflow + ts;
-            }
         }
     } catch (e) { console.error(`Error loading section ${section}:`, e); }
 }
@@ -320,7 +321,7 @@ document.addEventListener('click', async (e) => {
             tBtn.textContent = 'Upload Success';
             setTimeout(() => {
                 tBtn.textContent = tBtn.id.includes('logo') ? 'Update Logo' : (tBtn.id === 'btn-upload-hero' ? 'Update Hero Image' : 'Update About Image');
-                loadSection(tBtn.id.includes('logo') ? 'content' : (tBtn.id === 'btn-upload-hero' ? 'hero' : 'about'));
+                loadSection(tBtn.id.includes('logo') ? 'overview' : (tBtn.id === 'btn-upload-hero' ? 'hero' : 'about'));
             }, 2000);
         } catch (err) {
             alert(err.message);
