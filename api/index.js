@@ -50,7 +50,9 @@ const supabase = createClient(
 app.use(helmet({ contentSecurityPolicy: false }));
 const allowedOrigins = [
   'https://www.beragamsewabali.com',
-  'https://beragamsewabali.com'
+  'https://beragamsewabali.com',
+  'https://admin.beragamsewabali.com',
+  'https://katalog.beragamsewabali.com'
 ];
 
 app.use(cors({
@@ -73,7 +75,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
 
 // ─── Reverse Proxy untuk Supabase ──────────────────────────────────────────
-// Karena api-bsb dan Supabase berada di domain yang sama (api.beragamsewabali.com),
+// Karena api-bsb dan Supabase berada di domain yang sama (supabase.beragamsewabali.com),
 // api-bsb akan mencuri semua request. Kita harus mem-proxy path spesifik Supabase kembali ke internal.
 const supabaseProxyTarget = process.env.SUPABASE_INTERNAL_URL || 'http://172.17.0.1:8001';
 const supabaseProxy = createProxyMiddleware({

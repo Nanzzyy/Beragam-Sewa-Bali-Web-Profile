@@ -153,13 +153,16 @@ USING (public.get_user_role() = 'owner');
 
 -- Trigger to automatically create profile on Supabase Auth Signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, role)
-  VALUES (new.id, new.email, COALESCE((new.raw_user_meta_data->>'role')::app_role, 'staff'));
+  VALUES (new.id, new.email, COALESCE((new.raw_user_meta_data->>'role')::app_role, 'staff'::app_role));
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users

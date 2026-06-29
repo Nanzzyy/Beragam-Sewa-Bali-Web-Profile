@@ -36,6 +36,27 @@ const nextConfig: NextConfig = {
         ],
         destination: "/admin/:path*",
       },
+      // Domain-based rewrites for katalog
+      {
+        source: "/",
+        has: [
+          {
+            type: "host",
+            value: "katalog.beragamsewabali.com",
+          },
+        ],
+        destination: "/katalog/index.html",
+      },
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "katalog.beragamsewabali.com",
+          },
+        ],
+        destination: "/katalog/:path*",
+      },
       // Normal path-based rewrites for main domain
       {
         source: "/",
