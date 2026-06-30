@@ -10,7 +10,7 @@ const JobDetailModal = dynamic(() => import('../components/JobDetailModal'), { s
 const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: false });
 const PackageModal = dynamic(() => import('../components/PackageModal'), { ssr: false });
 const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useTheme } from 'next-themes';
 import { toast } from 'react-hot-toast';
@@ -605,6 +605,7 @@ export default function DashboardApp() {
           ) : <div className="pt-4 pb-2"><div className="w-4 h-px bg-slate-200 dark:bg-slate-800" /></div>}
           
           <SidebarItem icon={Package} label="Menu Barang" value="inventory" />
+          <SidebarItem icon={Layers} label="Menu Paket" value="packages" />
           <SidebarItem icon={Users} label="Daftar Karyawan" value="staff" />
           {userRole === 'owner' && (
             <SidebarItem icon={Truck} label="Suppliers" value="suppliers" />
