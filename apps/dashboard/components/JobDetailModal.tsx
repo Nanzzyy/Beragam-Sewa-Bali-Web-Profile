@@ -55,7 +55,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
       // Fetch all items and employee profiles, plus active jobs for quantity calculation
       const { supabase: sbClient } = await import('../lib/supabase');
       const [iRes, pRes, sRes, jobsRes] = await Promise.all([
-        sbClient.from('items').select('id, name, quantity').order('name'),
+        sbClient.from('items').select('id, name, category, quantity').order('name'),
         sbClient.from('packages').select('*').order('name'),
         sbClient.from('profiles').select('id, email').order('email'),
         sbClient.from('jobs').select('id').in('status', ['confirmed', 'on_going'])
