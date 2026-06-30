@@ -47,11 +47,15 @@ const supabase = createClient(
 );
 
 // Middleware
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({ 
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: false 
+}));
 const allowedOrigins = [
   'https://www.beragamsewabali.com',
   'https://beragamsewabali.com',
   'https://admin.beragamsewabali.com',
+  'https://dashboard.beragamsewabali.com',
   'https://katalog.beragamsewabali.com'
 ];
 
@@ -87,6 +91,7 @@ app.use('/rest', supabaseProxy);
 app.use('/auth', supabaseProxy);
 app.use('/storage', supabaseProxy);
 app.use('/graphql', supabaseProxy);
+app.use('/realtime', supabaseProxy);
 
 // ─── Helper: Upload gambar ke Supabase Storage ───────────────────────────────
 // Menerima Buffer atau base64, mengembalikan public URL
