@@ -6,6 +6,9 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+ALTER TYPE job_status ADD VALUE IF NOT EXISTS 'negotiation';
+ALTER TYPE job_status ADD VALUE IF NOT EXISTS 'pending_payment';
+
 DO $$ BEGIN
     CREATE TYPE proof_type AS ENUM ('delivery', 'return');
 EXCEPTION WHEN duplicate_object THEN NULL;

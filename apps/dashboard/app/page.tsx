@@ -529,7 +529,7 @@ export default function DashboardApp() {
 
   // ======== SIDEBAR ========
   const SidebarItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: Tab }) => (
-    <button onClick={() => setTab(value)} title={userPref.sidebarCollapsed && !mobileMenuOpen ? label : undefined}
+    <button onClick={() => { setTab(value); setMobileMenuOpen(false); }} title={userPref.sidebarCollapsed && !mobileMenuOpen ? label : undefined}
       className={`flex items-center transition-all ${userPref.sidebarCollapsed && !mobileMenuOpen ? 'justify-center w-12 h-12 p-0 rounded-xl mx-auto' : 'w-full gap-3 px-4 py-2.5 rounded-xl'} text-sm font-medium ${tab === value ? 'bg-red-600/10 text-red-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-white dark:bg-slate-800'}`}>
       <Icon className="w-5 h-5 shrink-0" />
       {!(userPref.sidebarCollapsed && !mobileMenuOpen) && <span>{label}</span>}
@@ -1170,8 +1170,13 @@ export default function DashboardApp() {
                                   title: 'Hapus Karyawan',
                                   message: `Apakah Anda yakin ingin menghapus karyawan "${staff.email}"? Ini hanya akan menghapus profil mereka dari database.`,
                                   onConfirm: () => {
-                                    supabase.from('profiles').delete().eq('id', staff.id).then(() => {
-                                      loadData();
+                                    supabase.from('profiles').delete().eq('id', staff.id).then(({ error }) => {
+                                      if (error) {
+                                        toast.error("Gagal menghapus karyawan: " + error.message);
+                                      } else {
+                                        toast.success("Data karyawan dihapus");
+                                        loadData();
+                                      }
                                       setConfirmModalOpen(false);
                                     });
                                   }
@@ -1421,9 +1426,19 @@ export default function DashboardApp() {
                   quantity: { value: string };
                   sku: { value: string };
                 };
+                let finalCategory = itemModalData.category || 'other';
+                if (showNewCategoryInput && newCategoryName.trim()) {
+                  finalCategory = newCategoryName.trim().toLowerCase();
+                  if (!categoriesList.includes(finalCategory)) {
+                    const updated = [...customCategories, finalCategory];
+                    setCustomCategories(updated);
+                    localStorage.setItem('bsb_custom_categories', JSON.stringify(updated));
+                  }
+                }
+
                 const payload = {
                   name: target.name.value.trim(),
-                  category: itemModalData.category || 'other',
+                  category: finalCategory,
                   quantity: parseInt(target.quantity.value) || 1,
                   sku: target.sku.value.trim() || `SKU-${Date.now()}`
                 };
@@ -1485,7 +1500,7 @@ export default function DashboardApp() {
                       value={newCategoryName} 
                       onChange={e => setNewCategoryName(e.target.value)} 
                       placeholder="Ketik nama kategori..." 
-                      className="flex-1 px-3 py-2 text-sm rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-red-500"
+                      className="flex-1 px-3 py-2 text-sm rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-red-500 text-slate-900 dark:text-white"
                     />
                     <button 
                       type="button" 
@@ -1619,7 +1634,9 @@ export default function DashboardApp() {
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Jumlah (IDR) <span className="text-red-500">*</span></label>
                   <input type="number" name="amount" defaultValue={cashflowModalData.amount || ''} required min="1" placeholder="Jumlah nominal"
+                    onChange={(e) => { const el = document.getElementById('cf-amount-display'); if(el) el.innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(parseInt(e.target.value) || 0) }}
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
+                  <div id="cf-amount-display" className="text-xs text-red-500 mt-1">{cashflowModalData.amount ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(cashflowModalData.amount) : ''}</div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Waktu Transaksi</label>

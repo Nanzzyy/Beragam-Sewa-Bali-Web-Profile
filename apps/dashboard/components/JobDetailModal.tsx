@@ -25,6 +25,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   const [activeTab, setActiveTab] = useState<'info' | 'items' | 'staff' | 'proofs'>('info');
   const [uploading, setUploading] = useState(false);
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
+  const [itemPrice, setItemPrice] = useState('');
 
   // Lists of all available items and staff for the dropdowns
   const [availableItems, setAvailableItems] = useState<{ id: string; name: string; available?: number; total?: number }[]>([]);
@@ -250,15 +251,15 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-red-600/10 rounded-xl p-3">
                     <div className="text-xs text-red-500 font-medium">Pendapatan Sewa</div>
-                    <div className="text-lg font-bold text-red-500 mt-1">{formatRupiah(job.total_rental_fee)}</div>
+                    <div className="text-lg font-bold text-red-500 mt-1 truncate" title={formatRupiah(job.total_rental_fee)}>{formatRupiah(job.total_rental_fee)}</div>
                   </div>
                   <div className="bg-amber-500/10 rounded-xl p-3">
                     <div className="text-xs text-amber-400 font-medium">Biaya Vendor</div>
-                    <div className="text-lg font-bold text-amber-400 mt-1">{formatRupiah(job.total_vendor_cost)}</div>
+                    <div className="text-lg font-bold text-amber-400 mt-1 truncate" title={formatRupiah(job.total_vendor_cost)}>{formatRupiah(job.total_vendor_cost)}</div>
                   </div>
                   <div className="bg-blue-500/10 rounded-xl p-3">
                     <div className="text-xs text-blue-400 font-medium">Laba Kotor</div>
-                    <div className="text-lg font-bold text-blue-400 mt-1">{formatRupiah(job.total_rental_fee - job.total_vendor_cost)}</div>
+                    <div className="text-lg font-bold text-blue-400 mt-1 truncate" title={formatRupiah(job.total_rental_fee - job.total_vendor_cost)}>{formatRupiah(job.total_rental_fee - job.total_vendor_cost)}</div>
                   </div>
                 </div>
               )}
@@ -298,7 +299,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                               <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
                               <div className="px-3 py-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Quotation</div>
                               <button onClick={() => {
-                                window.open(`/api/documents/quotation/${job.id}/pdf`, '_blank');
+                                import('../lib/pdf').then(({ generateQuotation }) => generateQuotation(job, items));
                                 setExportDropdownOpen(false);
                               }} className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 flex items-center gap-2 transition-colors">
                                 <FileText className="w-4 h-4" /> Export PDF
@@ -313,7 +314,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                               <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
                               <div className="px-3 py-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Invoice</div>
                               <button onClick={() => {
-                                window.open(`/api/documents/invoice/${job.id}/pdf`, '_blank');
+                                import('../lib/pdf').then(({ generateInvoice }) => generateInvoice(job, items));
                                 setExportDropdownOpen(false);
                               }} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2 transition-colors">
                                 <FileText className="w-4 h-4" /> Export PDF
@@ -328,7 +329,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                               <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
                               <div className="px-3 py-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Kuitansi</div>
                               <button onClick={() => {
-                                window.open(`/api/documents/receipt/${job.id}/pdf`, '_blank');
+                                import('../lib/pdf').then(({ generateReceipt }) => generateReceipt(job, items));
                                 setExportDropdownOpen(false);
                               }} className="w-full text-left px-4 py-2 text-sm text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 flex items-center gap-2 transition-colors">
                                 <FileText className="w-4 h-4" /> Export PDF
@@ -443,9 +444,12 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                       </option>
                     ))}
                   </select>
-                  <input type="number" name="price" placeholder="Harga per unit (Rp)" min="0" required className="w-full sm:w-40 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full sm:w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                  <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
+                  <div className="flex flex-col sm:w-40">
+                    <input type="number" name="price" value={itemPrice} onChange={e => setItemPrice(e.target.value)} placeholder="Harga per unit (Rp)" min="0" required className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                    {itemPrice && <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">{formatRupiah(parseInt(itemPrice) || 0)}</span>}
+                  </div>
+                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full sm:w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white h-[38px]" />
+                  <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 h-[38px]">Tambah</button>
                 </form>
               )}
               <div className="space-y-3">
@@ -525,7 +529,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   <select name="profile_id" required className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
                     <option value="">-- Pilih Karyawan --</option>
                     {availableStaff.map(s => (
-                      <option key={s.id} value={s.id}>{s.nickname ? `${s.nickname} (${s.email})` : s.email}</option>
+                      <option key={s.id} value={s.id}>{s.nickname || s.email}</option>
                     ))}
                   </select>
                   <input type="text" name="role" placeholder="Peran (ex: Supir)" required className="w-full sm:w-1/3 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
