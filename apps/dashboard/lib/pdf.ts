@@ -195,27 +195,22 @@ function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI'
   doc.setFont('helvetica', 'bold');
   doc.text(`NO : ${docNumber}`, 196, titleY, { align: 'right' });
 
-  // Table
-  const tableData = items.map((item, index) => [
-    index + 1,
-    item.item_name || item.item_name_custom || '-',
-    item.quantity.toString(),
-    'unit',
-    '1', // Day
-    formatRupiah(0), // Unit Price
-    formatRupiah(0) // Jumlah
-  ]);
-
-  // Add package row
-  tableData.push([
-    items.length + 1,
-    'Paket Sewa & Jasa Pengiriman Peralatan',
-    '1',
-    'pkg',
-    '1',
-    formatRupiah(job.total_rental_fee),
-    formatRupiah(job.total_rental_fee)
-  ]);
+  const tableData: any[] = [];
+  let currentY = 1;
+  items.forEach((item, index) => {
+    let displayName = item.item_name || item.item_name_custom || '-';
+    if (item.is_package) displayName = `[PAKET] ${displayName}`;
+    
+    tableData.push([
+      index + 1,
+      displayName,
+      item.quantity.toString(),
+      item.is_package ? 'pkg' : 'unit',
+      (item.days || 1).toString(),
+      item.sub_rent_cost > 0 ? formatRupiah(item.sub_rent_cost) : '-',
+      item.sub_rent_cost > 0 ? formatRupiah(item.sub_rent_cost * item.quantity * (item.days || 1)) : '-'
+    ]);
+  });
 
   autoTable(doc, {
     startY: titleY + 5,
@@ -235,16 +230,28 @@ function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI'
 
   const finalY = (doc as any).lastAutoTable.finalY || 100;
 
+  let totalTagihan = job.total_rental_fee;
+  let pphAmount = 0;
+  if (job.pph_umkm_enabled) {
+    pphAmount = job.total_rental_fee * 0.005;
+    totalTagihan = job.total_rental_fee - pphAmount;
+  }
+
   // Totals
   doc.setFont('helvetica', 'bold');
   doc.text('Sub Total', 140, finalY + 10);
   doc.text(formatRupiah(job.total_rental_fee), 196, finalY + 10, { align: 'right' });
   
-  doc.text('DEPOSITE/DISCOUNT', 140, finalY + 15);
-  doc.text('Rp. 0', 196, finalY + 15, { align: 'right' });
+  if (job.pph_umkm_enabled) {
+    doc.text('PPh UMKM 0.5%', 140, finalY + 15);
+    doc.text(`- ${formatRupiah(pphAmount)}`, 196, finalY + 15, { align: 'right' });
+  } else {
+    doc.text('DEPOSITE/DISCOUNT', 140, finalY + 15);
+    doc.text('Rp. 0', 196, finalY + 15, { align: 'right' });
+  }
 
   doc.text('Total Of payment', 140, finalY + 20);
-  doc.text(formatRupiah(job.total_rental_fee), 196, finalY + 20, { align: 'right' });
+  doc.text(formatRupiah(totalTagihan), 196, finalY + 20, { align: 'right' });
 
   // Notes and Terbilang
   const noteY = finalY + 30;
@@ -258,7 +265,7 @@ function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI'
   doc.setFont('helvetica', 'bold');
   doc.text('TERBILANG', 14, terbilangY); doc.text(':', 40, terbilangY);
   doc.setFont('helvetica', 'italic');
-  doc.text(`( ${terbilang(job.total_rental_fee)} Rupiah )`, 45, terbilangY, { maxWidth: 100 });
+  doc.text(`( ${terbilang(totalTagihan)} Rupiah )`, 45, terbilangY, { maxWidth: 100 });
 
   // Signatures
   const currentDateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });

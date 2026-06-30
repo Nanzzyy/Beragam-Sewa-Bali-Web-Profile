@@ -94,6 +94,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
   const [totalRentalFee, setTotalRentalFee] = useState(formatCurrencyString(job?.total_rental_fee || 0));
   const [totalVendorCost, setTotalVendorCost] = useState(formatCurrencyString(job?.total_vendor_cost || 0));
   const [paymentMethod, setPaymentMethod] = useState(job?.payment_method || '1-101');
+  const [pphUmkmEnabled, setPphUmkmEnabled] = useState(job?.pph_umkm_enabled || false);
 
   const handleCurrencyChange = (val: string, setter: (v: string) => void) => {
     const numeric = val.replace(/[^0-9]/g, '');
@@ -142,6 +143,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
         total_rental_fee: parseInt(totalRentalFee.replace(/[^0-9]/g, ''), 10) || 0,
         total_vendor_cost: parseInt(totalVendorCost.replace(/[^0-9]/g, ''), 10) || 0,
         payment_method: paymentMethod,
+        pph_umkm_enabled: pphUmkmEnabled,
       };
 
       if (isEdit && job) {
@@ -210,6 +212,19 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
                 { value: '1-105', label: 'Piutang Usaha (1-105)' },
               ]}
             />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input 
+              type="checkbox" 
+              id="pphUmkm" 
+              checked={pphUmkmEnabled} 
+              onChange={e => setPphUmkmEnabled(e.target.checked)} 
+              className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
+            />
+            <label htmlFor="pphUmkm" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+              Potong PPh UMKM 0.5% (Akan mengurangi nilai/pendapatan job)
+            </label>
           </div>
 
           {/* Status */}

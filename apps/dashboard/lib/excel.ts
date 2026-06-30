@@ -151,12 +151,15 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     
     items.forEach((item, index) => {
       const row = ws.getRow(currentRow);
+      let displayName = item.item_name || item.item_name_custom || '-';
+      if (item.is_package) displayName = `[PAKET] ${displayName}`;
+
       row.getCell(1).value = index + 1;
-      row.getCell(3).value = item.item_name || item.item_name_custom || '-';
+      row.getCell(3).value = displayName;
       row.getCell(4).value = item.quantity;
-      row.getCell(5).value = 'unit';
-      row.getCell(6).value = 1; // Default 1 day
-      row.getCell(7).value = hasItemizedPricing ? (item.sub_rent_cost || 0) : 0;
+      row.getCell(5).value = item.is_package ? 'pkg' : 'unit';
+      row.getCell(6).value = item.days || 1; 
+      row.getCell(7).value = item.sub_rent_cost > 0 ? item.sub_rent_cost : 0;
       
       row.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
       row.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
@@ -196,23 +199,35 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
       pkgRow.getCell(10).numFmt = '#,##0';
     }
 
-    // Totals
-    ws.getCell('H42').value = { formula: 'SUM(H18:H41)' };
-    ws.getCell('I42').value = { formula: 'SUM(H18:H41)' };
-    ws.getCell('J42').value = { formula: 'SUM(H18:H41)' };
+    let totalTagihan = job.total_rental_fee;
+    let pphAmount = 0;
+    if (job.pph_umkm_enabled) {
+      pphAmount = job.total_rental_fee * 0.005;
+      totalTagihan = job.total_rental_fee - pphAmount;
+    }
+
+    // Totals - Hardcode to job.total_rental_fee to disable auto-calculate based on item values
+    ws.getCell('H42').value = job.total_rental_fee;
+    ws.getCell('I42').value = job.total_rental_fee;
+    ws.getCell('J42').value = job.total_rental_fee;
     
-    ws.getCell('H43').value = 0; // Deposit
-    ws.getCell('I43').value = 0;
-    ws.getCell('J43').value = 0;
+    if (job.pph_umkm_enabled) {
+      ws.getCell('F43').value = 'PPh UMKM 0.5%';
+      ws.getCell('H43').value = pphAmount; 
+      ws.getCell('I43').value = pphAmount;
+      ws.getCell('J43').value = pphAmount;
+    } else {
+      ws.getCell('H43').value = 0; // Deposit
+      ws.getCell('I43').value = 0;
+      ws.getCell('J43').value = 0;
+    }
     
-    ws.getCell('H44').value = { formula: 'H42-H43' };
-    ws.getCell('I44').value = { formula: 'H42-H43' };
-    ws.getCell('J44').value = { formula: 'H42-H43' };
+    ws.getCell('H44').value = totalTagihan;
+    ws.getCell('I44').value = totalTagihan;
+    ws.getCell('J44').value = totalTagihan;
 
     // Terbilang
-    const finalTotal = hasItemizedPricing
-      ? items.reduce((sum, item) => sum + (item.quantity || 1) * (item.sub_rent_cost || 0), 0)
-      : job.total_rental_fee;
+    const finalTotal = totalTagihan;
       
     const terbilangCell = ws.getCell('C51');
     terbilangCell.value = `( ${terbilang(finalTotal)} Rupiah )`;

@@ -29,7 +29,12 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
   // Lists of all available items and staff for the dropdowns
   const [availableItems, setAvailableItems] = useState<{ id: string; name: string; available?: number; total?: number }[]>([]);
+  const [availablePackages, setAvailablePackages] = useState<{ id: string; name: string; base_price: number }[]>([]);
   const [availableStaff, setAvailableStaff] = useState<{ id: string; email: string; nickname?: string }[]>([]);
+
+  // Add item form states
+  const [addMode, setAddMode] = useState<'item'|'package'>('item');
+  const [itemDays, setItemDays] = useState('1');
 
   const canModify = userRole === 'owner' || userRole === 'staff';
 
@@ -49,8 +54,10 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
       // Fetch all items and employee profiles, plus active jobs for quantity calculation
       const { supabase: sbClient } = await import('../lib/supabase');
-      const [iRes, sRes, jobsRes] = await Promise.all([
+      const { supabase: sbClient } = await import('../lib/supabase');
+      const [iRes, pRes, sRes, jobsRes] = await Promise.all([
         sbClient.from('items').select('id, name, quantity').order('name'),
+        sbClient.from('packages').select('*').order('name'),
         sbClient.from('profiles').select('id, email').order('email'),
         sbClient.from('jobs').select('id').in('status', ['confirmed', 'on_going'])
       ]);
@@ -77,6 +84,14 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
           name: item.name,
           total: item.quantity || 0,
           available: Math.max(0, (item.quantity || 0) - (usedQuantities[item.id] || 0))
+        })));
+      }
+
+      if (pRes.data) {
+        setAvailablePackages(pRes.data.map(p => ({
+          id: p.id,
+          name: p.name,
+          base_price: p.base_price || 0
         })));
       }
 
@@ -391,66 +406,94 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
           {activeTab === 'items' && (
             <div className="space-y-4 animate-fade-in">
               {canModify && (
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  const target = e.target as typeof e.target & {
-                    item_id: { value: string };
-                    quantity: { value: string };
-                    price: { value: string };
-                  };
-                  if (!target.item_id.value || !target.quantity.value || !target.price.value) return;
-                  setUploading(true);
-                  try {
-                    const price = parseFloat(target.price.value) || 0;
-                    const qty = parseInt(target.quantity.value) || 1;
-                    const newItemTotal = price * qty;
-                    const currentItemsTotal = items.reduce((sum, item) => sum + (item.quantity * (item.sub_rent_cost || 0)), 0);
-                    const newTotal = currentItemsTotal + newItemTotal;
-
-                    if (newTotal > job.total_rental_fee) {
-                      const adjust = await showConfirm(`Total harga barang (${formatRupiah(newTotal)}) melebihi Total Biaya Sewa Job (${formatRupiah(job.total_rental_fee)}). Apakah Anda ingin menyesuaikan Total Biaya Sewa Job secara otomatis?`);
-                      if (adjust) {
-                        await import('../lib/jobs').then(m => m.updateJob(job.id, { total_rental_fee: newTotal }));
-                        job.total_rental_fee = newTotal; // update local state reference
-                      } else {
-                        setUploading(false);
-                        return;
-                      }
-                    }
-
-                    await import('../lib/jobs').then(m => m.addJobItem({
-                      job_id: job.id,
-                      item_id: target.item_id.value,
-                      item_name_custom: null,
-                      quantity: qty,
-                      source_vendor_id: null,
-                      sub_rent_cost: price,
-                      is_returned: false
-                    }));
-                    target.item_id.value = '';
-                    target.quantity.value = '1';
-                    target.price.value = '';
-                    loadDetails();
-                  } catch (err) {
-                    toast.error((err as Error).message);
-                  }
-                  setUploading(false);
-                }} className="flex flex-col sm:flex-row gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <select name="item_id" required className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
-                    <option value="">-- Pilih Barang --</option>
-                    {availableItems.map(item => (
-                      <option key={item.id} value={item.id} disabled={item.available === 0}>
-                        {item.name} (Stok: {item.available}/{item.total})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex flex-col sm:w-40">
-                    <input type="number" name="price" value={itemPrice} onChange={e => setItemPrice(e.target.value)} placeholder="Harga per unit (Rp)" min="0" required className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                    {itemPrice && <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">{formatRupiah(parseInt(itemPrice) || 0)}</span>}
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-4">
+                  <div className="flex items-center gap-4 mb-3 border-b border-slate-200 dark:border-slate-700 pb-3">
+                    <button onClick={() => setAddMode('item')} className={`text-sm font-semibold transition ${addMode === 'item' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
+                      Tambah Barang
+                    </button>
+                    <button onClick={() => setAddMode('package')} className={`text-sm font-semibold transition ${addMode === 'package' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
+                      Tambah Paket
+                    </button>
                   </div>
-                  <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full sm:w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white h-[38px]" />
-                  <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 h-[38px]">Tambah</button>
-                </form>
+                  
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const target = e.target as typeof e.target & {
+                      target_id: { value: string };
+                      quantity: { value: string };
+                    };
+                    if (!target.target_id.value || !target.quantity.value) return;
+                    setUploading(true);
+                    try {
+                      const price = itemPrice ? parseFloat(itemPrice) : 0;
+                      const qty = parseInt(target.quantity.value) || 1;
+                      const days = parseFloat(itemDays) || 1;
+                      const newItemTotal = price * qty * days;
+                      
+                      const currentItemsTotal = items.reduce((sum, item) => sum + (item.quantity * (item.sub_rent_cost || 0) * (item.days || 1)), 0);
+                      const newTotal = currentItemsTotal + newItemTotal;
+
+                      /* "sistem otomatisasi nilai projek dengan uang yang ada di pdf/excel di nonaktifkan"
+                         Wait, the user wants the auto project value integration DISABLED.
+                         So we don't prompt them to update total_rental_fee automatically anymore.
+                      */
+
+                      const payload = {
+                        job_id: job.id,
+                        quantity: qty,
+                        sub_rent_cost: price,
+                        days: days,
+                        is_returned: false,
+                        is_package: addMode === 'package',
+                        package_id: addMode === 'package' ? target.target_id.value : null,
+                        item_id: addMode === 'item' ? target.target_id.value : null,
+                        item_name_custom: null,
+                        source_vendor_id: null
+                      };
+
+                      await import('../lib/jobs').then(m => m.addJobItem(payload as any));
+                      
+                      target.target_id.value = '';
+                      target.quantity.value = '1';
+                      setItemPrice('');
+                      setItemDays('1');
+                      loadDetails();
+                    } catch (err) {
+                      toast.error((err as Error).message);
+                    }
+                    setUploading(false);
+                  }} className="flex flex-col sm:flex-row gap-2">
+                    <select name="target_id" required className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
+                      <option value="">-- Pilih {addMode === 'package' ? 'Paket' : 'Barang'} --</option>
+                      {addMode === 'item' ? availableItems.map(item => (
+                        <option key={item.id} value={item.id} disabled={item.available === 0}>
+                          {item.name} (Stok: {item.available}/{item.total})
+                        </option>
+                      )) : availablePackages.map(pkg => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {pkg.name}
+                        </option>
+                      ))}
+                    </select>
+                    
+                    <div className="flex flex-col sm:w-32">
+                      <input type="number" name="days" value={itemDays} onChange={e => setItemDays(e.target.value)} placeholder="Hari" min="1" step="0.5" required className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                      <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">Durasi Hari</span>
+                    </div>
+
+                    <div className="flex flex-col sm:w-40">
+                      <input type="number" name="price" value={itemPrice} onChange={e => setItemPrice(e.target.value)} placeholder="Harga/unit (Opsional)" min="0" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                      {itemPrice && <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">{formatRupiah(parseInt(itemPrice) || 0)}</span>}
+                    </div>
+                    
+                    <div className="flex flex-col sm:w-24">
+                      <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                      <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">Kuantitas</span>
+                    </div>
+
+                    <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 h-[38px]">Tambah</button>
+                  </form>
+                </div>
               )}
               <div className="space-y-3">
                 {items.length === 0 ? (
@@ -459,13 +502,22 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   items.map(item => (
                     <div key={item.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
                           <Package className="w-5 h-5 text-red-600 dark:text-red-400" />
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-slate-900 dark:text-white">{item.item_name || item.item_name_custom || '-'}</div>
-                          <div className="text-xs text-slate-500 font-medium mt-0.5">
-                            Qty: {item.quantity} • Harga: {formatRupiah(item.sub_rent_cost || 0)}
+                          <div className="text-sm font-bold text-slate-900 dark:text-white">
+                            {item.is_package ? `[PAKET] ${item.item_name_custom || 'Nama Paket'}` : (item.item_name || item.item_name_custom || '-')}
+                          </div>
+                          {item.is_package && item.package_details && item.package_details.length > 0 && (
+                            <ul className="text-xs text-slate-500 mt-1 pl-4 list-disc list-inside">
+                              {item.package_details.map((pd: any, idx: number) => (
+                                <li key={idx}>{pd.qty}x {pd.items?.name || 'Barang'}</li>
+                              ))}
+                            </ul>
+                          )}
+                          <div className="text-xs text-slate-500 font-medium mt-1">
+                            Qty: {item.quantity} • Hari: {item.days || 1} {item.sub_rent_cost > 0 && `• Harga: ${formatRupiah(item.sub_rent_cost)}/hari`}
                             {item.vendor_name && ` • Vendor: ${item.vendor_name}`}
                           </div>
                         </div>
@@ -478,12 +530,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                           <button onClick={async () => {
                             if (!await showConfirm('Hapus barang ini?')) return;
                             try {
-                              const deletedItemTotal = item.quantity * (item.sub_rent_cost || 0);
-                              const remainingTotal = job.total_rental_fee - deletedItemTotal;
-                              
-                              if (remainingTotal >= 0 && await showConfirm(`Apakah Anda ingin mengurangi Total Biaya Sewa Job sebesar ${formatRupiah(deletedItemTotal)} (menjadi ${formatRupiah(remainingTotal)})?`)) {
-                                await import('../lib/jobs').then(m => m.updateJob(job.id, { total_rental_fee: remainingTotal }));
-                              }
+                              // "sistem otomatisasi nilai projek dengan uang yang ada di pdf/excel di nonaktifkan"
+                              // No need to ask to deduct job.total_rental_fee here anymore.
 
                               await import('../lib/jobs').then(m => m.removeJobItem(item.id));
                               loadDetails();

@@ -190,6 +190,7 @@ export async function fetchJobItems(jobId: string): Promise<JobItem[]> {
     .select(`
       *,
       items:item_id ( name ),
+      packages:package_id ( name, package_items ( qty, items ( name ) ) ),
       suppliers:source_vendor_id ( name )
     `)
     .eq('job_id', jobId)
@@ -199,8 +200,12 @@ export async function fetchJobItems(jobId: string): Promise<JobItem[]> {
   return (data || []).map((row: Record<string, unknown>) => ({
     ...(row as unknown as JobItem),
     sub_rent_cost: Number((row as Record<string, unknown>).sub_rent_cost),
-    item_name: ((row as Record<string, unknown>).items as Record<string, unknown>)?.name as string || (row as Record<string, unknown>).item_name_custom as string || '',
+    item_name: 
+      ((row as Record<string, unknown>).packages as Record<string, unknown>)?.name as string || 
+      ((row as Record<string, unknown>).items as Record<string, unknown>)?.name as string || 
+      (row as Record<string, unknown>).item_name_custom as string || '',
     vendor_name: ((row as Record<string, unknown>).suppliers as Record<string, unknown>)?.name as string || '',
+    package_details: ((row as Record<string, unknown>).packages as any)?.package_items || [],
   }));
 }
 

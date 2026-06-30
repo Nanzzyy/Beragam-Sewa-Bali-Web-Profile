@@ -31,6 +31,24 @@ export interface Job {
   created_by: string;
   created_at: string;
   updated_at: string;
+  pph_umkm_enabled: boolean;
+}
+
+export interface Package {
+  id: string;
+  name: string;
+  description: string | null;
+  base_price: number | null;
+  created_at: string;
+}
+
+export interface PackageItem {
+  id: string;
+  package_id: string;
+  item_id: string;
+  qty: number;
+  // Joined
+  item_name?: string;
 }
 
 export interface JobItem {
@@ -42,10 +60,14 @@ export interface JobItem {
   source_vendor_id: string | null;
   sub_rent_cost: number;
   is_returned: boolean;
+  days: number;
+  is_package: boolean;
+  package_id: string | null;
   created_at: string;
   // Joined fields
   item_name?: string;
   vendor_name?: string;
+  package_details?: any[];
 }
 
 export interface JobStaff {
