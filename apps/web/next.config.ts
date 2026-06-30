@@ -63,6 +63,10 @@ const nextConfig: NextConfig = {
         destination: "/home/index.html",
       },
       {
+        source: "/detail.html",
+        destination: "/home/detail.html",
+      },
+      {
         source: "/admin",
         destination: "/admin/index.html",
       },
