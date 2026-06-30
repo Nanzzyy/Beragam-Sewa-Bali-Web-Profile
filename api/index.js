@@ -188,6 +188,26 @@ function requireAdmin(req, res, next) {
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // GET /api/admin/status
+
+// GET /api/admin/overview
+app.get('/api/admin/overview', async (req, res) => {
+    try {
+        const services = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='service'");
+        const packages = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='package'");
+        const gallery = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='gallery'");
+        
+        res.json({
+            services: parseInt(services.rows[0].count),
+            packages: parseInt(packages.rows[0].count),
+            gallery: parseInt(gallery.rows[0].count),
+            inventory: 0,
+            cashflow: { inflow: 0, outflow: 0 }
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/api/admin/status', (req, res) => {
     const isAdmin = req.signedCookies.isAdmin === 'true';
     res.json({ loggedIn: isAdmin });
