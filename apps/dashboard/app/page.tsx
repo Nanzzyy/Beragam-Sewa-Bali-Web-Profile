@@ -135,6 +135,7 @@ export default function DashboardApp() {
   const [itemModalData, setItemModalData] = useState<{ id?: string; name: string; category: string; quantity: number; sku: string } | null>(null);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
   // Staff Modal State
   const [staffModalOpen, setStaffModalOpen] = useState(false);
@@ -1046,12 +1047,17 @@ export default function DashboardApp() {
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Daftar inventaris alat dan barang</p>
                   </div>
                   {canModify && (
-                    <button onClick={() => {
-                      setItemModalData({ name: '', category: 'other', quantity: 1, sku: generateSkuForCategory('other') });
-                      setItemModalOpen(true);
-                    }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 w-full sm:w-auto justify-center">
-                      <Plus className="w-4 h-4" /> Tambah Barang
-                    </button>
+                    <div className="flex items-center gap-2 w-full sm:w-auto flex-col sm:flex-row">
+                      <button onClick={() => setCategoryModalOpen(true)} className="flex-1 w-full sm:w-auto flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition text-sm shadow-sm justify-center">
+                        <Filter className="w-4 h-4" /> Kelola Kategori
+                      </button>
+                      <button onClick={() => {
+                        setItemModalData({ name: '', category: 'other', quantity: 1, sku: generateSkuForCategory('other') });
+                        setItemModalOpen(true);
+                      }} className="flex-1 w-full sm:w-auto flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 justify-center">
+                        <Plus className="w-4 h-4" /> Tambah Barang
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-4">
@@ -1684,6 +1690,99 @@ export default function DashboardApp() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Category Manager Modal */}
+      {categoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-lg relative animate-slide-up flex flex-col max-h-[90vh]">
+            <button onClick={() => setCategoryModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-4 mb-6 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-inner">
+                <Filter className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Kelola Kategori</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Tambah, ubah nama, atau hapus kategori</p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto mb-6 pr-2 space-y-3">
+              {categoriesList.map(cat => (
+                <div key={cat} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl group">
+                  <span className="font-medium text-slate-900 dark:text-white capitalize">{cat}</span>
+                  <div className="flex gap-2">
+                    <button onClick={async () => {
+                      const newName = prompt(`Ubah nama kategori "${cat}" menjadi:`, cat);
+                      if (newName && newName.trim() && newName.trim().toLowerCase() !== cat) {
+                        const trimmed = newName.trim().toLowerCase();
+                        try {
+                          // Update all items with this category to the new name
+                          await supabase.from('items').update({ category: trimmed }).eq('category', cat);
+                          
+                          // Update custom categories list
+                          let updated = customCategories.filter(c => c !== cat);
+                          if (!updated.includes(trimmed)) updated.push(trimmed);
+                          setCustomCategories(updated);
+                          localStorage.setItem('bsb_custom_categories', JSON.stringify(updated));
+                          
+                          loadData(true);
+                          toast.success(`Kategori berhasil diubah menjadi ${trimmed}`);
+                        } catch (err: any) {
+                          toast.error('Gagal mengubah kategori: ' + err.message);
+                        }
+                      }
+                    }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    {cat !== 'other' && (
+                      <button onClick={async () => {
+                        if (await showConfirm(`Hapus kategori "${cat}"? Semua barang dalam kategori ini akan diubah menjadi "other".`)) {
+                          try {
+                            await supabase.from('items').update({ category: 'other' }).eq('category', cat);
+                            const updated = customCategories.filter(c => c !== cat);
+                            setCustomCategories(updated);
+                            localStorage.setItem('bsb_custom_categories', JSON.stringify(updated));
+                            loadData(true);
+                            toast.success(`Kategori "${cat}" berhasil dihapus.`);
+                          } catch (err: any) {
+                            toast.error('Gagal menghapus kategori: ' + err.message);
+                          }
+                        }
+                      }} className="p-1.5 text-slate-400 hover:text-red-500 bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const target = e.target as typeof e.target & { new_cat: { value: string } };
+                const newCat = target.new_cat.value.trim().toLowerCase();
+                if (newCat && !categoriesList.includes(newCat)) {
+                  const updated = [...customCategories, newCat];
+                  setCustomCategories(updated);
+                  localStorage.setItem('bsb_custom_categories', JSON.stringify(updated));
+                  target.new_cat.value = '';
+                  toast.success('Kategori ditambahkan');
+                }
+              }} className="flex gap-2">
+                <input type="text" name="new_cat" placeholder="Kategori baru..." required
+                  className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-red-500" />
+                <button type="submit" className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-sm font-bold transition flex items-center gap-1.5">
+                  <Plus className="w-4 h-4" /> Tambah
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}
