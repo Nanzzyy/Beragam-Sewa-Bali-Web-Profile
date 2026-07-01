@@ -442,7 +442,7 @@
     });
 
     // ── Data ──
-    const API_BASE = 'https://api.beragamsewabali.com/api';
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3005/api' : 'https://api.beragamsewabali.com/api';
 
     let allItems = [];
     let activeFilter = 'all';

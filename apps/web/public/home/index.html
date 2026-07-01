@@ -108,7 +108,7 @@
 
     <!-- Pre-fetch API Data to parallelize with HTML/JS parsing -->
     <script>
-        const __API_BASE = 'https://api.beragamsewabali.com/api';
+        const __API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3005/api' : 'https://api.beragamsewabali.com/api';
         window.__CONTENT_PROMISE__ = fetch(`${__API_BASE}/content`).then(r => r.ok ? r.json() : Promise.reject(r));
         window.__GALLERY_PROMISE__ = fetch(`${__API_BASE}/gallery`).then(r => r.ok ? r.json() : Promise.reject(r));
     </script>
