@@ -1539,12 +1539,11 @@ export default function DashboardApp() {
                 };
                 try {
                   if (itemModalData.id) {
-                    setItemsList(prev => prev.map(i => i.id === itemModalData.id ? { ...i, ...payload } : i));
-                    await supabase.from('items').update(payload).eq('id', itemModalData.id);
+                    const { error } = await supabase.from('items').update(payload).eq('id', itemModalData.id);
+                    if (error) throw error;
                   } else {
-                    const tempId = 'temp-' + Date.now();
-                    setItemsList(prev => [{ id: tempId, ...payload } as any, ...prev]);
-                    await supabase.from('items').insert(payload);
+                    const { error } = await supabase.from('items').insert(payload);
+                    if (error) throw error;
                   }
                   loadData(true);
                   setItemModalOpen(false);
@@ -1978,7 +1977,7 @@ export default function DashboardApp() {
                 <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                   {staffModalData.id ? 'Edit Karyawan' : 'Tambah Karyawan Baru'}
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Atur hak akses dan email staf.</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Atur hak akses dan username staf.</p>
               </div>
             </div>
 
@@ -2022,8 +2021,8 @@ export default function DashboardApp() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Alamat Email <span className="text-red-500">*</span></label>
-                <input type="email" name="email" defaultValue={staffModalData.email} required placeholder="budi@example.com" disabled={!!staffModalData.id} 
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Username <span className="text-red-500">*</span></label>
+                <input type="text" name="email" defaultValue={staffModalData.email} required placeholder="username_kru" disabled={!!staffModalData.id} 
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed" />
               </div>
 

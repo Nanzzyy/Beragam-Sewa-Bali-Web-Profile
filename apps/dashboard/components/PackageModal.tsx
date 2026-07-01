@@ -21,6 +21,10 @@ export default function PackageModal({
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(data);
 
+  React.useEffect(() => {
+    setFormData(data);
+  }, [data]);
+
   if (!isOpen || !formData) return null;
 
   const addItemToPackage = () => {

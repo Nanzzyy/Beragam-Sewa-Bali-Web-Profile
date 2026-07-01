@@ -26,7 +26,8 @@ export interface Job {
   status: JobStatus;
   total_rental_fee: number;
   total_vendor_cost: number;
-  payment_method: string;
+  payment_method: string | null;
+  discount?: number;
   cashflow_tx_id: string | null;
   created_by: string;
   created_at: string;

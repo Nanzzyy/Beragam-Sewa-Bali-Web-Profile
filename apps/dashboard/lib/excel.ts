@@ -45,6 +45,15 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     if (!response.ok) throw new Error('Failed to fetch Excel template from server');
     const arrayBuffer = await response.arrayBuffer();
 
+    // Pre-fetch package items
+    const packageItemsMap: Record<string, any[]> = {};
+    for (const item of items) {
+      if (item.is_package && item.package_id && !packageItemsMap[item.package_id]) {
+        const { data } = await supabase.from('package_items').select('qty, items:item_id(name)').eq('package_id', item.package_id);
+        if (data) packageItemsMap[item.package_id] = data;
+      }
+    }
+
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(arrayBuffer);
 
@@ -152,7 +161,14 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     items.forEach((item, index) => {
       const row = ws.getRow(currentRow);
       let displayName = item.item_name || item.item_name_custom || '-';
-      if (item.is_package) displayName = `[PAKET] ${displayName}`;
+      if (item.is_package) {
+        let packageInfo = `[PAKET] ${displayName}`;
+        if (item.package_id && packageItemsMap[item.package_id]) {
+          const details = packageItemsMap[item.package_id].map(pi => `  - ${pi.qty}x ${pi.items?.name}`).join('\n');
+          if (details) packageInfo += `\n${details}`;
+        }
+        displayName = packageInfo;
+      }
 
       row.getCell(1).value = index + 1;
       row.getCell(3).value = displayName;
@@ -208,6 +224,24 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
 
     // Totals - Hardcode to job.total_rental_fee to disable auto-calculate based on item values
     ws.getCell('H42').value = job.total_rental_fee;
+    
+    // Add Discount (row 43 is likely Deposite/Discount in Excel template? Or we can use H43)
+    if (job.discount && job.discount > 0) {
+      ws.getCell('H43').value = job.discount;
+      ws.getCell('F43').value = 'DISCOUNT';
+    } else {
+      ws.getCell('H43').value = 0;
+    }
+    
+    // Handle PPh UMKM (Row 44 usually)
+    if (job.pph_umkm_enabled) {
+      const pph = job.total_rental_fee * 0.005;
+      ws.getCell('H44').value = pph;
+      ws.getCell('F44').value = 'PPh UMKM 0.5%';
+    } else {
+      ws.getCell('H44').value = 0;
+      ws.getCell('F44').value = 'PPh UMKM 0.5%';
+    }
     ws.getCell('I42').value = job.total_rental_fee;
     ws.getCell('J42').value = job.total_rental_fee;
     

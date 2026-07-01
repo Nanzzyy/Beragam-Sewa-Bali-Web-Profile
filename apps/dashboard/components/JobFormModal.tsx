@@ -93,6 +93,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
   const formatCurrencyString = (num: number) => num ? 'Rp. ' + new Intl.NumberFormat('id-ID').format(num) : '';
   const [totalRentalFee, setTotalRentalFee] = useState(formatCurrencyString(job?.total_rental_fee || 0));
   const [totalVendorCost, setTotalVendorCost] = useState(formatCurrencyString(job?.total_vendor_cost || 0));
+  const [discount, setDiscount] = useState(formatCurrencyString(job?.discount || 0));
   const [paymentMethod, setPaymentMethod] = useState(job?.payment_method || '1-101');
   const [pphUmkmEnabled, setPphUmkmEnabled] = useState(job?.pph_umkm_enabled || false);
 
@@ -142,6 +143,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
         status,
         total_rental_fee: parseInt(totalRentalFee.replace(/[^0-9]/g, ''), 10) || 0,
         total_vendor_cost: parseInt(totalVendorCost.replace(/[^0-9]/g, ''), 10) || 0,
+        discount: parseInt(discount.replace(/[^0-9]/g, ''), 10) || 0,
         payment_method: paymentMethod,
         pph_umkm_enabled: pphUmkmEnabled,
       };
@@ -196,8 +198,9 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
           </div>
 
           {/* Financial */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <InputField label="Total Biaya Sewa (Rp)" required type="text" value={totalRentalFee} onChange={v => handleCurrencyChange(v, setTotalRentalFee)} placeholder="Rp. 0" />
+            <InputField label="Diskon (Rp)" type="text" value={discount} onChange={v => handleCurrencyChange(v, setDiscount)} placeholder="Rp. 0" />
             <InputField label="Biaya Vendor (Opsional)" type="text" value={totalVendorCost} onChange={v => handleCurrencyChange(v, setTotalVendorCost)} placeholder="Rp. 0" />
             <CustomSelect 
               label="Akun Penerimaan (Cashflow)" 

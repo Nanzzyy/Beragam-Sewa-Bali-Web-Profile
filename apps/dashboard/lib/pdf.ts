@@ -5,6 +5,20 @@ import { formatRupiah, formatDate } from './supabase';
 
 import { supabase } from './supabase';
 
+async function getBase64Image(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function getCompanyConfig() {
   const defaultConfig = {
     name: 'Beragam Sewa Bali',
@@ -18,13 +32,18 @@ export async function getCompanyConfig() {
   try {
     const { data } = await supabase.from('site_content').select('*');
     if (data && data.length > 0) {
+      let logoUrl = data.find(d => d.content_key === 'site_logo_dashboard')?.content_value || null;
+      let base64Logo = null;
+      if (logoUrl) {
+        base64Logo = await getBase64Image(logoUrl);
+      }
       return {
         name: data.find(d => d.content_key === 'bsb_company_name')?.content_value || defaultConfig.name,
         address: data.find(d => d.content_key === 'bsb_company_address')?.content_value || defaultConfig.address,
         email: data.find(d => d.content_key === 'bsb_company_email')?.content_value || defaultConfig.email,
         phone: data.find(d => d.content_key === 'bsb_company_phone')?.content_value || defaultConfig.phone,
         payment: data.find(d => d.content_key === 'bsb_company_payment_info')?.content_value || defaultConfig.payment,
-        logo: data.find(d => d.content_key === 'site_logo_dashboard')?.content_value || null
+        logo: base64Logo
       };
     }
   } catch (e) {
@@ -48,7 +67,10 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
     try {
       doc.addImage(config.logo, 'PNG', 14, 8, 18, 18);
     } catch (e) {
-      console.error('Error rendering logo in Surat Jalan:', e);
+      // fallback to JPEG if PNG fails
+      try {
+        doc.addImage(config.logo, 'JPEG', 14, 8, 18, 18);
+      } catch (e2) {}
     }
   }
 
@@ -136,20 +158,45 @@ function getRomanMonth(date: Date) {
   return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][date.getMonth()];
 }
 
-function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI', job: Job, items: JobItem[], config: any) {
+async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI', job: Job, items: JobItem[], config: any) {
   const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
   
+  // Pre-fetch package items
+  const packageItemsMap: Record<string, any[]> = {};
+  for (const item of items) {
+    if (item.is_package && item.package_id && !packageItemsMap[item.package_id]) {
+      const { data } = await supabase.from('package_items').select('qty, items:item_id(name)').eq('package_id', item.package_id);
+      if (data) packageItemsMap[item.package_id] = data;
+    }
+  }
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   
-  // Left Column: Client Info
-  doc.text('CLIENT', 14, 20); doc.text(':', 35, 20); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 20);
-  doc.setFont('helvetica', 'bold'); doc.text('CONTACT', 14, 25); doc.text(':', 35, 25); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 25);
-  doc.setFont('helvetica', 'bold'); doc.text('ADDRESS', 14, 30); doc.text(':', 35, 30); doc.setFont('helvetica', 'normal'); doc.text(job.venue || '-', 40, 30);
-  doc.setFont('helvetica', 'bold'); doc.text('EMAIL', 14, 35); doc.text(':', 35, 35); doc.setFont('helvetica', 'normal'); doc.text(job.client_email || '-', 40, 35);
-  doc.setFont('helvetica', 'bold'); doc.text('PHONE', 14, 40); doc.text(':', 35, 40); doc.setFont('helvetica', 'normal'); doc.text(job.client_phone || '-', 40, 40);
-  doc.setFont('helvetica', 'bold'); doc.text('PROJECT', 14, 45); doc.text(':', 35, 45); doc.setFont('helvetica', 'normal'); doc.text(job.description || 'EVENT', 40, 45);
-  doc.setFont('helvetica', 'bold'); doc.text('TGL', 14, 50); doc.text(':', 35, 50); doc.setFont('helvetica', 'normal'); doc.text(`${formatDate(job.setup_date)} s/d ${formatDate(job.completion_date)}`, 40, 50);
+  if (config.logo) {
+    try {
+      doc.addImage(config.logo, 'PNG', 14, 8, 18, 18);
+    } catch (e) {
+      try { doc.addImage(config.logo, 'JPEG', 14, 8, 18, 18); } catch(e2) {}
+    }
+    // Adjust Y coordinate of left column to avoid overlapping with the logo
+    doc.text('CLIENT', 14, 30); doc.text(':', 35, 30); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 30);
+    doc.setFont('helvetica', 'bold'); doc.text('CONTACT', 14, 35); doc.text(':', 35, 35); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 35);
+    doc.setFont('helvetica', 'bold'); doc.text('ADDRESS', 14, 40); doc.text(':', 35, 40); doc.setFont('helvetica', 'normal'); doc.text(job.venue || '-', 40, 40);
+    doc.setFont('helvetica', 'bold'); doc.text('EMAIL', 14, 45); doc.text(':', 35, 45); doc.setFont('helvetica', 'normal'); doc.text(job.client_email || '-', 40, 45);
+    doc.setFont('helvetica', 'bold'); doc.text('PHONE', 14, 50); doc.text(':', 35, 50); doc.setFont('helvetica', 'normal'); doc.text(job.client_phone || '-', 40, 50);
+    doc.setFont('helvetica', 'bold'); doc.text('PROJECT', 14, 55); doc.text(':', 35, 55); doc.setFont('helvetica', 'normal'); doc.text(job.description || 'EVENT', 40, 55);
+    doc.setFont('helvetica', 'bold'); doc.text('TGL', 14, 60); doc.text(':', 35, 60); doc.setFont('helvetica', 'normal'); doc.text(`${formatDate(job.setup_date)} s/d ${formatDate(job.completion_date)}`, 40, 60);
+  } else {
+    // Original Y coordinates
+    doc.text('CLIENT', 14, 20); doc.text(':', 35, 20); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 20);
+    doc.setFont('helvetica', 'bold'); doc.text('CONTACT', 14, 25); doc.text(':', 35, 25); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 25);
+    doc.setFont('helvetica', 'bold'); doc.text('ADDRESS', 14, 30); doc.text(':', 35, 30); doc.setFont('helvetica', 'normal'); doc.text(job.venue || '-', 40, 30);
+    doc.setFont('helvetica', 'bold'); doc.text('EMAIL', 14, 35); doc.text(':', 35, 35); doc.setFont('helvetica', 'normal'); doc.text(job.client_email || '-', 40, 35);
+    doc.setFont('helvetica', 'bold'); doc.text('PHONE', 14, 40); doc.text(':', 35, 40); doc.setFont('helvetica', 'normal'); doc.text(job.client_phone || '-', 40, 40);
+    doc.setFont('helvetica', 'bold'); doc.text('PROJECT', 14, 45); doc.text(':', 35, 45); doc.setFont('helvetica', 'normal'); doc.text(job.description || 'EVENT', 40, 45);
+    doc.setFont('helvetica', 'bold'); doc.text('TGL', 14, 50); doc.text(':', 35, 50); doc.setFont('helvetica', 'normal'); doc.text(`${formatDate(job.setup_date)} s/d ${formatDate(job.completion_date)}`, 40, 50);
+  }
 
   // Right Column: Office Info
   const rightColX = 120;
@@ -170,14 +217,15 @@ function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI'
     const paymentStr = config.payment;
     const bankMatch = paymentStr.match(/Bank\s+([A-Za-z0-9]+)/i);
     const numMatch = paymentStr.match(/(?:No\.?\s*Rek\.?\s*)?(\d{5,20})/i);
-    const ownerMatch = paymentStr.match(/(?:a\.n\.?|an\.?)\s*([^,\n]+)/i);
+    const ownerMatch = paymentStr.match(/(?:a\.n\.?|\ban\.?)\s*([^,\n]+)/i);
 
     if (bankMatch) bankName = bankMatch[1].toUpperCase();
     if (numMatch) bankNumber = numMatch[1];
     if (ownerMatch) bankOwner = 'an. ' + ownerMatch[1].trim();
   }
 
-  doc.setFont('helvetica', 'bold'); doc.text('BANK ACCOUNT', rightColX, phoneY + 10); doc.text(':', rightColTextX - 2, phoneY + 10); doc.setFont('helvetica', 'normal'); doc.text(bankName, rightColTextX, phoneY + 10);
+  doc.setFont('helvetica', 'bold'); doc.text('BANK ACCOUNT', rightColX, phoneY + 10); doc.text(':', rightColTextX - 2, phoneY + 10); doc.setFont('helvetica', 'normal'); 
+  doc.text(bankName, rightColTextX, phoneY + 10);
   doc.text(bankNumber, rightColTextX, phoneY + 15);
   doc.text(bankOwner, rightColTextX, phoneY + 20);
 
@@ -196,13 +244,22 @@ function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI'
   doc.text(`NO : ${docNumber}`, 196, titleY, { align: 'right' });
 
   const tableData: any[] = [];
-  let currentY = 1;
-  items.forEach((item, index) => {
+  
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
     let displayName = item.item_name || item.item_name_custom || '-';
-    if (item.is_package) displayName = `[PAKET] ${displayName}`;
+    
+    if (item.is_package) {
+      let packageInfo = `[PAKET] ${displayName}`;
+      if (item.package_id && packageItemsMap[item.package_id]) {
+        const details = packageItemsMap[item.package_id].map(pi => `  - ${pi.qty}x ${pi.items?.name}`).join('\n');
+        if (details) packageInfo += `\n${details}`;
+      }
+      displayName = packageInfo;
+    }
     
     tableData.push([
-      index + 1,
+      i + 1,
       displayName,
       item.quantity.toString(),
       item.is_package ? 'pkg' : 'unit',
@@ -210,7 +267,8 @@ function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI'
       item.sub_rent_cost > 0 ? formatRupiah(item.sub_rent_cost) : '-',
       item.sub_rent_cost > 0 ? formatRupiah(item.sub_rent_cost * item.quantity * (item.days || 1)) : '-'
     ]);
-  });
+  }
+
 
   autoTable(doc, {
     startY: titleY + 5,
@@ -237,21 +295,32 @@ function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI'
     totalTagihan = job.total_rental_fee - pphAmount;
   }
 
-  // Totals
+  // Totals helper
   doc.setFont('helvetica', 'bold');
-  doc.text('Sub Total', 140, finalY + 10);
-  doc.text(formatRupiah(job.total_rental_fee), 196, finalY + 10, { align: 'right' });
+  const drawTotalRow = (label: string, amount: number, y: number, prefix: string = '') => {
+    doc.text(label, 140, y);
+    doc.text(`${prefix}Rp.`, 165, y);
+    const amountStr = new Intl.NumberFormat('id-ID').format(amount);
+    doc.text(amountStr, 196, y, { align: 'right' });
+  };
+
+  drawTotalRow('Sub Total', job.total_rental_fee, finalY + 10);
+  
+  let currentTotalY = finalY + 15;
+  if (job.discount && job.discount > 0) {
+    drawTotalRow('Discount', job.discount, currentTotalY, '- ');
+    totalTagihan -= job.discount;
+    currentTotalY += 5;
+  }
   
   if (job.pph_umkm_enabled) {
-    doc.text('PPh UMKM 0.5%', 140, finalY + 15);
-    doc.text(`- ${formatRupiah(pphAmount)}`, 196, finalY + 15, { align: 'right' });
-  } else {
-    doc.text('DEPOSITE/DISCOUNT', 140, finalY + 15);
-    doc.text('Rp. 0', 196, finalY + 15, { align: 'right' });
+    drawTotalRow('PPh UMKM 0.5%', pphAmount, currentTotalY, '- ');
+    currentTotalY += 5;
   }
 
-  doc.text('Total Of payment', 140, finalY + 20);
-  doc.text(formatRupiah(totalTagihan), 196, finalY + 20, { align: 'right' });
+  doc.text('Total Of payment', 140, currentTotalY + 5);
+  doc.text('Rp.', 165, currentTotalY + 5);
+  doc.text(new Intl.NumberFormat('id-ID').format(totalTagihan), 196, currentTotalY + 5, { align: 'right' });
 
   // Notes and Terbilang
   const noteY = finalY + 30;
@@ -287,18 +356,18 @@ function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUITANSI'
 export async function generateInvoice(job: Job, items: JobItem[]) {
   const doc = new jsPDF();
   const config = await getCompanyConfig();
-  generateDocument(doc, 'INVOICE', job, items, config);
+  await generateDocument(doc, 'INVOICE', job, items, config);
 }
 
 export async function generateQuotation(job: Job, items: JobItem[]) {
   const doc = new jsPDF();
   const config = await getCompanyConfig();
-  generateDocument(doc, 'QUOTATION', job, items, config);
+  await generateDocument(doc, 'QUOTATION', job, items, config);
 }
 
 export async function generateReceipt(job: Job, items: JobItem[]) {
   const doc = new jsPDF();
   const config = await getCompanyConfig();
-  generateDocument(doc, 'KUITANSI', job, items, config);
+  await generateDocument(doc, 'KUITANSI', job, items, config);
 }
 
