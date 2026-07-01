@@ -13,6 +13,29 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Content-Security-Policy', value: 'upgrade-insecure-requests' }
+        ],
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      { source: '/about', destination: '/#about', permanent: true },
+      { source: '/contact', destination: '/#footer', permanent: true },
+      { source: '/services', destination: '/#service', permanent: true },
+      { source: '/products', destination: '/#package', permanent: true },
+      { source: '/login', destination: 'https://admin.beragamsewabali.com/', permanent: true },
+      { source: '/register', destination: 'https://admin.beragamsewabali.com/', permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       // Domain-based rewrites for admin panel
