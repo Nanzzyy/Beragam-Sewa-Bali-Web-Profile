@@ -2,7 +2,7 @@ import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { Job, JobItem } from './supabase';
-import { formatDate } from './supabase';
+import { formatDate, supabase } from './supabase';
 
 function terbilang(angka: number): string {
   const huruf = [
