@@ -34,6 +34,10 @@ const nextConfig: NextConfig = {
       { source: '/products', destination: '/#package', permanent: true },
       { source: '/login', destination: 'https://admin.beragamsewabali.com/', permanent: true },
       { source: '/register', destination: 'https://admin.beragamsewabali.com/', permanent: true },
+      { source: '/gallery', destination: '/#gallery', permanent: false },
+      { source: '/faq', destination: '/#faq', permanent: false },
+      { source: '/blog', destination: '/#blog', permanent: false },
+      { source: '/booking', destination: '/#footer', permanent: false }
     ];
   },
   async rewrites() {
