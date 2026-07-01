@@ -317,7 +317,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   // Totals helper
   doc.setFont('helvetica', 'bold');
   const drawTotalRow = (label: string, amount: number, y: number, prefix: string = '') => {
-    doc.text(label, 140, y);
+    doc.text(label, 120, y);
     doc.text(`${prefix}Rp.`, 165, y);
     const amountStr = new Intl.NumberFormat('id-ID').format(amount);
     doc.text(amountStr, 196, y, { align: 'right' });
@@ -337,7 +337,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
     currentTotalY += 5;
   }
 
-  doc.text('Total Of payment', 140, currentTotalY + 5);
+  doc.text('Total Of payment', 120, currentTotalY + 5);
   doc.text('Rp.', 165, currentTotalY + 5);
   doc.text(new Intl.NumberFormat('id-ID').format(totalTagihan), 196, currentTotalY + 5, { align: 'right' });
 
@@ -357,16 +357,15 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
 
   // Signatures
   const currentDateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Denpasar, ${currentDateStr}`, 196, terbilangY, { align: 'right' });
-  doc.text(config.name, 196, terbilangY + 5, { align: 'right' });
-
   let signatureName = 'Eka Sutrisna Putra';
   if (bankOwner) {
     signatureName = bankOwner.replace(/^(?:a\.n\.?|an\.?)\s*/i, '').trim();
   }
+  
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Denpasar, ${currentDateStr}`, 196, terbilangY, { align: 'right' });
   doc.setFont('helvetica', 'bold');
-  doc.text(signatureName, 196, terbilangY + 30, { align: 'right' });
+  doc.text(signatureName, 196, terbilangY + 5, { align: 'right' });
 
   const docTypeCapitalized = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
   doc.save(`${docTypeCapitalized}_${job.client_name.replace(/\s+/g, '_')}_${job.job_date}.pdf`);
