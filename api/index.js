@@ -114,12 +114,25 @@ async function uploadToSupabase(fileBuffer, mimetype, folder = 'uploads') {
 // ─── Helper: Parse multipart/form-data tanpa multer (native) ─────────────────
 function parseMultipart(req) {
     return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout parsing request')), 15000);
+        
+        if (req.is('application/json') || req.is('json')) {
+            clearTimeout(timer);
+            return resolve({ fields: req.body || {}, files: [] });
+        }
+
+        const contentType = req.headers['content-type'];
+        if (!contentType || !contentType.includes('multipart/form-data')) {
+            clearTimeout(timer);
+            return resolve({ fields: req.body || {}, files: [] });
+        }
+        
         const chunks = [];
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
+            clearTimeout(timer);
             const body = Buffer.concat(chunks);
-            const contentType = req.headers['content-type'];
-            const boundaryMatch = contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/);
+            const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
             const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
             if (!boundary) return resolve({ fields: {}, files: [] });
 
