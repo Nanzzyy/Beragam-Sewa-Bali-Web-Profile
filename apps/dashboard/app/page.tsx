@@ -40,7 +40,7 @@ export default function DashboardApp() {
         const keysToRemove = ['bsb_company_logo', 'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info'];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k && !k.startsWith('sb-') && !k.includes('tab') && !k.includes('theme') && !k.includes('supabase')) {
+          if (k && !k.startsWith('sb-') && !k.includes('tab') && !k.includes('theme') && !k.includes('supabase') && !k.includes('categories') && !k.includes('staff')) {
             keysToRemove.push(k);
           }
         }
