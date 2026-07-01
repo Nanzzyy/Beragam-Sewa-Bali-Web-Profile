@@ -213,13 +213,28 @@ app.get('/api/admin/overview', async (req, res) => {
         const services = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='service'");
         const packages = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='package'");
         const gallery = await db.query("SELECT COUNT(*) FROM section_images WHERE section_key='gallery'");
-        
+        let inventoryCount = 0;
+        let inflow = 0;
+        let outflow = 0;
+        try {
+            const invRes = await db.query("SELECT COUNT(*) FROM items");
+            inventoryCount = parseInt(invRes.rows[0].count) || 0;
+            
+            const cfRes = await db.query("SELECT category, SUM(ending_balance) as total FROM v_trial_balance WHERE category IN ('Revenue', 'Expense') GROUP BY category");
+            const rev = cfRes.rows.find(r => r.category === 'Revenue');
+            const exp = cfRes.rows.find(r => r.category === 'Expense');
+            inflow = rev ? parseInt(rev.total) : 0;
+            outflow = exp ? parseInt(exp.total) : 0;
+        } catch (e) {
+            console.warn('Could not fetch inventory or cashflow stats:', e.message);
+        }
+
         res.json({
             services: parseInt(services.rows[0].count),
             packages: parseInt(packages.rows[0].count),
             gallery: parseInt(gallery.rows[0].count),
-            inventory: 0,
-            cashflow: { inflow: 0, outflow: 0 }
+            inventory: inventoryCount,
+            cashflow: { inflow, outflow }
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
