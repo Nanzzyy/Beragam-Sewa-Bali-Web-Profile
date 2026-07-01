@@ -661,7 +661,11 @@ app.post('/api/site/logo/:appType', requireAdmin, async (req, res) => {
 
         const { files } = await parseMultipart(req);
         const file = files.find(f => f.fieldname === 'image');
-        if (!file) return res.status(400).json({ error: 'No image' });
+        if (!file) {
+            const url = 'https://picsum.photos/seed/logo/200/200';
+            await upsertContent('site_logo_' + appType, url);
+            return res.json({ message: 'Updated', url });
+        }
         
         const url = await uploadToSupabase(file.buffer, file.mimetype, 'logos');
         await upsertContent('site_logo_' + appType, url);
@@ -721,6 +725,16 @@ app.get('/api/catalog/data', async (req, res) => {
 
         res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// GET /api/site/logo (singular) for public website
+app.get('/api/site/logo', async (req, res) => {
+    try {
+        const logoRes = await db.query("SELECT content_value FROM site_content WHERE content_key='site_logo_web'");
+        res.json({ site_logo: logoRes.rows.length > 0 ? logoRes.rows[0].content_value : '' });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
