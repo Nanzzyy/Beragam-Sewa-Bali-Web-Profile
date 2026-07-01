@@ -106,6 +106,24 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
     setter('Rp. ' + new Intl.NumberFormat('id-ID').format(parseInt(numeric, 10)));
   };
 
+  const handleDiscountChange = (val: string) => {
+    if (val.includes('%')) {
+      const numeric = val.replace(/[^0-9]/g, '');
+      if (!numeric) {
+        setDiscount('');
+        return;
+      }
+      setDiscount(numeric + '%');
+      return;
+    }
+    const numeric = val.replace(/[^0-9]/g, '');
+    if (!numeric) {
+      setDiscount('');
+      return;
+    }
+    setDiscount('Rp. ' + new Intl.NumberFormat('id-ID').format(parseInt(numeric, 10)));
+  };
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleEsc);
@@ -131,6 +149,15 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
 
     setSaving(true);
     try {
+      let finalDiscount = 0;
+      if (discount.includes('%')) {
+        const percent = parseInt(discount.replace(/[^0-9]/g, ''), 10) || 0;
+        const rentalFee = parseInt(totalRentalFee.replace(/[^0-9]/g, ''), 10) || 0;
+        finalDiscount = Math.round(rentalFee * (percent / 100));
+      } else {
+        finalDiscount = parseInt(discount.replace(/[^0-9]/g, ''), 10) || 0;
+      }
+
       const payload = {
         client_name: clientName.trim(),
         client_phone: clientPhone.trim() || null,
@@ -143,7 +170,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
         status,
         total_rental_fee: parseInt(totalRentalFee.replace(/[^0-9]/g, ''), 10) || 0,
         total_vendor_cost: parseInt(totalVendorCost.replace(/[^0-9]/g, ''), 10) || 0,
-        discount: parseInt(discount.replace(/[^0-9]/g, ''), 10) || 0,
+        discount: finalDiscount,
         payment_method: paymentMethod,
         pph_umkm_enabled: pphUmkmEnabled,
       };
@@ -200,7 +227,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
           {/* Financial */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <InputField label="Total Biaya Sewa (Rp)" required type="text" value={totalRentalFee} onChange={v => handleCurrencyChange(v, setTotalRentalFee)} placeholder="Rp. 0" />
-            <InputField label="Diskon (Rp)" type="text" value={discount} onChange={v => handleCurrencyChange(v, setDiscount)} placeholder="Rp. 0" />
+            <InputField label="Diskon (Nominal / %)" type="text" value={discount} onChange={handleDiscountChange} placeholder="Contoh: 10% atau 50000" />
             <InputField label="Biaya Vendor (Opsional)" type="text" value={totalVendorCost} onChange={v => handleCurrencyChange(v, setTotalVendorCost)} placeholder="Rp. 0" />
             <CustomSelect 
               label="Akun Penerimaan (Cashflow)" 
