@@ -1,3 +1,7 @@
+for app in dashboard cashflow web; do
+  CONFIG_FILE="apps/$app/next.config.ts"
+  if [ -f "$CONFIG_FILE" ]; then
+    cat << 'INNER_EOF' > "$CONFIG_FILE"
 import type { NextConfig } from "next";
 
 const securityHeaders = [
@@ -27,3 +31,7 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+INNER_EOF
+  fi
+done
+sh update_next_configs.sh

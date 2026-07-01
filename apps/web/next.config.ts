@@ -32,8 +32,8 @@ const nextConfig: NextConfig = {
       { source: '/contact', destination: '/#footer', permanent: true },
       { source: '/services', destination: '/#service', permanent: true },
       { source: '/products', destination: '/#package', permanent: true },
-      { source: '/login', destination: 'https://admin.beragamsewabali.com/', permanent: true },
-      { source: '/register', destination: 'https://admin.beragamsewabali.com/', permanent: true },
+      { source: '/login', destination: 'https://dashboard.beragamsewabali.com/', permanent: true },
+      { source: '/register', destination: 'https://dashboard.beragamsewabali.com/', permanent: true },
       { source: '/gallery', destination: '/#gallery', permanent: false },
       { source: '/faq', destination: '/#faq', permanent: false },
       { source: '/blog', destination: '/#blog', permanent: false },
@@ -42,17 +42,6 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      // Domain-based rewrites for admin panel
-      {
-        source: "/",
-        has: [
-          {
-            type: "host",
-            value: "admin.beragamsewabali.com",
-          },
-        ],
-        destination: "/admin/index.html",
-      },
       {
         source: "/:path*",
         has: [

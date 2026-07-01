@@ -1442,12 +1442,12 @@ export default function DashboardApp() {
                     </div>
                     <div className="flex-1 flex items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
                       <div className="flex items-center gap-2 truncate">
-                        <Lock className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                        <span className="truncate">https://admin.beragamsewabali.com</span>
+                        <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span className="truncate text-emerald-700 dark:text-emerald-400 font-bold">Integrated Internal Admin Panel</span>
                       </div>
                       <button onClick={() => {
-                        navigator.clipboard.writeText('https://admin.beragamsewabali.com');
-                        toast.success('URL disalin ke papan klip!');
+                        navigator.clipboard.writeText(window.location.origin + '/admin/index.html');
+                        toast.success('URL internal disalin!');
                       }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-slate-600 transition">
                         <Copy className="w-3.5 h-3.5" />
                       </button>
@@ -1455,7 +1455,7 @@ export default function DashboardApp() {
                   </div>
                   <div className="flex-1 relative bg-slate-50 dark:bg-slate-950">
                     <iframe 
-                      src="https://admin.beragamsewabali.com" 
+                      src="/admin/index.html" 
                       className="w-full h-full border-0 absolute inset-0"
                       title="BSB Admin Panel Live Preview"
                       allow="clipboard-read; clipboard-write; display-capture"
