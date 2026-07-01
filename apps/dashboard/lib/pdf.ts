@@ -26,16 +26,22 @@ export async function getCompanyConfig() {
     email: 'info@beragamsewabali.com',
     phone: '08123456789',
     payment: 'Bank BCA: 1234567890 a.n Beragam Sewa Bali',
-    logo: null as string | null
+    logo: null as string | null,
+    header: null as string | null
   };
 
   try {
     const { data } = await supabase.from('site_content').select('*');
     if (data && data.length > 0) {
       let logoUrl = data.find(d => d.content_key === 'site_logo_dashboard')?.content_value || null;
+      let headerUrl = data.find(d => d.content_key === 'site_header_image')?.content_value || null;
       let base64Logo = null;
+      let base64Header = null;
       if (logoUrl) {
         base64Logo = await getBase64Image(logoUrl);
+      }
+      if (headerUrl) {
+        base64Header = await getBase64Image(headerUrl);
       }
       return {
         name: data.find(d => d.content_key === 'bsb_company_name')?.content_value || defaultConfig.name,
@@ -43,7 +49,8 @@ export async function getCompanyConfig() {
         email: data.find(d => d.content_key === 'bsb_company_email')?.content_value || defaultConfig.email,
         phone: data.find(d => d.content_key === 'bsb_company_phone')?.content_value || defaultConfig.phone,
         payment: data.find(d => d.content_key === 'bsb_company_payment_info')?.content_value || defaultConfig.payment,
-        logo: base64Logo
+        logo: base64Logo,
+        header: base64Header
       };
     }
   } catch (e) {
@@ -58,16 +65,21 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
   const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
   const config = await getCompanyConfig();
 
+  let yOffset = 0;
+  if (config.header) {
+    try { doc.addImage(config.header, 'PNG', 0, 0, 210, 35); yOffset = 25; } 
+    catch (e) { try { doc.addImage(config.header, 'JPEG', 0, 0, 210, 35); yOffset = 25; } catch (e2) {} }
+  }
+
   // Header
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('SURAT JALAN', 105, 20, { align: 'center' });
+  doc.text('SURAT JALAN', 105, 20 + yOffset, { align: 'center' });
   
-  if (config.logo) {
+  if (config.logo && !config.header) {
     try {
       doc.addImage(config.logo, 'PNG', 14, 8, 18, 18);
     } catch (e) {
-      // fallback to JPEG if PNG fails
       try {
         doc.addImage(config.logo, 'JPEG', 14, 8, 18, 18);
       } catch (e2) {}
@@ -76,21 +88,21 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(config.name, 105, 26, { align: 'center' });
-  doc.text(config.address, 105, 31, { align: 'center' });
+  doc.text(config.name, 105, 26 + yOffset, { align: 'center' });
+  doc.text(config.address, 105, 31 + yOffset, { align: 'center' });
 
   // Job Info
   doc.setLineWidth(0.5);
-  doc.line(14, 35, 196, 35);
+  doc.line(14, 35 + yOffset, 196, 35 + yOffset);
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Informasi Pengiriman:', 14, 45);
+  doc.text('Informasi Pengiriman:', 14, 45 + yOffset);
   
   doc.setFont('helvetica', 'normal');
-  doc.text(`Kepada: ${job.client_name}`, 14, 52);
-  doc.text(`Venue: ${job.venue}`, 14, 58);
-  doc.text(`Tanggal Setup: ${formatDate(job.setup_date)}`, 14, 64);
-  doc.text(`Kontak: ${job.client_phone || '-'}`, 14, 70);
+  doc.text(`Kepada: ${job.client_name}`, 14, 52 + yOffset);
+  doc.text(`Venue: ${job.venue}`, 14, 58 + yOffset);
+  doc.text(`Tanggal Setup: ${formatDate(job.setup_date)}`, 14, 64 + yOffset);
+  doc.text(`Kontak: ${job.client_phone || '-'}`, 14, 70 + yOffset);
 
   // Table
   const tableData = items.map((item, index) => [
@@ -100,7 +112,7 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
   ]);
 
   autoTable(doc, {
-    startY: 80,
+    startY: 80 + yOffset,
     head: [['No', 'Nama Barang / Deskripsi', 'Qty']],
     body: tableData,
     theme: 'grid',
@@ -170,43 +182,50 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
     }
   }
 
+  let yOff = 0;
+  if (config.header) {
+    try { doc.addImage(config.header, 'PNG', 0, 0, 210, 35); yOff = 25; } 
+    catch (e) { try { doc.addImage(config.header, 'JPEG', 0, 0, 210, 35); yOff = 25; } catch (e2) {} }
+  }
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   
-  if (config.logo) {
+  if (config.logo && !config.header) {
     try {
       doc.addImage(config.logo, 'PNG', 14, 8, 18, 18);
     } catch (e) {
       try { doc.addImage(config.logo, 'JPEG', 14, 8, 18, 18); } catch(e2) {}
     }
     // Adjust Y coordinate of left column to avoid overlapping with the logo
-    doc.text('CLIENT', 14, 30); doc.text(':', 35, 30); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 30);
-    doc.setFont('helvetica', 'bold'); doc.text('CONTACT', 14, 35); doc.text(':', 35, 35); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 35);
-    doc.setFont('helvetica', 'bold'); doc.text('ADDRESS', 14, 40); doc.text(':', 35, 40); doc.setFont('helvetica', 'normal'); doc.text(job.venue || '-', 40, 40);
-    doc.setFont('helvetica', 'bold'); doc.text('EMAIL', 14, 45); doc.text(':', 35, 45); doc.setFont('helvetica', 'normal'); doc.text(job.client_email || '-', 40, 45);
-    doc.setFont('helvetica', 'bold'); doc.text('PHONE', 14, 50); doc.text(':', 35, 50); doc.setFont('helvetica', 'normal'); doc.text(job.client_phone || '-', 40, 50);
-    doc.setFont('helvetica', 'bold'); doc.text('PROJECT', 14, 55); doc.text(':', 35, 55); doc.setFont('helvetica', 'normal'); doc.text(job.description || 'EVENT', 40, 55);
-    doc.setFont('helvetica', 'bold'); doc.text('TGL', 14, 60); doc.text(':', 35, 60); doc.setFont('helvetica', 'normal'); doc.text(`${formatDate(job.setup_date)} s/d ${formatDate(job.completion_date)}`, 40, 60);
+    doc.text('CLIENT', 14, 30 + yOff); doc.text(':', 35, 30 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 38, 30 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('CONTACT', 14, 35 + yOff); doc.text(':', 35, 35 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 38, 35 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('ADDRESS', 14, 40 + yOff); doc.text(':', 35, 40 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.venue || '-', 38, 40 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('EMAIL', 14, 45 + yOff); doc.text(':', 35, 45 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.client_email || '-', 38, 45 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('PHONE', 14, 50 + yOff); doc.text(':', 35, 50 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.client_phone || '-', 38, 50 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('PROJECT', 14, 55 + yOff); doc.text(':', 35, 55 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.description || 'EVENT', 38, 55 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('TGL', 14, 60 + yOff); doc.text(':', 35, 60 + yOff); doc.setFont('helvetica', 'normal'); doc.text(`${formatDate(job.setup_date)} s/d ${formatDate(job.completion_date)}`, 38, 60 + yOff);
   } else {
     // Original Y coordinates
-    doc.text('CLIENT', 14, 20); doc.text(':', 35, 20); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 20);
-    doc.setFont('helvetica', 'bold'); doc.text('CONTACT', 14, 25); doc.text(':', 35, 25); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 40, 25);
-    doc.setFont('helvetica', 'bold'); doc.text('ADDRESS', 14, 30); doc.text(':', 35, 30); doc.setFont('helvetica', 'normal'); doc.text(job.venue || '-', 40, 30);
-    doc.setFont('helvetica', 'bold'); doc.text('EMAIL', 14, 35); doc.text(':', 35, 35); doc.setFont('helvetica', 'normal'); doc.text(job.client_email || '-', 40, 35);
-    doc.setFont('helvetica', 'bold'); doc.text('PHONE', 14, 40); doc.text(':', 35, 40); doc.setFont('helvetica', 'normal'); doc.text(job.client_phone || '-', 40, 40);
-    doc.setFont('helvetica', 'bold'); doc.text('PROJECT', 14, 45); doc.text(':', 35, 45); doc.setFont('helvetica', 'normal'); doc.text(job.description || 'EVENT', 40, 45);
-    doc.setFont('helvetica', 'bold'); doc.text('TGL', 14, 50); doc.text(':', 35, 50); doc.setFont('helvetica', 'normal'); doc.text(`${formatDate(job.setup_date)} s/d ${formatDate(job.completion_date)}`, 40, 50);
+    doc.text('CLIENT', 14, 20 + yOff); doc.text(':', 35, 20 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 38, 20 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('CONTACT', 14, 25 + yOff); doc.text(':', 35, 25 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.client_name, 38, 25 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('ADDRESS', 14, 30 + yOff); doc.text(':', 35, 30 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.venue || '-', 38, 30 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('EMAIL', 14, 35 + yOff); doc.text(':', 35, 35 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.client_email || '-', 38, 35 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('PHONE', 14, 40 + yOff); doc.text(':', 35, 40 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.client_phone || '-', 38, 40 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('PROJECT', 14, 45 + yOff); doc.text(':', 35, 45 + yOff); doc.setFont('helvetica', 'normal'); doc.text(job.description || 'EVENT', 38, 45 + yOff);
+    doc.setFont('helvetica', 'bold'); doc.text('TGL', 14, 50 + yOff); doc.text(':', 35, 50 + yOff); doc.setFont('helvetica', 'normal'); doc.text(`${formatDate(job.setup_date)} s/d ${formatDate(job.completion_date)}`, 38, 50 + yOff);
   }
 
   // Right Column: Office Info
-  const rightColX = 120;
-  const rightColTextX = 150;
-  doc.setFont('helvetica', 'bold'); doc.text('OFFICE ADDRESS', rightColX, 20); doc.text(':', rightColTextX - 2, 20); doc.setFont('helvetica', 'normal'); 
-  doc.text(doc.splitTextToSize(config.address, 45), rightColTextX, 20);
+  const rightColX = 110;
+  const rightColColonX = 142;
+  const rightColTextX = 145;
+  doc.setFont('helvetica', 'bold'); doc.text('OFFICE ADDRESS', rightColX, 20 + yOff); doc.text(':', rightColColonX, 20 + yOff); doc.setFont('helvetica', 'normal'); 
+  doc.text(doc.splitTextToSize(config.address, 55), rightColTextX, 20 + yOff);
   
-  const phoneY = 30;
-  doc.setFont('helvetica', 'bold'); doc.text('PHONE', rightColX, phoneY); doc.text(':', rightColTextX - 2, phoneY); doc.setFont('helvetica', 'normal'); doc.text(config.phone, rightColTextX, phoneY);
-  doc.setFont('helvetica', 'bold'); doc.text('EMAIL', rightColX, phoneY + 5); doc.text(':', rightColTextX - 2, phoneY + 5); doc.setFont('helvetica', 'normal'); doc.text(config.email, rightColTextX, phoneY + 5);
+  const phoneY = 30 + yOff;
+  doc.setFont('helvetica', 'bold'); doc.text('PHONE', rightColX, phoneY); doc.text(':', rightColColonX, phoneY); doc.setFont('helvetica', 'normal'); doc.text(config.phone, rightColTextX, phoneY);
+  doc.setFont('helvetica', 'bold'); doc.text('EMAIL', rightColX, phoneY + 5); doc.text(':', rightColColonX, phoneY + 5); doc.setFont('helvetica', 'normal'); doc.text(config.email, rightColTextX, phoneY + 5);
   
   // Parse bank info dynamically
   let bankName = 'BCA';
@@ -224,13 +243,13 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
     if (ownerMatch) bankOwner = 'an. ' + ownerMatch[1].trim();
   }
 
-  doc.setFont('helvetica', 'bold'); doc.text('BANK ACCOUNT', rightColX, phoneY + 10); doc.text(':', rightColTextX - 2, phoneY + 10); doc.setFont('helvetica', 'normal'); 
+  doc.setFont('helvetica', 'bold'); doc.text('BANK ACCOUNT', rightColX, phoneY + 10); doc.text(':', rightColColonX, phoneY + 10); doc.setFont('helvetica', 'normal'); 
   doc.text(bankName, rightColTextX, phoneY + 10);
   doc.text(bankNumber, rightColTextX, phoneY + 15);
-  doc.text(bankOwner, rightColTextX, phoneY + 20);
+  doc.text(doc.splitTextToSize(bankOwner, 60), rightColTextX, phoneY + 20);
 
   // Title and Number
-  const titleY = 75;
+  const titleY = 75 + yOff;
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text(type, 14, titleY);

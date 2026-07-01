@@ -92,6 +92,7 @@ export default function DashboardApp() {
   const [compPhone, setCompPhone] = useState('08123456789');
   const [compPayment, setCompPayment] = useState('Bank BCA: 1234567890 a.n Beragam Sewa Bali');
   const [compLogo, setCompLogo] = useState<string | null>(null);
+  const [compHeaderImg, setCompHeaderImg] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string>('');
   const [staffNicknames, setStaffNicknames] = useState<Record<string, string>>({});
 
@@ -168,6 +169,7 @@ export default function DashboardApp() {
       setCompPhone('08123456789');
       setCompPayment('Bank BCA: 1234567890 a.n Beragam Sewa Bali');
       setCompLogo(null);
+      setCompHeaderImg(null);
       
       const storedCategories = localStorage.getItem('bsb_custom_categories');
       if (storedCategories) {
@@ -177,7 +179,7 @@ export default function DashboardApp() {
       }
       
       supabase.from('site_content').select('*').in('content_key', [
-        'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'bsb_staff_nicknames'
+        'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'site_header_image', 'bsb_staff_nicknames'
       ]).then(({ data }) => {
         if (data && data.length > 0) {
           const getVal = (key: string, def: string) => data.find(d => d.content_key === key)?.content_value || def;
@@ -199,6 +201,9 @@ export default function DashboardApp() {
           
           const dbLogo = getVal('site_logo_dashboard', '');
           if (dbLogo) setCompLogo(dbLogo);
+          
+          const dbHeader = getVal('site_header_image', '');
+          if (dbHeader) setCompHeaderImg(dbHeader);
           
           const dbNicknames = getVal('bsb_staff_nicknames', '');
           if (dbNicknames) {
@@ -826,6 +831,10 @@ export default function DashboardApp() {
                         updates.push({ content_key: 'site_logo_dashboard', content_value: compLogo });
                       }
                       
+                      if (compHeaderImg !== null) {
+                        updates.push({ content_key: 'site_header_image', content_value: compHeaderImg });
+                      }
+                      
                       try {
                         const { error } = await supabase.from('site_content').upsert(updates, { onConflict: 'content_key' });
                         if (error) throw error;
@@ -887,10 +896,36 @@ export default function DashboardApp() {
                           )}
                         </div>
                       </div>
+                      
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Kop Surat / Header PDF Full Width (Opsional)</label>
+                        <div className="flex items-center gap-4">
+                          <input type="file" accept="image/*" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const base64 = reader.result as string;
+                                setCompHeaderImg(base64);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
+                          {compHeaderImg && (
+                            <img src={compHeaderImg} alt="Header Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">Jika diisi, gambar ini akan ditempatkan pada bagian paling atas PDF selebar kertas.</p>
+                      </div>
 
-                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        {compHeaderImg && (
+                          <button type="button" onClick={() => setCompHeaderImg('')} className="px-4 py-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 font-bold rounded-xl text-xs transition">
+                            Hapus Header
+                          </button>
+                        )}
                         {compLogo && (
-                          <button type="button" onClick={() => setCompLogo(null)} className="px-4 py-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 font-bold rounded-xl text-xs transition">
+                          <button type="button" onClick={() => setCompLogo('')} className="px-4 py-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 font-bold rounded-xl text-xs transition">
                             Hapus Logo
                           </button>
                         )}
