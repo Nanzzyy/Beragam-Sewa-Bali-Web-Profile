@@ -1427,7 +1427,7 @@ export default function DashboardApp() {
                     <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Admin Panel (Landing Page)</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Live preview & kontrol penuh konten landing page publik.</p>
                   </div>
-                  <a href="https://admin.beragamsewabali.com" target="_blank" rel="noopener noreferrer"
+                  <a href="/admin/index.html" target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 w-full sm:w-auto justify-center">
                     <ExternalLink className="w-4 h-4" /> Buka Tab Baru
                   </a>
@@ -1442,12 +1442,12 @@ export default function DashboardApp() {
                     </div>
                     <div className="flex-1 flex items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
                       <div className="flex items-center gap-2 truncate">
-                        <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        <span className="truncate text-emerald-700 dark:text-emerald-400 font-bold">Integrated Internal Admin Panel</span>
+                        <Lock className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                        <span className="truncate">Internal Admin Module</span>
                       </div>
                       <button onClick={() => {
                         navigator.clipboard.writeText(window.location.origin + '/admin/index.html');
-                        toast.success('URL internal disalin!');
+                        toast.success('URL disalin ke papan klip!');
                       }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-slate-600 transition">
                         <Copy className="w-3.5 h-3.5" />
                       </button>

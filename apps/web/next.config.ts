@@ -32,16 +32,24 @@ const nextConfig: NextConfig = {
       { source: '/contact', destination: '/#footer', permanent: true },
       { source: '/services', destination: '/#service', permanent: true },
       { source: '/products', destination: '/#package', permanent: true },
-      { source: '/login', destination: 'https://dashboard.beragamsewabali.com/', permanent: true },
-      { source: '/register', destination: 'https://dashboard.beragamsewabali.com/', permanent: true },
+      { source: '/login', destination: 'https://admin.beragamsewabali.com/', permanent: true },
+      { source: '/register', destination: 'https://admin.beragamsewabali.com/', permanent: true },
       { source: '/gallery', destination: '/#gallery', permanent: false },
       { source: '/faq', destination: '/#faq', permanent: false },
       { source: '/blog', destination: '/#blog', permanent: false },
-      { source: '/booking', destination: '/#footer', permanent: false }
-    ];
-  },
-  async rewrites() {
-    return [
+      { source: '/booking', destination: '/#footer', permanent: false },
+      // Redirect admin panel to dashboard
+      {
+        source: "/",
+        has: [
+          {
+            type: "host",
+            value: "admin.beragamsewabali.com",
+          },
+        ],
+        destination: "https://dashboard.beragamsewabali.com",
+        permanent: true,
+      },
       {
         source: "/:path*",
         has: [
@@ -50,8 +58,13 @@ const nextConfig: NextConfig = {
             value: "admin.beragamsewabali.com",
           },
         ],
-        destination: "/admin/:path*",
-      },
+        destination: "https://dashboard.beragamsewabali.com",
+        permanent: true,
+      }
+    ];
+  },
+  async rewrites() {
+    return [
       // Domain-based rewrites for katalog
       {
         source: "/",
