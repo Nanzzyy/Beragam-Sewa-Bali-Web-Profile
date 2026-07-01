@@ -51,24 +51,10 @@ app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginResourcePolicy: false 
 }));
-const allowedOrigins = [
-  'https://www.beragamsewabali.com',
-  'https://beragamsewabali.com',
-  'https://admin.beragamsewabali.com',
-  'https://dashboard.beragamsewabali.com',
-  'https://katalog.beragamsewabali.com'
-];
+const allowedOrigins = '*';
 
 app.use(cors({
-  origin: function (origin, callback) {
-    // Izinkan jika origin ada di whitelist atau request datang dari tool seperti Postman/Mobile Apps (null/undefined)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Blocked by CORS policy for Beragam Sewa Bali'));
-    }
-  },
-  credentials: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
