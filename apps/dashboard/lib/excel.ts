@@ -139,6 +139,28 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     ws.getCell('A15').value = title;
     ws.getCell('C15').value = title;
 
+    const images = ws.getImages();
+    if (images.length >= 2) {
+      // images[1] is the stamp. Move it to J47 (between J46 Date and J53 Company Name)
+      images[1].range.tl.nativeCol = 9; // J
+      images[1].range.tl.nativeRow = 46; // Row 47
+
+      // images[0] is the header. Replace if config.header exists
+      if (config.header && typeof config.header === 'string') {
+        const parts = config.header.split(',');
+        if (parts.length === 2) {
+          const base64Data = parts[1];
+          const extMatch = config.header.match(/data:image\/(.+);/);
+          const ext = extMatch ? extMatch[1] : 'png';
+          const imageId = wb.addImage({
+            base64: base64Data,
+            extension: (ext === 'jpeg' ? 'jpeg' : 'png') as any,
+          });
+          images[0].imageId = imageId;
+        }
+      }
+    }
+
     const date = new Date(job.created_at || Date.now());
     const docTypeCode = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
     const docNo = `NO : 01/BSB/${docTypeCode}/${getRomanMonth(date)}/${date.getFullYear()}`;
@@ -272,7 +294,21 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     ws.getCell('J46').value = `Denpasar, ${currentDate}`;
     ws.getCell('J47').value = null; // Clear to make room for stamp
-    ws.getCell('J53').value = config.name;
+    ws.getCell('J53').value = config.tax_name || config.name;
+
+    // Adjust row and column sizing for better spacing
+    ws.columns.forEach(col => {
+      if (col && col.width) {
+        col.width = col.width + 1.5;
+      }
+    });
+    ws.eachRow(row => {
+      if (row.height) {
+        row.height = row.height + 4;
+      } else {
+        row.height = 20;
+      }
+    });
 
     // Write Buffer and Save
     const buffer = await wb.xlsx.writeBuffer();

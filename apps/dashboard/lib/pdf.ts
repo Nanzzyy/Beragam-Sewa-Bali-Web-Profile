@@ -26,6 +26,7 @@ export async function getCompanyConfig() {
     email: 'info@beragamsewabali.com',
     phone: '08123456789',
     payment: 'Bank BCA: 1234567890 a.n Beragam Sewa Bali',
+    tax_name: '',
     logo: null as string | null,
     header: null as string | null
   };
@@ -45,6 +46,7 @@ export async function getCompanyConfig() {
       }
       return {
         name: data.find(d => d.content_key === 'bsb_company_name')?.content_value || defaultConfig.name,
+        tax_name: data.find(d => d.content_key === 'bsb_company_tax_name')?.content_value || defaultConfig.tax_name,
         address: data.find(d => d.content_key === 'bsb_company_address')?.content_value || defaultConfig.address,
         email: data.find(d => d.content_key === 'bsb_company_email')?.content_value || defaultConfig.email,
         phone: data.find(d => d.content_key === 'bsb_company_phone')?.content_value || defaultConfig.phone,
@@ -363,7 +365,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   doc.setFont('helvetica', 'normal');
   doc.text(`Denpasar, ${currentDateStr}`, 196, terbilangY, { align: 'right' });
   doc.setFont('helvetica', 'bold');
-  doc.text(config.name, 196, terbilangY + 30, { align: 'right' });
+  doc.text(config.tax_name || config.name, 196, terbilangY + 30, { align: 'right' });
 
   const docTypeCapitalized = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
   doc.save(`${docTypeCapitalized}_${job.client_name.replace(/\s+/g, '_')}_${job.job_date}.pdf`);

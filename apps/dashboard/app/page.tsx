@@ -10,7 +10,7 @@ const JobDetailModal = dynamic(() => import('../components/JobDetailModal'), { s
 const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: false });
 const PackageModal = dynamic(() => import('../components/PackageModal'), { ssr: false });
 const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie, History } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useTheme } from 'next-themes';
 import { toast } from 'react-hot-toast';
@@ -87,6 +87,7 @@ export default function DashboardApp() {
 
   // Company and Document settings
   const [compName, setCompName] = useState('Beragam Sewa Bali');
+  const [compTaxName, setCompTaxName] = useState('');
   const [compAddress, setCompAddress] = useState('Jl. By Pass Ngurah Rai, Denpasar, Bali');
   const [compEmail, setCompEmail] = useState('info@beragamsewabali.com');
   const [compPhone, setCompPhone] = useState('08123456789');
@@ -140,6 +141,9 @@ export default function DashboardApp() {
   // Staff Modal State
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [staffModalData, setStaffModalData] = useState<{ id?: string; email: string; role: string; nickname?: string } | null>(null);
+  
+  const [staffHistoryModalOpen, setStaffHistoryModalOpen] = useState(false);
+  const [staffHistoryData, setStaffHistoryData] = useState<{ id: string; name: string } | null>(null);
 
   // Cashflow Modal State
   const [cashflowModalOpen, setCashflowModalOpen] = useState(false);
@@ -165,6 +169,7 @@ export default function DashboardApp() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setCompName('Beragam Sewa Bali');
+      setCompTaxName('');
       setCompAddress('Jl. By Pass Ngurah Rai, Denpasar, Bali');
       setCompEmail('info@beragamsewabali.com');
       setCompPhone('08123456789');
@@ -180,13 +185,16 @@ export default function DashboardApp() {
       }
       
       supabase.from('site_content').select('*').in('content_key', [
-        'bsb_company_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'site_header_image', 'bsb_staff_nicknames'
+        'bsb_company_name', 'bsb_company_tax_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'site_header_image', 'bsb_staff_nicknames'
       ]).then(({ data }) => {
         if (data && data.length > 0) {
           const getVal = (key: string, def: string) => data.find(d => d.content_key === key)?.content_value || def;
           
           const dbName = getVal('bsb_company_name', '');
           if (dbName) setCompName(dbName);
+          
+          const dbTaxName = getVal('bsb_company_tax_name', '');
+          if (dbTaxName) setCompTaxName(dbTaxName);
           
           const dbAddress = getVal('bsb_company_address', '');
           if (dbAddress) setCompAddress(dbAddress);
@@ -815,6 +823,7 @@ export default function DashboardApp() {
                     <form onSubmit={async (e) => {
                       e.preventDefault();
                       safeSetItem('bsb_company_name', compName);
+                      safeSetItem('bsb_company_tax_name', compTaxName);
                       safeSetItem('bsb_company_address', compAddress);
                       safeSetItem('bsb_company_email', compEmail);
                       safeSetItem('bsb_company_phone', compPhone);
@@ -822,6 +831,7 @@ export default function DashboardApp() {
                       
                       const updates = [
                         { content_key: 'bsb_company_name', content_value: compName },
+                        { content_key: 'bsb_company_tax_name', content_value: compTaxName },
                         { content_key: 'bsb_company_address', content_value: compAddress },
                         { content_key: 'bsb_company_email', content_value: compEmail },
                         { content_key: 'bsb_company_phone', content_value: compPhone },
@@ -852,6 +862,14 @@ export default function DashboardApp() {
                           <input type="text" value={compName} onChange={e => setCompName(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
                         </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Company Tax Name (Opsional)</label>
+                          <input type="text" value={compTaxName} onChange={e => setCompTaxName(e.target.value)} placeholder="Misal: PT. PRAVEN BALI PRODUCTION"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">No. Telepon / WhatsApp</label>
                           <input type="text" value={compPhone} onChange={e => setCompPhone(e.target.value)}
@@ -1281,8 +1299,16 @@ export default function DashboardApp() {
                         )}
                         <div className="mt-auto">
                         <div className="flex items-center justify-between">
-                          <div className="text-xs font-medium px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                            {staff.role}
+                          <div className="flex items-center gap-2">
+                            <div className="text-xs font-medium px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                              {staff.role}
+                            </div>
+                            <button onClick={() => {
+                              setStaffHistoryData({ id: staff.id, name: sNick || staff.email });
+                              setStaffHistoryModalOpen(true);
+                            }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md transition-colors" title="Lihat Riwayat Job">
+                              <History className="w-4 h-4" />
+                            </button>
                           </div>
                           {userRole === 'owner' && (
                             <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition">
@@ -2180,6 +2206,54 @@ export default function DashboardApp() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Staff History Modal */}
+      {staffHistoryModalOpen && staffHistoryData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-2xl relative animate-slide-up max-h-[85vh] flex flex-col">
+            <button onClick={() => setStaffHistoryModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-4 mb-6 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shadow-inner">
+                <History className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Riwayat Job</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Semua job yang pernah diikuti oleh <span className="font-bold text-slate-700 dark:text-slate-300">{staffHistoryData.name}</span>.</p>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto pr-2 space-y-3 flex-1">
+              {(() => {
+                const hJobs = jobs.filter(j => j.job_staff?.some((js: any) => js.profile_id === staffHistoryData.id));
+                if (hJobs.length === 0) return <p className="text-center text-slate-500 py-8">Karyawan ini belum mengikuti job apapun.</p>;
+                return hJobs.sort((a, b) => new Date(b.job_date || 0).getTime() - new Date(a.job_date || 0).getTime()).map(job => (
+                  <div key={job.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white">{job.client_name}</h4>
+                      <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        {new Date(job.job_date || job.setup_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div className="mt-2 sm:mt-0">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-md ${
+                        job.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                        job.status === 'on_going' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' :
+                        'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                      }`}>
+                        {job.status === 'completed' ? 'Selesai' : job.status === 'on_going' ? 'Aktif' : job.status}
+                      </span>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
           </div>
         </div>
       )}
