@@ -271,13 +271,8 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     // Date and Signatures
     const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     ws.getCell('J46').value = `Denpasar, ${currentDate}`;
-    ws.getCell('J47').value = config.name;
-
-    let signatureName = 'Eka Sutrisna Putra';
-    if (bankOwner) {
-      signatureName = bankOwner.replace(/^(?:a\.n\.?|an\.?)\s*/i, '').trim();
-    }
-    ws.getCell('J53').value = signatureName;
+    ws.getCell('J47').value = null; // Clear to make room for stamp
+    ws.getCell('J53').value = config.name;
 
     // Write Buffer and Save
     const buffer = await wb.xlsx.writeBuffer();
