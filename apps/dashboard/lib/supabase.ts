@@ -16,8 +16,10 @@ export type AppRole = 'owner' | 'accounting' | 'staff' | 'guest';
 export interface Job {
   id: string;
   client_name: string;
+  contact_person: string | null;
   client_phone: string | null;
   client_email: string | null;
+  client_address: string | null;
   description: string | null;
   venue: string;
   setup_date: string;
@@ -33,6 +35,7 @@ export interface Job {
   created_at: string;
   updated_at: string;
   pph_umkm_enabled: boolean;
+  job_staff?: any[];
 }
 
 export interface Package {

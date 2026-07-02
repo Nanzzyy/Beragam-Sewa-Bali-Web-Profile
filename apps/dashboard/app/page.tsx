@@ -88,12 +88,14 @@ export default function DashboardApp() {
   // Company and Document settings
   const [compName, setCompName] = useState('Beragam Sewa Bali');
   const [compTaxName, setCompTaxName] = useState('');
+  const [compNpwp, setCompNpwp] = useState('');
   const [compAddress, setCompAddress] = useState('Jl. By Pass Ngurah Rai, Denpasar, Bali');
   const [compEmail, setCompEmail] = useState('info@beragamsewabali.com');
   const [compPhone, setCompPhone] = useState('08123456789');
   const [compPayment, setCompPayment] = useState('Bank BCA: 1234567890 a.n Beragam Sewa Bali');
   const [compLogo, setCompLogo] = useState<string | null>(null);
   const [compHeaderImg, setCompHeaderImg] = useState<string | null>(null);
+  const [compStampImage, setCompStampImage] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string>('');
   const [staffNicknames, setStaffNicknames] = useState<Record<string, string>>({});
 
@@ -185,7 +187,7 @@ export default function DashboardApp() {
       }
       
       supabase.from('site_content').select('*').in('content_key', [
-        'bsb_company_name', 'bsb_company_tax_name', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'site_header_image', 'bsb_staff_nicknames'
+        'bsb_company_name', 'bsb_company_tax_name', 'bsb_company_npwp', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'site_header_image', 'bsb_stamp_image', 'bsb_staff_nicknames'
       ]).then(({ data }) => {
         if (data && data.length > 0) {
           const getVal = (key: string, def: string) => data.find(d => d.content_key === key)?.content_value || def;
@@ -195,6 +197,9 @@ export default function DashboardApp() {
           
           const dbTaxName = getVal('bsb_company_tax_name', '');
           if (dbTaxName) setCompTaxName(dbTaxName);
+
+          const dbNpwp = getVal('bsb_company_npwp', '');
+          if (dbNpwp) setCompNpwp(dbNpwp);
           
           const dbAddress = getVal('bsb_company_address', '');
           if (dbAddress) setCompAddress(dbAddress);
@@ -213,6 +218,9 @@ export default function DashboardApp() {
           
           const dbHeader = getVal('site_header_image', '');
           if (dbHeader) setCompHeaderImg(dbHeader);
+
+          const dbStamp = getVal('bsb_stamp_image', '');
+          if (dbStamp) setCompStampImage(dbStamp);
           
           const dbNicknames = getVal('bsb_staff_nicknames', '');
           if (dbNicknames) {
@@ -824,6 +832,7 @@ export default function DashboardApp() {
                       e.preventDefault();
                       safeSetItem('bsb_company_name', compName);
                       safeSetItem('bsb_company_tax_name', compTaxName);
+                      safeSetItem('bsb_company_npwp', compNpwp);
                       safeSetItem('bsb_company_address', compAddress);
                       safeSetItem('bsb_company_email', compEmail);
                       safeSetItem('bsb_company_phone', compPhone);
@@ -832,6 +841,7 @@ export default function DashboardApp() {
                       const updates = [
                         { content_key: 'bsb_company_name', content_value: compName },
                         { content_key: 'bsb_company_tax_name', content_value: compTaxName },
+                        { content_key: 'bsb_company_npwp', content_value: compNpwp },
                         { content_key: 'bsb_company_address', content_value: compAddress },
                         { content_key: 'bsb_company_email', content_value: compEmail },
                         { content_key: 'bsb_company_phone', content_value: compPhone },
@@ -844,6 +854,10 @@ export default function DashboardApp() {
                       
                       if (compHeaderImg !== null) {
                         updates.push({ content_key: 'site_header_image', content_value: compHeaderImg });
+                      }
+
+                      if (compStampImage !== null) {
+                        updates.push({ content_key: 'bsb_stamp_image', content_value: compStampImage });
                       }
                       
                       try {
@@ -865,6 +879,19 @@ export default function DashboardApp() {
                         <div>
                           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Company Tax Name (Opsional)</label>
                           <input type="text" value={compTaxName} onChange={e => setCompTaxName(e.target.value)} placeholder="Misal: PT. PRAVEN BALI PRODUCTION"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">NPWP Perusahaan (Opsional)</label>
+                          <input type="text" value={compNpwp} onChange={e => setCompNpwp(e.target.value)} placeholder="Misal: 01.234.567.8-901.000"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Alamat Perusahaan</label>
+                          <input type="text" value={compAddress} onChange={e => setCompAddress(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
                         </div>
                       </div>
@@ -937,10 +964,36 @@ export default function DashboardApp() {
                         <p className="text-xs text-slate-500 mt-1">Jika diisi, gambar ini akan ditempatkan pada bagian paling atas PDF selebar kertas.</p>
                       </div>
 
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Gambar Stempel / Cap Perusahaan (Opsional)</label>
+                        <div className="flex items-center gap-4">
+                          <input type="file" accept="image/*" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const base64 = reader.result as string;
+                                setCompStampImage(base64);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
+                          {compStampImage && (
+                            <img src={compStampImage} alt="Stamp Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">Stempel akan muncul di antara tanggal dan nama perusahaan pada PDF &amp; Excel yang digenerate.</p>
+                      </div>
+
                       <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                         {compHeaderImg && (
                           <button type="button" onClick={() => setCompHeaderImg('')} className="px-4 py-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 font-bold rounded-xl text-xs transition">
                             Hapus Header
+                          </button>
+                        )}
+                        {compStampImage && (
+                          <button type="button" onClick={() => setCompStampImage('')} className="px-4 py-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 font-bold rounded-xl text-xs transition">
+                            Hapus Stempel
                           </button>
                         )}
                         {compLogo && (
@@ -953,6 +1006,7 @@ export default function DashboardApp() {
                         </button>
                       </div>
                     </form>
+
                   </div>
               </div>
             )}

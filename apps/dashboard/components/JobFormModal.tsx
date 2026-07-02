@@ -82,8 +82,10 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
   const [error, setError] = useState('');
 
   const [clientName, setClientName] = useState(job?.client_name || '');
+  const [contactPerson, setContactPerson] = useState(job?.contact_person || '');
   const [clientPhone, setClientPhone] = useState(job?.client_phone || '');
   const [clientEmail, setClientEmail] = useState(job?.client_email || '');
+  const [clientAddress, setClientAddress] = useState(job?.client_address || '');
   const [description, setDescription] = useState(job?.description || '');
   const [venue, setVenue] = useState(job?.venue || '');
   const [setupDate, setSetupDate] = useState(job?.setup_date || '');
@@ -160,8 +162,10 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
 
       const payload = {
         client_name: clientName.trim(),
+        contact_person: contactPerson.trim() || null,
         client_phone: clientPhone.trim() || null,
         client_email: clientEmail.trim() || null,
+        client_address: clientAddress.trim() || null,
         description: description.trim() || null,
         venue: venue.trim(),
         setup_date: setupDate,
@@ -203,10 +207,14 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
           {/* Client Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField label="Nama Client" required value={clientName} onChange={setClientName} placeholder="PT Maju Bersama" />
-            <InputField label="No. Telepon Client" value={clientPhone} onChange={setClientPhone} placeholder="08123456789" />
+            <InputField label="Contact Person" value={contactPerson} onChange={setContactPerson} placeholder="Nama PIC / Penanggung Jawab" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputField label="No. Telepon Client" value={clientPhone} onChange={setClientPhone} placeholder="08123456789" />
             <InputField label="Email Client (Opsional)" type="email" value={clientEmail} onChange={setClientEmail} placeholder="client@email.com" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputField label="Alamat Client (Address)" value={clientAddress} onChange={setClientAddress} placeholder="Jl. Contoh No. 1, Denpasar" />
             <InputField label="Venue / Lokasi Event" required value={venue} onChange={setVenue} placeholder="Bali Nusa Dua Convention Center" />
           </div>
 

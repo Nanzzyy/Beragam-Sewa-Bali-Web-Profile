@@ -93,12 +93,16 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
 
     // Client Info
     ws.getCell('C7').value = job.client_name;
-    ws.getCell('C8').value = job.client_name; // Contact Person
-    ws.getCell('C9').value = job.venue || '-'; // Address
+    ws.getCell('C8').value = job.contact_person || job.client_name; // Contact Person
+    ws.getCell('C9').value = job.client_address || '-'; // Address
     ws.getCell('C10').value = job.client_email || '-'; // Email
     ws.getCell('C11').value = job.client_phone || '-'; // Phone
     ws.getCell('C12').value = job.description || 'EVENT'; // Project
-    ws.getCell('C13').value = `TGL ${formatDate(job.setup_date)} s/d ${formatDate(job.completion_date)}`; // TGL
+    ws.getCell('C13').value = `TGL SETUP: ${formatDate(job.setup_date)} | TGL EVENT: ${formatDate(job.job_date)}`; // TGL
+    // Venue
+    const hasC14 = ws.getCell('C14');
+    hasC14.value = `VENUE: ${job.venue || '-'}`;
+    hasC14.alignment = { wrapText: true, vertical: 'middle' };
 
     // Office Info
     ws.getCell('I8').value = config.address;
@@ -110,14 +114,22 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     ws.getCell('I10').value = config.email;
     ws.getCell('J10').value = config.email;
 
-    ws.getCell('I11').value = bankName;
-    ws.getCell('J11').value = bankName;
-
-    ws.getCell('I12').value = bankNumber;
-    ws.getCell('J12').value = bankNumber;
-
-    ws.getCell('I13').value = bankOwner;
-    ws.getCell('J13').value = bankOwner;
+    // NPWP row
+    if (config.npwp) {
+      ws.getCell('I11').value = `NPWP: ${config.npwp}`;
+      ws.getCell('J11').value = `NPWP: ${config.npwp}`;
+      ws.getCell('I12').value = bankName;
+      ws.getCell('J12').value = bankName;
+      ws.getCell('I13').value = bankNumber;
+      ws.getCell('J13').value = bankNumber;
+    } else {
+      ws.getCell('I11').value = bankName;
+      ws.getCell('J11').value = bankName;
+      ws.getCell('I12').value = bankNumber;
+      ws.getCell('J12').value = bankNumber;
+      ws.getCell('I13').value = bankOwner;
+      ws.getCell('J13').value = bankOwner;
+    }
 
     // Apply text wrapping to prevent overlapping text
     const wrapCells = ['C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13', 'I8', 'J8', 'I9', 'J9', 'I10', 'J10', 'I11', 'J11', 'I12', 'J12', 'I13', 'J13'];
@@ -139,16 +151,13 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     ws.getCell('A15').value = title;
     ws.getCell('C15').value = title;
 
+    // Images: header replacement + stamp from config
     const images = ws.getImages();
-    if (images.length >= 2) {
-      // images[1] is the stamp. Move it to J47 (between J46 Date and J53 Company Name)
-      images[1].range.tl.nativeCol = 9; // J
-      images[1].range.tl.nativeRow = 46; // Row 47
-
+    if (images.length >= 1) {
       // images[0] is the header. Replace if config.header exists
       if (config.header && typeof config.header === 'string') {
         const parts = config.header.split(',');
-        if (parts.length === 2) {
+        if (parts.length >= 2) {
           const base64Data = parts[1];
           const extMatch = config.header.match(/data:image\/(.+);/);
           const ext = extMatch ? extMatch[1] : 'png';
@@ -156,9 +165,32 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
             base64: base64Data,
             extension: (ext === 'jpeg' ? 'jpeg' : 'png') as any,
           });
-          images[0].imageId = imageId;
+          images[0].imageId = imageId as unknown as string;
         }
       }
+    }
+
+    // Stamp from config: positioned between J46 (date) and J53 (company name)
+    if (config.stamp && typeof config.stamp === 'string') {
+      const stampParts = config.stamp.split(',');
+      if (stampParts.length >= 2) {
+        const stampBase64 = stampParts[1];
+        const stampExtMatch = config.stamp.match(/data:image\/(.+);/);
+        const stampExt = stampExtMatch ? stampExtMatch[1] : 'png';
+        const stampId = wb.addImage({
+          base64: stampBase64,
+          extension: (stampExt === 'jpeg' ? 'jpeg' : 'png') as any,
+        });
+        ws.addImage(stampId, {
+          tl: { col: 9, row: 47 } as any, // J48 between date (J46) and name (J53)
+          ext: { width: 100, height: 70 },
+          editAs: 'oneCell',
+        });
+      }
+    } else if (images.length >= 2) {
+      // fallback: reposition existing stamp image
+      images[1].range.tl.nativeCol = 9;
+      images[1].range.tl.nativeRow = 46;
     }
 
     const date = new Date(job.created_at || Date.now());
@@ -182,35 +214,49 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     
     items.forEach((item, index) => {
       const row = ws.getRow(currentRow);
+      const isPackage = !!item.is_package;
       let displayName = item.item_name || item.item_name_custom || '-';
-      if (item.is_package) {
-        let packageInfo = `[PAKET] ${displayName}`;
-        if (item.package_id && packageItemsMap[item.package_id]) {
-          const details = packageItemsMap[item.package_id].map(pi => `  - ${pi.qty}x ${pi.items?.name}`).join('\n');
-          if (details) packageInfo += `\n${details}`;
-        }
-        displayName = packageInfo;
+      if (isPackage) {
+        // Just use package name without sub-items for clean Excel view
+        displayName = item.item_name || item.item_name_custom || 'Paket';
       }
 
       row.getCell(1).value = index + 1;
+      row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
       row.getCell(3).value = displayName;
+      // Bold only the package name
+      row.getCell(3).font = isPackage ? { bold: true } : { bold: false };
+      row.getCell(3).alignment = { wrapText: true, vertical: 'middle' };
+
       row.getCell(4).value = item.quantity;
-      row.getCell(5).value = item.is_package ? 'pkg' : 'unit';
-      row.getCell(6).value = item.days || 1; 
+      row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+
+      row.getCell(5).value = isPackage ? 'pkg' : 'unit';
+      row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+
+      row.getCell(6).value = item.days || 1;
+      row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+
       row.getCell(7).value = item.sub_rent_cost > 0 ? item.sub_rent_cost : 0;
+      row.getCell(7).numFmt = '#,##0';
+      row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
+      row.getCell(7).font = { bold: false };
       
       row.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      row.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      row.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      
-      row.getCell(3).alignment = { ...row.getCell(3).alignment, wrapText: true, vertical: 'middle' };
-      (row as any).height = undefined; // auto-height for items
-
-      row.getCell(7).numFmt = '#,##0';
       row.getCell(8).numFmt = '#,##0';
+      row.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
+      row.getCell(8).font = { bold: false };
+
+      row.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
       row.getCell(9).numFmt = '#,##0';
+      row.getCell(9).alignment = { horizontal: 'right', vertical: 'middle' };
+
+      row.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
       row.getCell(10).numFmt = '#,##0';
+      row.getCell(10).alignment = { horizontal: 'right', vertical: 'middle' };
       
+      (row as any).height = 20;
       currentRow++;
     });
 
@@ -244,57 +290,67 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
       totalTagihan = job.total_rental_fee - pphAmount;
     }
 
-    // Totals - Hardcode to job.total_rental_fee to disable auto-calculate based on item values
-    ws.getCell('H42').value = job.total_rental_fee;
-    
-    // Add Discount (row 43 is likely Deposite/Discount in Excel template? Or we can use H43)
-    if (job.discount && job.discount > 0) {
-      ws.getCell('H43').value = job.discount;
-      ws.getCell('F43').value = 'DISCOUNT';
-    } else {
-      ws.getCell('H43').value = 0;
-    }
-    
-    // Handle PPh UMKM (Row 44 usually)
-    if (job.pph_umkm_enabled) {
-      const pph = job.total_rental_fee * 0.005;
-      ws.getCell('H44').value = pph;
-      ws.getCell('F44').value = 'PPh UMKM 0.5%';
-    } else {
-      ws.getCell('H44').value = 0;
-      ws.getCell('F44').value = 'PPh UMKM 0.5%';
-    }
-    ws.getCell('I42').value = job.total_rental_fee;
-    ws.getCell('J42').value = job.total_rental_fee;
-    
-    if (job.pph_umkm_enabled) {
-      ws.getCell('F43').value = 'PPh UMKM 0.5%';
-      ws.getCell('H43').value = pphAmount; 
-      ws.getCell('I43').value = pphAmount;
-      ws.getCell('J43').value = pphAmount;
-    } else {
-      ws.getCell('H43').value = 0; // Deposit
-      ws.getCell('I43').value = 0;
-      ws.getCell('J43').value = 0;
-    }
-    
-    ws.getCell('H44').value = totalTagihan;
-    ws.getCell('I44').value = totalTagihan;
-    ws.getCell('J44').value = totalTagihan;
+    // Totals — Sub Total
+    const fmtNum = '#,##0';
+    const applyRight = (addr: string, val: number) => {
+      const c = ws.getCell(addr);
+      c.value = val;
+      c.numFmt = fmtNum;
+      c.alignment = { horizontal: 'right', vertical: 'middle' };
+    };
 
-    // Terbilang
-    const finalTotal = totalTagihan;
-      
-    const terbilangCell = ws.getCell('C51');
-    terbilangCell.value = `( ${terbilang(finalTotal)} Rupiah )`;
-    terbilangCell.alignment = { ...terbilangCell.alignment, wrapText: true, vertical: 'top' };
-    (ws.getRow(51) as any).height = undefined;
+    applyRight('H42', job.total_rental_fee);
+    applyRight('I42', job.total_rental_fee);
+    applyRight('J42', job.total_rental_fee);
+    
+    // Discount row
+    if (job.discount && job.discount > 0) {
+      ws.getCell('F43').value = 'DISCOUNT';
+      applyRight('H43', job.discount);
+      applyRight('I43', job.discount);
+      applyRight('J43', job.discount);
+    } else {
+      applyRight('H43', 0);
+      applyRight('I43', 0);
+      applyRight('J43', 0);
+    }
+    
+    // PPh UMKM
+    if (job.pph_umkm_enabled) {
+      ws.getCell('F44').value = 'PPh UMKM 0.5%';
+      applyRight('H44', pphAmount);
+      applyRight('I44', pphAmount);
+      applyRight('J44', pphAmount);
+    } else {
+      ws.getCell('F44').value = 'PPh UMKM 0.5%';
+      applyRight('H44', 0);
+      applyRight('I44', 0);
+      applyRight('J44', 0);
+    }
+
+    // Total of Payment row (H45)
+    ws.getCell('F45').value = 'Total of Payment';
+    ws.getCell('F45').font = { bold: true };
+    applyRight('H45', totalTagihan);
+    applyRight('I45', totalTagihan);
+    applyRight('J45', totalTagihan);
+    ws.getCell('H45').font = { bold: true };
+    ws.getCell('J45').font = { bold: true };
 
     // Date and Signatures
     const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     ws.getCell('J46').value = `Denpasar, ${currentDate}`;
     ws.getCell('J47').value = null; // Clear to make room for stamp
     ws.getCell('J53').value = config.tax_name || config.name;
+    if (config.npwp) {
+      ws.getCell('J54').value = `NPWP: ${config.npwp}`;
+    }
+
+    // Terbilang
+    const terbilangCell = ws.getCell('C51');
+    terbilangCell.value = `( ${terbilang(totalTagihan)} Rupiah )`;
+    terbilangCell.alignment = { wrapText: true, vertical: 'top' };
+    (ws.getRow(51) as any).height = 30;
 
     // Adjust row and column sizing for better spacing
     ws.columns.forEach(col => {
