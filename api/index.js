@@ -273,7 +273,7 @@ app.get('/api/content', async (req, res) => {
         const siteContent = texts.rows.reduce((a, r) => ({ ...a, [r.content_key]: r.content_value }), {});
         const groupedImages = images.rows.reduce((acc, img) => {
             let key = img.section_key;
-            if (key === 'catalog_service' || key === 'catalog_package') return acc;
+            if (key.startsWith('catalog_')) return acc;
             if (key === 'service' || key === 'package') key = `${key}s`;
             if (!acc[key]) acc[key] = [];
             acc[key].push(key.endsWith('s')
@@ -353,7 +353,7 @@ app.post('/api/about/text', requireAdmin, async (req, res) => {
 async function upsertPrice(itemId, sectionKey, priceStr, priceUnit) {
     if (!priceStr && !priceUnit) return;
     const numericPrice = priceStr ? parseFloat(priceStr.toString().replace(/[^0-9,-]+/g,"").replace(',', '.')) : null;
-    const itemType = sectionKey.includes('package') ? 'package' : 'service';
+    const itemType = sectionKey.startsWith('catalog_') ? sectionKey.replace('catalog_', '') : (sectionKey.includes('package') ? 'package' : 'service');
     
     await db.query(`
         INSERT INTO catalog_prices (item_id, item_type, price, price_unit)
@@ -565,10 +565,8 @@ app.get('/api/katalogs', async (req, res) => {
         const r = await db.query(`
             SELECT si.*, cp.price, cp.price_unit 
             FROM section_images si 
-            LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND 
-                 ((si.section_key = 'catalog_service' AND cp.item_type = 'service') OR 
-                  (si.section_key = 'catalog_package' AND cp.item_type = 'package'))
-            WHERE si.section_key IN ('catalog_service', 'catalog_package') ORDER BY si.id DESC
+            LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = REPLACE(si.section_key, 'catalog_', '')
+            WHERE si.section_key LIKE 'catalog_%' ORDER BY si.id DESC
         `);
         res.json(r.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -580,9 +578,7 @@ app.get('/api/katalogs/:id', async (req, res) => {
         const r = await db.query(`
             SELECT si.*, cp.price, cp.price_unit 
             FROM section_images si 
-            LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND 
-                 ((si.section_key = 'catalog_service' AND cp.item_type = 'service') OR 
-                  (si.section_key = 'catalog_package' AND cp.item_type = 'package'))
+            LEFT JOIN catalog_prices cp ON cp.item_id = si.id AND cp.item_type = REPLACE(si.section_key, 'catalog_', '')
             WHERE si.id=$1
         `, [req.params.id]);
         if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });

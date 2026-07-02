@@ -343,11 +343,12 @@
                     </div>
 
                     <div class="md:col-span-2" id="modal-katalog-type-container" style="display: none;">
-                        <label class="input-label text-gray-500 font-bold mb-2 block"><i class="fa-solid fa-layer-group text-brand-red mr-1"></i> Jenis Item Katalog</label>
-                        <select id="modal-katalog-type-input" class="input-control border-2 border-gray-100 focus:border-brand-red/30 focus:ring-4 focus:ring-brand-red/10 transition-all rounded-xl w-full">
-                            <option value="catalog_service">Service</option>
-                            <option value="catalog_package">Package</option>
-                        </select>
+                        <label class="input-label text-gray-500 font-bold mb-2 block"><i class="fa-solid fa-layer-group text-brand-red mr-1"></i> Kategori Item Katalog</label>
+                        <input type="text" id="modal-katalog-type-input" list="katalog-categories" class="input-control border-2 border-gray-100 focus:border-brand-red/30 focus:ring-4 focus:ring-brand-red/10 transition-all rounded-xl w-full" placeholder="Pilih atau ketik kategori baru (contoh: tenda, sound)">
+                        <datalist id="katalog-categories">
+                            <option value="service">Service</option>
+                            <option value="package">Package</option>
+                        </datalist>
                     </div>
                     
                     <div>

@@ -46,7 +46,7 @@ function openModal(type, item = null) {
         }
 
         if (type === 'katalog' && el('modal-katalog-type-input')) {
-            el('modal-katalog-type-input').value = item.section_key || 'catalog_service';
+            el('modal-katalog-type-input').value = (item.section_key || 'catalog_service').replace('catalog_', '');
         }
     } else {
         el('modal-title-input').value = '';
@@ -57,7 +57,7 @@ function openModal(type, item = null) {
         if(el('modal-duration-type')) el('modal-duration-type').value = 'Day';
 
         if (type === 'katalog' && el('modal-katalog-type-input')) {
-            el('modal-katalog-type-input').value = 'catalog_service';
+            el('modal-katalog-type-input').value = 'service';
         }
     }
 
@@ -225,7 +225,7 @@ function renderCards(id, items, section) {
             <div class="p-5">
                 <div class="flex justify-between items-center mb-1">
                     <h6 class="font-bold text-gray-800 text-xs truncate flex-1">${item.title || item.name || 'Untitled'}</h6>
-                    ${section !== 'gallery' && (item.section_key === 'catalog_service' || item.section_key === 'catalog_package') ? '<span class="text-[9px] bg-brand-red/10 text-brand-red px-2 py-0.5 rounded font-bold whitespace-nowrap ml-2">Katalog Only</span>' : ''}
+                    ${section !== 'gallery' && (item.section_key && item.section_key.startsWith('catalog_')) ? '<span class="text-[9px] bg-brand-red/10 text-brand-red px-2 py-0.5 rounded font-bold whitespace-nowrap ml-2">Katalog: ' + item.section_key.replace('catalog_','') + '</span>' : ''}
                 </div>
                 ${section !== 'gallery' ? `<p class="text-[10px] text-gray-400 line-clamp-1 italic mb-1">${item.text || item.description || ''}</p>` : ''}
                 ${section !== 'gallery' && item.price ? `<p class="text-[11px] font-bold text-brand-red mb-2">${window.formatPriceLabel ? window.formatPriceLabel(item.price) : item.price} <span class="text-[9px] text-gray-500">${item.price_unit || ''}</span></p>` : ''}
@@ -377,7 +377,9 @@ document.addEventListener('submit', async (e) => {
             }
 
             if (type === 'katalog' && el('modal-katalog-type-input')) {
-                fd.append('item_type', el('modal-katalog-type-input').value);
+                let katType = el('modal-katalog-type-input').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+                if (!katType) katType = 'service';
+                fd.append('item_type', 'catalog_' + katType);
             }
             if(el('modal-image-input').files[0]) fd.append('image', el('modal-image-input').files[0]);
             await fetch(id ? `${API_URL}/${type}s/${id}` : `${API_URL}/${type}s`, { ...FETCH_OPTS, method: id ? 'PUT' : 'POST', body: fd });
