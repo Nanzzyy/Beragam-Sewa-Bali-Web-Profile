@@ -316,9 +316,12 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
 
   // Totals helper
   doc.setFont('helvetica', 'bold');
-  const drawTotalRow = (label: string, amount: number, y: number, prefix: string = '') => {
+  const drawTotalRow = (label: string, amount: number, y: number, isNegative: boolean = false) => {
     doc.text(label, 120, y);
-    doc.text(`${prefix}Rp.`, 165, y);
+    if (isNegative) {
+      doc.text('-', 160, y);
+    }
+    doc.text('Rp.', 165, y);
     const amountStr = new Intl.NumberFormat('id-ID').format(amount);
     doc.text(amountStr, 196, y, { align: 'right' });
   };
@@ -327,13 +330,13 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   
   let currentTotalY = finalY + 15;
   if (job.discount && job.discount > 0) {
-    drawTotalRow('Discount', job.discount, currentTotalY, '- ');
+    drawTotalRow('Discount', job.discount, currentTotalY, true);
     totalTagihan -= job.discount;
     currentTotalY += 5;
   }
   
   if (job.pph_umkm_enabled) {
-    drawTotalRow('PPh UMKM 0.5%', pphAmount, currentTotalY, '- ');
+    drawTotalRow('PPh UMKM 0.5%', pphAmount, currentTotalY, true);
     currentTotalY += 5;
   }
 
