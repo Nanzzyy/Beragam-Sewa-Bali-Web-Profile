@@ -276,6 +276,7 @@ export async function createTransaction(
     account_code: e.account_code,
     debit: e.debit,
     credit: e.credit,
+    created_by: user.id,
   }));
 
   const { error: jeError } = await supabase

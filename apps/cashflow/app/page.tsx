@@ -58,6 +58,10 @@ export default function CashflowDashboard() {
   const [mounted, setMounted] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const currentDate = new Date();
+  const [filterMonth, setFilterMonth] = useState<number>(currentDate.getMonth() + 1);
+  const [filterYear, setFilterYear] = useState<number>(currentDate.getFullYear());
 
   useEffect(() => {
     setMounted(true);
@@ -183,7 +187,7 @@ export default function CashflowDashboard() {
 
   // ======== TANSTACK QUERY ========
   const { data: cashflowData, isLoading: queryLoading } = useQuery({
-    queryKey: ['cashflow_dashboard', currentUserId, userRole],
+    queryKey: ['cashflow_dashboard', currentUserId, userRole, filterMonth, filterYear],
     enabled: authReady && !!currentUserId,
     queryFn: async () => {
       let activeRole = userRole;
@@ -196,10 +200,13 @@ export default function CashflowDashboard() {
         activeRole = data?.role || 'guest';
       }
 
+      const startDate = `${filterYear}-${String(filterMonth).padStart(2, '0')}-01`;
+      const endDate = new Date(filterYear, filterMonth, 0).toISOString().split('T')[0];
+
       const [accs, tb, txs] = await Promise.all([
         fetchAccounts(),
         fetchTrialBalance(),
-        fetchTransactionsWithEntries({ limit: 100 }),
+        fetchTransactionsWithEntries({ dateFrom: startDate, dateTo: endDate, limit: 2000 }),
       ]);
 
       let finalTxs = txs;
@@ -476,9 +483,21 @@ export default function CashflowDashboard() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             {mounted && (
-              <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-              </button>
+              <div className="flex items-center gap-2 mr-2">
+                <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-2 py-1.5 outline-none font-medium text-slate-700 dark:text-slate-300">
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                    <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('id-ID', { month: 'short' })}</option>
+                  ))}
+                </select>
+                <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-2 py-1.5 outline-none font-medium text-slate-700 dark:text-slate-300">
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <button onClick={toggleTheme} className="p-2 ml-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors border-l border-slate-200 dark:border-slate-700 pl-3">
+                  {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </button>
+              </div>
             )}
             <ExcelExportButton trialBalance={trialBalance} userRole={userRole} currentUserId={currentUserId} />
             <div className="hidden sm:flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-800/60 pl-4">
