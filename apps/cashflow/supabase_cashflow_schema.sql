@@ -37,8 +37,10 @@ CREATE TABLE IF NOT EXISTS public.accounts (
     category     account_category NOT NULL,
     normal_balance normal_balance_type NOT NULL,
     is_active    BOOLEAN NOT NULL DEFAULT true,
+    created_by   UUID NOT NULL REFERENCES auth.users(id) DEFAULT auth.uid(),
     created_at   TIMESTAMPTZ DEFAULT now(),
-    updated_at   TIMESTAMPTZ DEFAULT now()
+    updated_at   TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (account_code, created_by)
 );
 
 COMMENT ON TABLE public.accounts IS 'Chart of Accounts (COA) for double-entry ledger';
@@ -78,10 +80,13 @@ COMMENT ON TABLE public.fixed_assets IS 'Daftar Aktiva Tetap / Fixed Assets';
 CREATE TABLE IF NOT EXISTS public.journal_entries (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     transaction_id  UUID NOT NULL REFERENCES public.transactions(id) ON DELETE CASCADE,
-    account_code    TEXT NOT NULL REFERENCES public.accounts(account_code) ON DELETE RESTRICT,
+    account_code    TEXT NOT NULL,
+    created_by      UUID NOT NULL,
     debit           NUMERIC(15, 2) NOT NULL DEFAULT 0 CHECK (debit >= 0),
     credit          NUMERIC(15, 2) NOT NULL DEFAULT 0 CHECK (credit >= 0),
     created_at      TIMESTAMPTZ DEFAULT now(),
+
+    CONSTRAINT fk_journal_accounts FOREIGN KEY (account_code, created_by) REFERENCES public.accounts(account_code, created_by) ON DELETE RESTRICT,
 
     -- Each line must be either a debit OR a credit, never both non-zero
     CONSTRAINT chk_debit_or_credit CHECK (
@@ -170,7 +175,7 @@ $$ LANGUAGE plpgsql;
 -- 5. VIEW: Trial Balance (Neraca Saldo) — Real-time
 -- ============================================================
 
-CREATE OR REPLACE VIEW public.v_trial_balance AS
+CREATE OR REPLACE VIEW public.v_trial_balance WITH (security_invoker = true) AS
 SELECT
     a.account_code,
     a.account_name,
@@ -185,11 +190,12 @@ SELECT
         WHEN a.category IN ('Liability', 'Equity', 'Revenue')
             THEN COALESCE(SUM(je.credit), 0) - COALESCE(SUM(je.debit), 0)
         ELSE 0
-    END AS ending_balance
+    END AS ending_balance,
+    a.created_by
 FROM public.accounts a
-LEFT JOIN public.journal_entries je ON je.account_code = a.account_code
+LEFT JOIN public.journal_entries je ON je.account_code = a.account_code AND je.created_by = a.created_by
 WHERE a.is_active = true
-GROUP BY a.account_code, a.account_name, a.category, a.normal_balance
+GROUP BY a.account_code, a.account_name, a.category, a.normal_balance, a.created_by
 ORDER BY a.account_code;
 
 COMMENT ON VIEW public.v_trial_balance IS 'Real-time Neraca Saldo aggregating all journal entries per account';
@@ -198,7 +204,7 @@ COMMENT ON VIEW public.v_trial_balance IS 'Real-time Neraca Saldo aggregating al
 -- 6. VIEW: General Ledger (Buku Besar) — Full Detail
 -- ============================================================
 
-CREATE OR REPLACE VIEW public.v_general_ledger AS
+CREATE OR REPLACE VIEW public.v_general_ledger WITH (security_invoker = true) AS
 SELECT
     je.id AS entry_id,
     t.id AS transaction_id,
@@ -211,11 +217,11 @@ SELECT
     je.debit,
     je.credit,
     t.receipt_url,
-    t.created_by,
+    je.created_by,
     t.created_at
 FROM public.journal_entries je
 JOIN public.transactions t ON t.id = je.transaction_id
-JOIN public.accounts a ON a.account_code = je.account_code
+JOIN public.accounts a ON a.account_code = je.account_code AND a.created_by = je.created_by
 ORDER BY t.date DESC, t.created_at DESC;
 
 COMMENT ON VIEW public.v_general_ledger IS 'Buku Besar — detailed ledger showing every journal entry with transaction context';
@@ -237,28 +243,48 @@ RETURNS app_role AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- === ACCOUNTS (COA) Policies ===
--- Read: Owner + Accounting + Guest
+-- Read: Own accounts, or owner/staff accounts if user is owner/staff
 DROP POLICY IF EXISTS "accounts_select_policy" ON public.accounts;
 CREATE POLICY "accounts_select_policy"
 ON public.accounts FOR SELECT TO authenticated
-USING (public.get_user_role() IN ('owner', 'accounting', 'guest'));
+USING (
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  OR
+  (public.get_user_role() IN ('owner', 'accounting', 'staff') AND created_by IN (SELECT id FROM public.profiles WHERE role IN ('owner', 'accounting', 'staff')))
+);
 
--- Write: Owner + Accounting
+-- Write: Guest creates for themselves, Owner/Staff create for themselves
 DROP POLICY IF EXISTS "accounts_insert_policy" ON public.accounts;
 CREATE POLICY "accounts_insert_policy"
 ON public.accounts FOR INSERT TO authenticated
-WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
+WITH CHECK (
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  OR
+  (public.get_user_role() IN ('owner', 'accounting', 'staff') AND created_by = auth.uid())
+);
 
 DROP POLICY IF EXISTS "accounts_update_policy" ON public.accounts;
 CREATE POLICY "accounts_update_policy"
 ON public.accounts FOR UPDATE TO authenticated
-USING (public.get_user_role() IN ('owner', 'accounting'))
-WITH CHECK (public.get_user_role() IN ('owner', 'accounting'));
+USING (
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  OR
+  (public.get_user_role() IN ('owner', 'accounting', 'staff') AND created_by IN (SELECT id FROM public.profiles WHERE role IN ('owner', 'accounting', 'staff')))
+)
+WITH CHECK (
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  OR
+  (public.get_user_role() IN ('owner', 'accounting', 'staff') AND created_by IN (SELECT id FROM public.profiles WHERE role IN ('owner', 'accounting', 'staff')))
+);
 
 DROP POLICY IF EXISTS "accounts_delete_policy" ON public.accounts;
 CREATE POLICY "accounts_delete_policy"
 ON public.accounts FOR DELETE TO authenticated
-USING (public.get_user_role() IN ('owner', 'accounting'));
+USING (
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  OR
+  (public.get_user_role() IN ('owner', 'accounting', 'staff') AND created_by IN (SELECT id FROM public.profiles WHERE role IN ('owner', 'accounting', 'staff')))
+);
 
 -- === FIXED ASSETS Policies ===
 DROP POLICY IF EXISTS "fixed_assets_select_policy" ON public.fixed_assets;
@@ -287,41 +313,41 @@ DROP POLICY IF EXISTS "transactions_select_policy" ON public.transactions;
 CREATE POLICY "transactions_select_policy"
 ON public.transactions FOR SELECT TO authenticated
 USING (
-  public.get_user_role() IN ('owner', 'accounting')
+  public.get_user_role() = 'owner'
   OR
-  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  created_by = auth.uid()
 );
 
 DROP POLICY IF EXISTS "transactions_insert_policy" ON public.transactions;
 CREATE POLICY "transactions_insert_policy"
 ON public.transactions FOR INSERT TO authenticated
 WITH CHECK (
-  public.get_user_role() IN ('owner', 'accounting')
+  public.get_user_role() = 'owner'
   OR
-  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  created_by = auth.uid()
 );
 
 DROP POLICY IF EXISTS "transactions_update_policy" ON public.transactions;
 CREATE POLICY "transactions_update_policy"
 ON public.transactions FOR UPDATE TO authenticated
 USING (
-  public.get_user_role() IN ('owner', 'accounting')
+  public.get_user_role() = 'owner'
   OR
-  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  created_by = auth.uid()
 )
 WITH CHECK (
-  public.get_user_role() IN ('owner', 'accounting')
+  public.get_user_role() = 'owner'
   OR
-  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  created_by = auth.uid()
 );
 
 DROP POLICY IF EXISTS "transactions_delete_policy" ON public.transactions;
 CREATE POLICY "transactions_delete_policy"
 ON public.transactions FOR DELETE TO authenticated
 USING (
-  public.get_user_role() IN ('owner', 'accounting')
+  public.get_user_role() = 'owner'
   OR
-  (public.get_user_role() = 'guest' AND created_by = auth.uid())
+  created_by = auth.uid()
 );
 
 -- === JOURNAL ENTRIES Policies ===
@@ -329,33 +355,31 @@ DROP POLICY IF EXISTS "journal_entries_select_policy" ON public.journal_entries;
 CREATE POLICY "journal_entries_select_policy"
 ON public.journal_entries FOR SELECT TO authenticated
 USING (
-  public.get_user_role() IN ('owner', 'accounting')
+  public.get_user_role() = 'owner'
   OR
-  (public.get_user_role() = 'guest' AND transaction_id IN (
+  transaction_id IN (
     SELECT id FROM public.transactions WHERE created_by = auth.uid()
-  ))
+  )
 );
 
 DROP POLICY IF EXISTS "journal_entries_insert_policy" ON public.journal_entries;
 CREATE POLICY "journal_entries_insert_policy"
 ON public.journal_entries FOR INSERT TO authenticated
 WITH CHECK (
-  public.get_user_role() IN ('owner', 'accounting')
+  (public.get_user_role() = 'guest' AND created_by = auth.uid())
   OR
-  (public.get_user_role() = 'guest' AND transaction_id IN (
-    SELECT id FROM public.transactions WHERE created_by = auth.uid()
-  ))
+  (public.get_user_role() IN ('owner', 'accounting', 'staff') AND created_by = auth.uid())
 );
 
 DROP POLICY IF EXISTS "journal_entries_delete_policy" ON public.journal_entries;
 CREATE POLICY "journal_entries_delete_policy"
 ON public.journal_entries FOR DELETE TO authenticated
 USING (
-  public.get_user_role() IN ('owner', 'accounting')
+  public.get_user_role() = 'owner'
   OR
-  (public.get_user_role() = 'guest' AND transaction_id IN (
+  transaction_id IN (
     SELECT id FROM public.transactions WHERE created_by = auth.uid()
-  ))
+  )
 );
 
 -- ============================================================
