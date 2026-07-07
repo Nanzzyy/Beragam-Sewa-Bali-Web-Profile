@@ -39,7 +39,7 @@ function getRomanMonth(date: Date) {
   return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][date.getMonth()];
 }
 
-export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' | 'quotation' | 'receipt') {
+export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'quotation' | 'receipt') {
   try {
     const wb = new ExcelJS.Workbook();
     wb.creator = 'Beragam Sewa Bali';
@@ -117,7 +117,7 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     writeField(startRow++, 'PROJECT', projectName, 'BANK ACCOUNT', bankName);
     
     const tglMulai = formatDate(job.job_date);
-    const tglSelesai = job.end_date ? formatDate(job.end_date) : '';
+    const tglSelesai = job.completion_date ? formatDate(job.completion_date) : '';
     const eventDateRange = tglSelesai && tglSelesai !== '-' ? `${tglMulai} s/d ${tglSelesai}` : tglMulai;
     writeField(startRow++, 'TGL EVENT', eventDateRange, '', bankNumber);
     writeField(startRow++, '', '', '', bankOwner);
@@ -210,8 +210,7 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
     };
 
     writeTotal('Subtotal:', subtotal);
-    if (job.discount > 0) writeTotal('Discount:', -job.discount);
-    if (job.delivery_fee > 0) writeTotal('Delivery:', job.delivery_fee);
+    if ((job.discount || 0) > 0) writeTotal('Discount:', -(job.discount || 0));
     writeTotal('GRAND TOTAL:', Number(job.total_rental_fee), true);
 
     startRow += 2;

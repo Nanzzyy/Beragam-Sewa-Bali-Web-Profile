@@ -228,7 +228,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   writeRow('PROJECT', projectName, baseY + 25);
   
   const tglMulai = formatDate(job.job_date);
-  const tglSelesai = job.end_date ? formatDate(job.end_date) : '';
+  const tglSelesai = job.completion_date ? formatDate(job.completion_date) : '';
   const eventDateRange = tglSelesai && tglSelesai !== '-' ? `${tglMulai} s/d ${tglSelesai}` : tglMulai;
   doc.setFont('helvetica', 'bold'); doc.text('TGL EVENT', lX, baseY + 30); doc.text(':', colonX, baseY + 30);
   doc.setFont('helvetica', 'normal'); doc.text(eventDateRange, textX, baseY + 30);
