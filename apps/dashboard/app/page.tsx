@@ -1155,8 +1155,8 @@ export default function DashboardApp() {
                     </div>
                     <select value={selectedCategoryFilter} onChange={(e) => setSelectedCategoryFilter(e.target.value)} className="w-full sm:w-48 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition">
                       <option value="all">Semua Kategori</option>
-                      {itemCategories.map(cat => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      {Array.from(new Set(itemsList.map(item => item.category).filter(Boolean))).sort().map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
                   </div>

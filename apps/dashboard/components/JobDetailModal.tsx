@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Job, JobItem, JobStaff, JobProof, JobStatus, AppRole } from '../lib/supabase';
 import { JOB_STATUS_CONFIG, formatRupiah, formatDate } from '../lib/supabase';
 import { fetchJobById, fetchJobItems, fetchJobStaff, fetchJobProofs, uploadProofPhoto, addJobProof, updateJobStatus } from '../lib/jobs';
-import { X, MapPin, Calendar, Phone, Mail, Package, Users, Camera, FileText, Upload, CheckCircle2, Truck, RotateCcw, FileSpreadsheet } from 'lucide-react';
+import { X, MapPin, Calendar, Phone, Mail, Package, Users, Camera, FileText, Upload, CheckCircle2, Truck, RotateCcw, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { showConfirm } from '../lib/confirm';
 
