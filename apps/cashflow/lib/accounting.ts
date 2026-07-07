@@ -271,13 +271,16 @@ export async function createTransaction(
   const transactionId = txData.id;
 
   // Step 4: Insert journal entries
-  const journalRows = input.entries.map(e => ({
-    transaction_id: transactionId,
-    account_code: e.account_code,
-    debit: e.debit,
-    credit: e.credit,
-    created_by: user.id,
-  }));
+  const journalRows = input.entries.map(e => {
+    const acc = accounts.find(a => a.account_code === e.account_code);
+    return {
+      transaction_id: transactionId,
+      account_code: e.account_code,
+      debit: e.debit,
+      credit: e.credit,
+      created_by: acc?.created_by || user.id,
+    };
+  });
 
   const { error: jeError } = await supabase
     .from('journal_entries')

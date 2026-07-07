@@ -18,6 +18,7 @@ export interface Account {
   category: AccountCategory;
   normal_balance: NormalBalance;
   is_active: boolean;
+  created_by?: string;
 }
 
 export interface FixedAsset {

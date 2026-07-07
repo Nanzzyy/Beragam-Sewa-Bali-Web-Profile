@@ -368,7 +368,7 @@ ON public.journal_entries FOR INSERT TO authenticated
 WITH CHECK (
   (public.get_user_role() = 'guest' AND created_by = auth.uid())
   OR
-  (public.get_user_role() IN ('owner', 'accounting', 'staff') AND created_by = auth.uid())
+  (public.get_user_role() IN ('owner', 'accounting', 'staff') AND created_by IN (SELECT id FROM public.profiles WHERE role IN ('owner', 'accounting', 'staff')))
 );
 
 DROP POLICY IF EXISTS "journal_entries_delete_policy" ON public.journal_entries;
