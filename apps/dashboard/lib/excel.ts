@@ -41,9 +41,40 @@ function getRomanMonth(date: Date) {
 
 export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' | 'quotation' | 'receipt') {
   try {
-    const response = await fetch('/templates/invoice_template.xlsx');
-    if (!response.ok) throw new Error('Failed to fetch Excel template from server');
-    const arrayBuffer = await response.arrayBuffer();
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Beragam Sewa Bali';
+    const targetSheetName = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
+    const ws = wb.addWorksheet(targetSheetName, { views: [{ showGridLines: false }] });
+
+    // Columns setup
+    ws.columns = [
+      { width: 4 },   // A: Space
+      { width: 15 },  // B: Label
+      { width: 2 },   // C: Colon
+      { width: 35 },  // D: Value
+      { width: 20 },  // E: Space middle
+      { width: 15 },  // F: Right Label
+      { width: 2 },   // G: Colon
+      { width: 35 },  // H: Right Value
+      { width: 4 }    // I: Space
+    ];
+
+    // Fetch config
+    const { getCompanyConfig } = await import('./pdf');
+    const config = await getCompanyConfig();
+
+    let bankName = 'BCA';
+    let bankNumber = '6110252194';
+    let bankOwner = 'an. Eka Sutrisna Putra';
+    if (config.payment) {
+      const paymentStr = config.payment;
+      const bankMatch = paymentStr.match(/Bank\s+([A-Za-z0-9]+)/i);
+      const numMatch = paymentStr.match(/(?:No\.?\s*Rek\.?\s*)?(\d{5,20})/i);
+      const ownerMatch = paymentStr.match(/(?:a\.n\.?|an\.?)\s*([^,\n]+)/i);
+      if (bankMatch) bankName = bankMatch[1].toUpperCase();
+      if (numMatch) bankNumber = numMatch[1];
+      if (ownerMatch) bankOwner = 'an. ' + ownerMatch[1].trim();
+    }
 
     // Pre-fetch package items
     const packageItemsMap: Record<string, any[]> = {};
@@ -54,328 +85,179 @@ export async function generateExcel(job: Job, items: JobItem[], type: 'invoice' 
       }
     }
 
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(arrayBuffer);
+    // HEADER SPACE
+    ws.addRow([]);
+    ws.addRow([]);
+    ws.addRow([]);
 
-    const targetSheetName = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
-    const boqSheet = wb.getWorksheet('BOQ') || wb.getWorksheet('Sheet1') || wb.worksheets[0];
-    if (!boqSheet) throw new Error('Worksheet not found in the template');
-    boqSheet.name = targetSheetName;
-
-    // Remove all other sheets to keep only 1 worksheet
-    wb.worksheets.forEach(sheet => {
-      if (sheet.id !== boqSheet.id) {
-        wb.removeWorksheet(sheet.id);
+    // 1. Client Info (Left) & Office Info (Right)
+    const writeField = (rowNum: number, leftLabel: string, leftVal: string, rightLabel: string, rightVal: string) => {
+      const row = ws.getRow(rowNum);
+      if (leftLabel) {
+        row.getCell('B').value = leftLabel; row.getCell('B').font = { bold: true, size: 10 };
+        row.getCell('C').value = ':'; row.getCell('C').font = { bold: true, size: 10 };
+        row.getCell('D').value = leftVal; row.getCell('D').font = { size: 10 };
       }
-    });
-
-    const ws = boqSheet;
-
-    // Fetch config for right column
-    const { getCompanyConfig } = await import('./pdf');
-    const config = await getCompanyConfig();
-
-    // Parse payment info dynamically
-    let bankName = 'BCA';
-    let bankNumber = '6110252194';
-    let bankOwner = 'an. Eka Sutrisna Putra';
-
-    if (config.payment) {
-      const paymentStr = config.payment;
-      const bankMatch = paymentStr.match(/Bank\s+([A-Za-z0-9]+)/i);
-      const numMatch = paymentStr.match(/(?:No\.?\s*Rek\.?\s*)?(\d{5,20})/i);
-      const ownerMatch = paymentStr.match(/(?:a\.n\.?|an\.?)\s*([^,\n]+)/i);
-
-      if (bankMatch) bankName = bankMatch[1].toUpperCase();
-      if (numMatch) bankNumber = numMatch[1];
-      if (ownerMatch) bankOwner = 'an. ' + ownerMatch[1].trim();
-    }
-
-    // Client Info
-    ws.getCell('C7').value = job.client_name;
-    ws.getCell('C8').value = job.contact_person || job.client_name; // Contact Person
-    ws.getCell('C9').value = job.client_address || '-'; // Address
-    ws.getCell('C10').value = job.client_email || '-'; // Email
-    ws.getCell('C11').value = job.client_phone || '-'; // Phone
-    ws.getCell('C12').value = job.description || 'EVENT'; // Project
-    ws.getCell('C13').value = `TGL SETUP: ${formatDate(job.setup_date)} | TGL EVENT: ${formatDate(job.job_date)}`; // TGL
-    // Venue
-    const hasC14 = ws.getCell('C14');
-    hasC14.value = `VENUE: ${job.venue || '-'}`;
-    hasC14.alignment = { wrapText: true, vertical: 'middle' };
-
-    // Office Info
-    ws.getCell('I8').value = config.address;
-    ws.getCell('J8').value = config.address;
-    
-    ws.getCell('I9').value = config.phone;
-    ws.getCell('J9').value = config.phone;
-
-    ws.getCell('I10').value = config.email;
-    ws.getCell('J10').value = config.email;
-
-    // NPWP row
-    if (config.npwp) {
-      ws.getCell('I11').value = `NPWP: ${config.npwp}`;
-      ws.getCell('J11').value = `NPWP: ${config.npwp}`;
-      ws.getCell('I12').value = bankName;
-      ws.getCell('J12').value = bankName;
-      ws.getCell('I13').value = bankNumber;
-      ws.getCell('J13').value = bankNumber;
-    } else {
-      ws.getCell('I11').value = bankName;
-      ws.getCell('J11').value = bankName;
-      ws.getCell('I12').value = bankNumber;
-      ws.getCell('J12').value = bankNumber;
-      ws.getCell('I13').value = bankOwner;
-      ws.getCell('J13').value = bankOwner;
-    }
-
-    // Apply text wrapping to prevent overlapping text
-    const wrapCells = ['C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13', 'I8', 'J8', 'I9', 'J9', 'I10', 'J10', 'I11', 'J11', 'I12', 'J12', 'I13', 'J13'];
-    wrapCells.forEach(c => {
-      const cell = ws.getCell(c);
-      cell.alignment = { ...cell.alignment, wrapText: true, vertical: 'middle' };
-      const rowNum = parseInt(c.replace(/[A-Z]/g, ''), 10);
-      (ws.getRow(rowNum) as any).height = undefined; // auto-height
-    });
-
-    // Clear any leftover values in rows 14-17 (office info columns)
-    for (let r = 14; r <= 17; r++) {
-      ws.getRow(r).getCell(9).value = null;
-      ws.getRow(r).getCell(10).value = null;
-    }
-
-    // Document Title and Number
-    const title = type.toUpperCase();
-    ws.getCell('A15').value = title;
-    ws.getCell('C15').value = title;
-
-    // Images: header replacement + stamp from config
-    const images = ws.getImages();
-    if (images.length >= 1) {
-      // images[0] is the header. Replace if config.header exists
-      if (config.header && typeof config.header === 'string') {
-        const parts = config.header.split(',');
-        if (parts.length >= 2) {
-          const base64Data = parts[1];
-          const extMatch = config.header.match(/data:image\/(.+);/);
-          const ext = extMatch ? extMatch[1] : 'png';
-          const imageId = wb.addImage({
-            base64: base64Data,
-            extension: (ext === 'jpeg' ? 'jpeg' : 'png') as any,
-          });
-          images[0].imageId = imageId as unknown as string;
-        }
+      if (rightLabel) {
+        row.getCell('F').value = rightLabel; row.getCell('F').font = { bold: true, size: 10 };
+        row.getCell('G').value = ':'; row.getCell('G').font = { bold: true, size: 10 };
+        row.getCell('H').value = rightVal; row.getCell('H').font = { size: 10 };
+        row.getCell('H').alignment = { wrapText: true, vertical: 'top' };
       }
-    }
-
-    // Stamp from config: positioned between J46 (date) and J53 (company name)
-    if (config.stamp && typeof config.stamp === 'string') {
-      const stampParts = config.stamp.split(',');
-      if (stampParts.length >= 2) {
-        const stampBase64 = stampParts[1];
-        const stampExtMatch = config.stamp.match(/data:image\/(.+);/);
-        const stampExt = stampExtMatch ? stampExtMatch[1] : 'png';
-        const stampId = wb.addImage({
-          base64: stampBase64,
-          extension: (stampExt === 'jpeg' ? 'jpeg' : 'png') as any,
-        });
-        ws.addImage(stampId, {
-          tl: { col: 9, row: 47 } as any, // J48 between date (J46) and name (J53)
-          ext: { width: 100, height: 70 },
-          editAs: 'oneCell',
-        });
-      }
-    } else if (images.length >= 2) {
-      // fallback: reposition existing stamp image
-      images[1].range.tl.nativeCol = 9;
-      images[1].range.tl.nativeRow = 46;
-    }
-
-    const date = new Date(job.created_at || Date.now());
-    const docTypeCode = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
-    const docNo = `NO : 01/BSB/${docTypeCode}/${getRomanMonth(date)}/${date.getFullYear()}`;
-    ws.getCell('J15').value = docNo;
-
-    // Clear template rows A18:J41
-    for (let r = 18; r <= 41; r++) {
-      const row = ws.getRow(r);
-      for (let c = 1; c <= 10; c++) {
-        row.getCell(c).value = null;
-      }
-    }
-
-    // Determine if any item has price
-    const hasItemizedPricing = items.some(item => (item.sub_rent_cost || 0) > 0);
-
-    // Write Items starting on Row 18
-    let currentRow = 18;
-    
-    items.forEach((item, index) => {
-      const row = ws.getRow(currentRow);
-      const isPackage = !!item.is_package;
-      let displayName = item.item_name || item.item_name_custom || '-';
-      if (isPackage) {
-        // Just use package name without sub-items for clean Excel view
-        displayName = item.item_name || item.item_name_custom || 'Paket';
-      }
-
-      row.getCell(1).value = index + 1;
-      row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
-
-      row.getCell(3).value = displayName;
-      // Bold only the package name
-      row.getCell(3).font = isPackage ? { bold: true } : { bold: false };
-      row.getCell(3).alignment = { wrapText: true, vertical: 'middle' };
-
-      row.getCell(4).value = item.quantity;
-      row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
-
-      row.getCell(5).value = isPackage ? 'pkg' : 'unit';
-      row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
-
-      row.getCell(6).value = item.days || 1;
-      row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
-
-      row.getCell(7).value = item.sub_rent_cost > 0 ? item.sub_rent_cost : 0;
-      row.getCell(7).numFmt = '#,##0';
-      row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
-      row.getCell(7).font = { bold: false };
-      
-      row.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      row.getCell(8).numFmt = '#,##0';
-      row.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
-      row.getCell(8).font = { bold: false };
-
-      row.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      row.getCell(9).numFmt = '#,##0';
-      row.getCell(9).alignment = { horizontal: 'right', vertical: 'middle' };
-
-      row.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      row.getCell(10).numFmt = '#,##0';
-      row.getCell(10).alignment = { horizontal: 'right', vertical: 'middle' };
-      
-      (row as any).height = 20;
-      currentRow++;
-    });
-
-    if (!hasItemizedPricing) {
-      // Write package row
-      const pkgRow = ws.getRow(currentRow);
-      pkgRow.getCell(1).value = items.length + 1;
-      pkgRow.getCell(3).value = 'Paket Sewa & Jasa Pengiriman Peralatan';
-      pkgRow.getCell(4).value = 1;
-      pkgRow.getCell(5).value = 'pkg';
-      pkgRow.getCell(6).value = 1;
-      pkgRow.getCell(7).value = job.total_rental_fee;
-      
-      pkgRow.getCell(8).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      pkgRow.getCell(9).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      pkgRow.getCell(10).value = { formula: `G${currentRow}*D${currentRow}*F${currentRow}` };
-      
-      pkgRow.getCell(3).alignment = { ...pkgRow.getCell(3).alignment, wrapText: true, vertical: 'middle' };
-      (pkgRow as any).height = undefined;
-
-      pkgRow.getCell(7).numFmt = '#,##0';
-      pkgRow.getCell(8).numFmt = '#,##0';
-      pkgRow.getCell(9).numFmt = '#,##0';
-      pkgRow.getCell(10).numFmt = '#,##0';
-    }
-
-    let totalTagihan = job.total_rental_fee;
-    let pphAmount = 0;
-    if (job.pph_umkm_enabled) {
-      pphAmount = job.total_rental_fee * 0.005;
-      totalTagihan = job.total_rental_fee - pphAmount;
-    }
-
-    // Totals — Sub Total
-    const fmtNum = '#,##0';
-    const applyRight = (addr: string, val: number) => {
-      const c = ws.getCell(addr);
-      c.value = val;
-      c.numFmt = fmtNum;
-      c.alignment = { horizontal: 'right', vertical: 'middle' };
     };
 
-    applyRight('H42', job.total_rental_fee);
-    applyRight('I42', job.total_rental_fee);
-    applyRight('J42', job.total_rental_fee);
+    let startRow = 5;
+    writeField(startRow++, 'CLIENT', job.client_name, 'OFFICE ADDRESS', config.address);
+    writeField(startRow++, 'CONTACT', job.contact_person || job.client_name, '', '');
+    writeField(startRow++, 'ADDRESS', job.client_address || '-', 'PHONE', config.phone);
+    writeField(startRow++, 'EMAIL', job.client_email || '-', 'EMAIL', config.email);
     
-    // Discount row
-    if (job.discount && job.discount > 0) {
-      ws.getCell('F43').value = 'DISCOUNT';
-      applyRight('H43', job.discount);
-      applyRight('I43', job.discount);
-      applyRight('J43', job.discount);
-    } else {
-      applyRight('H43', 0);
-      applyRight('I43', 0);
-      applyRight('J43', 0);
-    }
+    const projectName = (job.description || 'EVENT') + (job.venue ? ` / ${job.venue}` : '');
+    writeField(startRow++, 'PHONE', job.client_phone || '-', 'NPWP', config.npwp || '-');
+    writeField(startRow++, 'PROJECT', projectName, 'BANK ACCOUNT', bankName);
     
-    // PPh UMKM
-    if (job.pph_umkm_enabled) {
-      ws.getCell('F44').value = 'PPh UMKM 0.5%';
-      applyRight('H44', pphAmount);
-      applyRight('I44', pphAmount);
-      applyRight('J44', pphAmount);
-    } else {
-      ws.getCell('F44').value = 'PPh UMKM 0.5%';
-      applyRight('H44', 0);
-      applyRight('I44', 0);
-      applyRight('J44', 0);
+    const tglMulai = formatDate(job.job_date);
+    const tglSelesai = job.end_date ? formatDate(job.end_date) : '';
+    const eventDateRange = tglSelesai && tglSelesai !== '-' ? `${tglMulai} s/d ${tglSelesai}` : tglMulai;
+    writeField(startRow++, 'TGL EVENT', eventDateRange, '', bankNumber);
+    writeField(startRow++, '', '', '', bankOwner);
+
+    ws.addRow([]);
+    
+    // 2. Title & Number
+    const docTypeLabel = type === 'invoice' ? 'INVOICE' : type === 'quotation' ? 'QUOTATION' : 'KUITANSI';
+    const date = new Date(job.created_at || Date.now());
+    const docTypeCode = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
+    const docNumber = `01/BSB/${docTypeCode}/${getRomanMonth(date)}/${date.getFullYear()}`;
+    
+    const titleRow = ws.getRow(startRow + 1);
+    titleRow.getCell('B').value = docTypeLabel;
+    titleRow.getCell('B').font = { bold: true, size: 16 };
+    titleRow.getCell('H').value = `NO : ${docNumber}`;
+    titleRow.getCell('H').font = { bold: true, size: 10 };
+    titleRow.getCell('H').alignment = { horizontal: 'right' };
+    
+    startRow += 3;
+
+    // 3. Table Header
+    const headerRow = ws.getRow(startRow);
+    headerRow.getCell('B').value = 'NO';
+    headerRow.getCell('D').value = 'NAMA ITEM / DESKRIPSI';
+    ws.mergeCells(`D${startRow}:E${startRow}`);
+    headerRow.getCell('F').value = 'DAYS';
+    headerRow.getCell('G').value = 'QTY';
+    headerRow.getCell('H').value = 'H. SATUAN';
+    headerRow.getCell('I').value = 'TOTAL';
+    
+    ['B', 'D', 'F', 'G', 'H', 'I'].forEach(col => {
+      const cell = headerRow.getCell(col);
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    });
+    headerRow.getCell('D').alignment = { horizontal: 'left', vertical: 'middle' };
+    
+    startRow++;
+
+    // 4. Table Items
+    let subtotal = 0;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      let displayName = item.item_name || item.item_name_custom || '-';
+      if (item.is_package) {
+        let packageInfo = `[PAKET] ${displayName}`;
+        if (item.package_id && packageItemsMap[item.package_id]) {
+          const details = packageItemsMap[item.package_id].map(pi => `  - ${pi.qty}x ${pi.items?.name}`).join('\n');
+          if (details) packageInfo += `\n${details}`;
+        }
+        displayName = packageInfo;
+      }
+      
+      const total = item.qty * item.days * Number(item.price);
+      subtotal += total;
+
+      const row = ws.getRow(startRow);
+      row.getCell('B').value = i + 1;
+      row.getCell('D').value = displayName;
+      ws.mergeCells(`D${startRow}:E${startRow}`);
+      row.getCell('F').value = item.days;
+      row.getCell('G').value = item.qty;
+      row.getCell('H').value = Number(item.price);
+      row.getCell('I').value = total;
+
+      ['B', 'D', 'F', 'G', 'H', 'I'].forEach(col => {
+        const cell = row.getCell(col);
+        cell.alignment = { vertical: 'top', wrapText: true, horizontal: col === 'D' ? 'left' : 'center' };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        if (col === 'H' || col === 'I') cell.numFmt = 'Rp #,##0';
+      });
+      startRow++;
     }
 
-    // Total of Payment row (H45)
-    ws.getCell('F45').value = 'Total of Payment';
-    ws.getCell('F45').font = { bold: true };
-    applyRight('H45', totalTagihan);
-    applyRight('I45', totalTagihan);
-    applyRight('J45', totalTagihan);
-    ws.getCell('H45').font = { bold: true };
-    ws.getCell('J45').font = { bold: true };
+    // 5. Totals
+    const writeTotal = (label: string, amount: number, isBold: boolean = false) => {
+      const row = ws.getRow(startRow);
+      row.getCell('H').value = label;
+      row.getCell('H').font = { bold: isBold };
+      row.getCell('H').alignment = { horizontal: 'right' };
+      
+      row.getCell('I').value = amount;
+      row.getCell('I').font = { bold: isBold };
+      row.getCell('I').numFmt = 'Rp #,##0';
+      row.getCell('I').border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      startRow++;
+    };
 
-    // Date and Signatures
-    const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-    ws.getCell('J46').value = `Denpasar, ${currentDate}`;
-    ws.getCell('J47').value = null; // Clear to make room for stamp
-    ws.getCell('J53').value = config.tax_name || config.name;
-    if (config.npwp) {
-      ws.getCell('J54').value = `NPWP: ${config.npwp}`;
-    }
+    writeTotal('Subtotal:', subtotal);
+    if (job.discount > 0) writeTotal('Discount:', -job.discount);
+    if (job.delivery_fee > 0) writeTotal('Delivery:', job.delivery_fee);
+    writeTotal('GRAND TOTAL:', Number(job.total_rental_fee), true);
 
-    // Terbilang
-    const terbilangCell = ws.getCell('C51');
-    terbilangCell.value = `( ${terbilang(totalTagihan)} Rupiah )`;
-    terbilangCell.alignment = { wrapText: true, vertical: 'top' };
-    (ws.getRow(51) as any).height = 30;
+    startRow += 2;
 
-    // Adjust row and column sizing for better spacing
-    ws.columns.forEach(col => {
-      if (col && col.width) {
-        col.width = col.width + 1.5;
-      }
-    });
-    ws.eachRow(row => {
-      if (row.height) {
-        row.height = row.height + 4;
-      } else {
-        row.height = 20;
-      }
-    });
+    // 6. Notes & Terbilang
+    const noteRow = ws.getRow(startRow);
+    noteRow.getCell('B').value = 'NOTE';
+    noteRow.getCell('C').value = ':';
+    noteRow.getCell('D').value = 'Termin Pembayaran :';
+    noteRow.getCell('D').font = { bold: true };
+    startRow++;
+    
+    ws.getCell(`D${startRow++}`).value = '1. Tahap 1 = 50% dari total of payment';
+    ws.getCell(`D${startRow}`).value = '2. Tahap 2 = 50% dari total of payment pada Pelunasan Saat Pengiriman dan Barang sudah di cek berfungsi normal';
+    ws.getCell(`D${startRow++}`).alignment = { wrapText: true };
+    ws.getCell(`D${startRow++}`).value = '*Harga diatas Belum Termasuk Pajak';
+    
+    startRow++;
+    const terbilangRow = ws.getRow(startRow);
+    terbilangRow.getCell('B').value = 'TERBILANG';
+    terbilangRow.getCell('B').font = { bold: true, italic: true };
+    terbilangRow.getCell('C').value = ':';
+    terbilangRow.getCell('D').value = terbilang(Number(job.total_rental_fee)) + ' Rupiah';
+    terbilangRow.getCell('D').font = { bold: true, italic: true };
+    ws.mergeCells(`D${startRow}:H${startRow}`);
+    startRow += 3;
 
-    // Write Buffer and Save
+    // 7. Signatures
+    ws.getCell(`D${startRow}`).value = 'Hormat Kami,';
+    ws.getCell(`H${startRow}`).value = 'Penyewa,';
+    ws.getCell(`D${startRow}`).alignment = { horizontal: 'center' };
+    ws.getCell(`H${startRow}`).alignment = { horizontal: 'center' };
+    
+    startRow += 4;
+    ws.getCell(`D${startRow}`).value = '( ................................... )';
+    ws.getCell(`H${startRow}`).value = `( ${job.client_name} )`;
+    ws.getCell(`D${startRow}`).alignment = { horizontal: 'center' };
+    ws.getCell(`H${startRow}`).alignment = { horizontal: 'center' };
+
+    // Export
     const buffer = await wb.xlsx.writeBuffer();
-    const filenameType = type.charAt(0).toUpperCase() + type.slice(1);
-    saveAs(new Blob([buffer]), `${filenameType}_Excel_${job.client_name.replace(/\s+/g, '_')}_${job.job_date}.xlsx`);
-  } catch (error) {
-    console.error(`Error generating Excel ${type}:`, error);
-    toast.error(`Gagal membuat Excel ${type}: ` + (error as Error).message);
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `${targetSheetName}_${job.client_name.replace(/[^a-zA-Z0-9]/g, '_')}_${docNumber.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+    toast.success(`${targetSheetName} Excel berhasil diunduh`);
+  } catch (error: any) {
+    console.error('Error generating Excel:', error);
+    toast.error('Gagal membuat Excel: ' + error.message);
   }
-}
-
-export async function generateExcelInvoice(job: Job, items: JobItem[]) {
-  return generateExcel(job, items, 'invoice');
 }

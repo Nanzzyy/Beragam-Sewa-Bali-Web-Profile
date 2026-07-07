@@ -146,6 +146,8 @@ export default function DashboardApp() {
   
   const [staffHistoryModalOpen, setStaffHistoryModalOpen] = useState(false);
   const [staffHistoryData, setStaffHistoryData] = useState<{ id: string; name: string } | null>(null);
+  const [staffHistoryJobs, setStaffHistoryJobs] = useState<any[]>([]);
+  const [staffHistoryLoading, setStaffHistoryLoading] = useState(false);
 
   // Cashflow Modal State
   const [cashflowModalOpen, setCashflowModalOpen] = useState(false);
@@ -407,6 +409,17 @@ export default function DashboardApp() {
       setLoading(true);
     }
   }, [queryLoading, authReady]);
+  const updateItemStock = async (itemId: string, newQuantity: number) => {
+    if (newQuantity < 0) return;
+    try {
+      const { error } = await supabase.from('items').update({ quantity: newQuantity }).eq('id', itemId);
+      if (error) throw error;
+      setItemsList(prev => prev.map(item => item.id === itemId ? { ...item, quantity: newQuantity } : item));
+      toast.success('Stok berhasil diperbarui');
+    } catch (err: any) {
+      toast.error('Gagal memperbarui stok: ' + err.message);
+    }
+  };
 
   // Backward compatibility for components expecting loadData
   const loadData = useCallback((silent = false) => {
@@ -1164,7 +1177,18 @@ export default function DashboardApp() {
                               <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
                               <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2 mt-1">
                                 <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Kategori: {item.category || '-'}</span>
-                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Stok Total: {item.quantity || 0}</span>
+                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded flex items-center gap-2">
+                                  Stok Total: 
+                                  {canModify ? (
+                                    <span className="flex items-center gap-1 bg-white dark:bg-slate-700 px-1 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-600">
+                                      <button onClick={() => updateItemStock(item.id, (item.quantity || 0) - 1)} className="w-4 h-4 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 transition font-mono leading-none">-</button>
+                                      <span className="font-bold min-w-[1.25rem] text-center">{item.quantity || 0}</span>
+                                      <button onClick={() => updateItemStock(item.id, (item.quantity || 0) + 1)} className="w-4 h-4 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 transition font-mono leading-none">+</button>
+                                    </span>
+                                  ) : (
+                                    <span className="font-bold">{item.quantity || 0}</span>
+                                  )}
+                                </span>
                                 {usedQuantity > 0 && (
                                   <>
                                     <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded font-medium">Sedang Dipakai: {usedQuantity}</span>
@@ -1322,11 +1346,11 @@ export default function DashboardApp() {
                     </div>
                   ) : (
                     staffList.filter(staff => {
-                      const sNick = staffNicknames[staff.email] || '';
+                      const sNick = staff.full_name || staffNicknames[staff.email] || '';
                       const query = staffSearchQuery.toLowerCase();
                       return staff.email.toLowerCase().includes(query) || staff.role.toLowerCase().includes(query) || sNick.toLowerCase().includes(query);
                     }).map(staff => {
-                      const sNick = staffNicknames[staff.email] || '';
+                      const sNick = staff.full_name || staffNicknames[staff.email] || '';
                       
                       const staffActiveJobs = activeJobs.filter(job => job.job_staff?.some((js: any) => js.profile_id === staff.id));
                       
@@ -1357,9 +1381,17 @@ export default function DashboardApp() {
                             <div className="text-xs font-medium px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                               {staff.role}
                             </div>
-                            <button onClick={() => {
+                            <button onClick={async () => {
                               setStaffHistoryData({ id: staff.id, name: sNick || staff.email });
+                              setStaffHistoryJobs([]);
+                              setStaffHistoryLoading(true);
                               setStaffHistoryModalOpen(true);
+                              const { data } = await supabase.from('jobs')
+                                .select('id, client_name, job_date, setup_date, status, job_staff!inner(profile_id)')
+                                .eq('job_staff.profile_id', staff.id)
+                                .order('job_date', { ascending: false });
+                              setStaffHistoryJobs(data || []);
+                              setStaffHistoryLoading(false);
                             }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md transition-colors" title="Lihat Riwayat Job">
                               <History className="w-4 h-4" />
                             </button>
@@ -1368,7 +1400,7 @@ export default function DashboardApp() {
                             <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition">
                               <button onClick={() => {
                                 const nMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
-                                setStaffModalData({ id: staff.id, email: staff.email || '', role: staff.role || 'staff', nickname: nMap[staff.email] || '' });
+                                setStaffModalData({ id: staff.id, email: staff.email || '', role: staff.role || 'staff', nickname: staff.full_name || nMap[staff.email] || '' });
                                 setStaffModalOpen(true);
                               }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md">
                                 <Edit className="w-3.5 h-3.5" />
@@ -2204,7 +2236,8 @@ export default function DashboardApp() {
               };
               const payload = {
                 email: target.email.value.trim(),
-                role: target.role.value
+                role: target.role.value,
+                full_name: target.nickname.value.trim()
               };
               try {
                 if (staffModalData.id) {
@@ -2283,10 +2316,12 @@ export default function DashboardApp() {
             </div>
 
             <div className="overflow-y-auto pr-2 space-y-3 flex-1">
-              {(() => {
-                const hJobs = jobs.filter(j => j.job_staff?.some((js: any) => js.profile_id === staffHistoryData.id));
-                if (hJobs.length === 0) return <p className="text-center text-slate-500 py-8">Karyawan ini belum mengikuti job apapun.</p>;
-                return hJobs.sort((a, b) => new Date(b.job_date || 0).getTime() - new Date(a.job_date || 0).getTime()).map(job => (
+              {staffHistoryLoading ? (
+                <div className="flex items-center justify-center p-8"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>
+              ) : staffHistoryJobs.length === 0 ? (
+                <p className="text-center text-slate-500 py-8">Karyawan ini belum mengikuti job apapun.</p>
+              ) : (
+                staffHistoryJobs.map(job => (
                   <div key={job.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                     <div>
                       <h4 className="font-bold text-slate-900 dark:text-white">{job.client_name}</h4>
@@ -2305,8 +2340,8 @@ export default function DashboardApp() {
                       </span>
                     </div>
                   </div>
-                ));
-              })()}
+                ))
+              )}
             </div>
           </div>
         </div>

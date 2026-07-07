@@ -57,7 +57,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
       const [iRes, pRes, sRes, jobsRes] = await Promise.all([
         sbClient.from('items').select('id, name, category, quantity').order('name'),
         sbClient.from('packages').select('*').order('name'),
-        sbClient.from('profiles').select('id, email').order('email'),
+        sbClient.from('profiles').select('id, email, full_name').order('email'),
         sbClient.from('jobs').select('id').in('status', ['confirmed', 'on_going'])
       ]);
 
@@ -95,16 +95,11 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
       }
 
       if (sRes.data) {
-        try {
-          const nicknamesMap = JSON.parse(localStorage.getItem('bsb_staff_nicknames') || '{}');
-          setAvailableStaff(sRes.data.map(staff => ({
-            id: staff.id,
-            email: staff.email,
-            nickname: nicknamesMap[staff.email] || ''
-          })));
-        } catch (e) {
-          setAvailableStaff(sRes.data);
-        }
+        setAvailableStaff(sRes.data.map((staff: any) => ({
+          id: staff.id,
+          email: staff.email,
+          nickname: staff.full_name || staff.email
+        })));
       }
     } catch (e) {
       console.error('Failed to load job details:', e);

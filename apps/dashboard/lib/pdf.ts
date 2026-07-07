@@ -223,12 +223,15 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   writeRow('ADDRESS', job.client_address || '-', baseY + 10);
   writeRow('EMAIL', job.client_email || '-', baseY + 15);
   writeRow('PHONE', job.client_phone || '-', baseY + 20);
-  writeRow('VENUE', job.venue || '-', baseY + 25);
-  writeRow('PROJECT', job.description || 'EVENT', baseY + 30);
-  doc.setFont('helvetica', 'bold'); doc.text('TGL SETUP', lX, baseY + 35); doc.text(':', colonX, baseY + 35);
-  doc.setFont('helvetica', 'normal'); doc.text(formatDate(job.setup_date), textX, baseY + 35);
-  doc.setFont('helvetica', 'bold'); doc.text('TGL EVENT', lX, baseY + 40); doc.text(':', colonX, baseY + 40);
-  doc.setFont('helvetica', 'normal'); doc.text(formatDate(job.job_date), textX, baseY + 40);
+  
+  const projectName = (job.description || 'EVENT') + (job.venue ? ` / ${job.venue}` : '');
+  writeRow('PROJECT', projectName, baseY + 25);
+  
+  const tglMulai = formatDate(job.job_date);
+  const tglSelesai = job.end_date ? formatDate(job.end_date) : '';
+  const eventDateRange = tglSelesai && tglSelesai !== '-' ? `${tglMulai} s/d ${tglSelesai}` : tglMulai;
+  doc.setFont('helvetica', 'bold'); doc.text('TGL EVENT', lX, baseY + 30); doc.text(':', colonX, baseY + 30);
+  doc.setFont('helvetica', 'normal'); doc.text(eventDateRange, textX, baseY + 30);
 
   // Right Column: Office Info
   const rX = 110; const rColonX = 142; const rTextX = 145;
@@ -267,7 +270,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   doc.text(doc.splitTextToSize(bankOwner, 60), rTextX, bankY + 10);
 
   // Title and Number
-  const titleY = baseY + 50;
+  const titleY = baseY + 40;
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text(type, 14, titleY);
@@ -378,8 +381,11 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   doc.text('NOTE', 14, noteY); doc.text(':', 30, noteY); doc.text('Termin Pembayaran :', 35, noteY);
   doc.setFont('helvetica', 'normal');
   doc.text('1. Tahap 1 = 50% dari total of payment', 35, noteY + 5);
-  doc.text('2. Tahap 2 = 50% dari total of payment pada Pelunasan Saat Pengiriman dan Barang sudah di cek berfungsi normal', 35, noteY + 10, { maxWidth: 160 });
-  doc.text('*Harga diatas Belum Termasuk Pajak', 35, noteY + 15);
+  const tahap2Text = '2. Tahap 2 = 50% dari total of payment pada Pelunasan Saat Pengiriman dan Barang sudah di cek berfungsi normal';
+  const splitTahap2 = doc.splitTextToSize(tahap2Text, 160);
+  doc.text(splitTahap2, 35, noteY + 10);
+  const offsetAfterTahap2 = 10 + (splitTahap2.length * 4);
+  doc.text('*Harga diatas Belum Termasuk Pajak', 35, noteY + offsetAfterTahap2);
 
   const terbilangY = noteY + 25;
   doc.setFont('helvetica', 'bold');

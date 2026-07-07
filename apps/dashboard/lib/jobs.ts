@@ -84,20 +84,22 @@ export async function createJob(input: Omit<Job, 'id' | 'created_at' | 'updated_
 
   // Auto-journal Cashflow
   const ACTIVE_CASHFLOW_STATUSES = ['confirmed', 'on_going', 'completed'];
-  if (input.total_rental_fee && Number(input.total_rental_fee) > 0 && ACTIVE_CASHFLOW_STATUSES.includes(input.status)) {
-    const cfPayload = {
-      type: 'inflow',
-      category: 'client_rental',
-      amount: Number(input.total_rental_fee),
-      description: `Pemasukan Job: ${input.client_name} - ${input.venue}`,
-      reference_id: jobId,
-      transaction_date: input.job_date || new Date().toISOString(),
-      created_by: user.id
-    };
-    const { data: cfData, error: cfError } = await supabase.from('cashflow').insert(cfPayload).select('id').single();
-    if (!cfError && cfData) {
-      await supabase.from('jobs').update({ cashflow_tx_id: cfData.id }).eq('id', jobId);
-    }
+  const amount = Number(input.total_rental_fee);
+  if (amount > 0 && ACTIVE_CASHFLOW_STATUSES.includes(input.status)) {
+      const { data: cfData } = await supabase.from('transactions').insert({
+        description: `Pembayaran Sewa Job: ${input.client_name}`,
+        reference_id: jobId,
+        date: input.job_date || new Date().toISOString(),
+        created_by: user.id
+      }).select('id').single();
+      
+      if (cfData) {
+        await supabase.from('journal_entries').insert([
+          { transaction_id: cfData.id, account_code: input.payment_method || '1-101', debit: amount, credit: 0 },
+          { transaction_id: cfData.id, account_code: '4-101', debit: 0, credit: amount }
+        ]);
+        await supabase.from('jobs').update({ cashflow_tx_id: cfData.id }).eq('id', jobId);
+      }
   }
 
   return jobId;
@@ -123,34 +125,47 @@ export async function syncJobCashflow(jobId: string): Promise<void> {
 
   const ACTIVE_CASHFLOW_STATUSES = ['confirmed', 'on_going', 'completed'];
   const isActive = ACTIVE_CASHFLOW_STATUSES.includes(job.status);
-  const amount = Number(job.total_rental_fee);
+  let amount = Number(job.total_rental_fee);
+  if (job.pph_umkm_enabled) {
+    amount = amount * 0.995;
+  }
+  const paymentMethod = job.payment_method || '1-101'; // Default Kas Besar
 
   if (isActive && amount > 0) {
     if (job.cashflow_tx_id) {
-      await supabase.from('cashflow').update({
-        amount,
-        description: `Pemasukan Job: ${job.client_name} - ${job.venue}`,
-        transaction_date: job.job_date || new Date().toISOString()
+      // Update transaction header
+      await supabase.from('transactions').update({
+        description: `Pembayaran Sewa Job: ${job.client_name}`,
+        date: job.job_date || new Date().toISOString()
       }).eq('id', job.cashflow_tx_id);
+      
+      // Update journal entries
+      await supabase.from('journal_entries').delete().eq('transaction_id', job.cashflow_tx_id);
+      await supabase.from('journal_entries').insert([
+        { transaction_id: job.cashflow_tx_id, account_code: paymentMethod, debit: amount, credit: 0 },
+        { transaction_id: job.cashflow_tx_id, account_code: '4-101', debit: 0, credit: amount }
+      ]);
     } else {
-      const cfPayload = {
-        type: 'inflow',
-        category: 'client_rental',
-        amount,
-        description: `Pemasukan Job: ${job.client_name} - ${job.venue}`,
+      // Insert new transaction
+      const { data: txData } = await supabase.from('transactions').insert({
+        description: `Pembayaran Sewa Job: ${job.client_name}`,
         reference_id: jobId,
-        transaction_date: job.job_date || new Date().toISOString(),
+        date: job.job_date || new Date().toISOString(),
         created_by: job.created_by
-      };
-      const { data: cfData } = await supabase.from('cashflow').insert(cfPayload).select('id').single();
-      if (cfData) {
-        await supabase.from('jobs').update({ cashflow_tx_id: cfData.id }).eq('id', jobId);
+      }).select('id').single();
+      
+      if (txData) {
+        await supabase.from('journal_entries').insert([
+          { transaction_id: txData.id, account_code: paymentMethod, debit: amount, credit: 0 },
+          { transaction_id: txData.id, account_code: '4-101', debit: 0, credit: amount }
+        ]);
+        await supabase.from('jobs').update({ cashflow_tx_id: txData.id }).eq('id', jobId);
       }
     }
   } else {
-    // If not active or amount is 0, delete the cashflow if it exists
+    // If not active or amount is 0, delete the transaction if it exists
     if (job.cashflow_tx_id) {
-      await supabase.from('cashflow').delete().eq('id', job.cashflow_tx_id);
+      await supabase.from('transactions').delete().eq('id', job.cashflow_tx_id);
       await supabase.from('jobs').update({ cashflow_tx_id: null }).eq('id', jobId);
     }
   }
@@ -165,6 +180,29 @@ export async function updateJobStatus(id: string, status: JobStatus): Promise<vo
   if (error) throw new DashboardError(error.message, 'UPDATE_STATUS_FAILED');
   
   await syncJobCashflow(id);
+
+  // Sync Item Statuses
+  const itemStatus = status === 'on_going' ? 'rented' : 'ready';
+  
+  const { data: jobItems } = await supabase.from('job_items').select('item_id, is_package, package_id').eq('job_id', id);
+  if (jobItems && jobItems.length > 0) {
+    const itemIdsToUpdate = new Set<string>();
+    
+    for (const ji of jobItems) {
+      if (ji.is_package && ji.package_id) {
+        const { data: pkgItems } = await supabase.from('package_items').select('item_id').eq('package_id', ji.package_id);
+        if (pkgItems) {
+          pkgItems.forEach(p => itemIdsToUpdate.add(p.item_id));
+        }
+      } else if (ji.item_id) {
+        itemIdsToUpdate.add(ji.item_id);
+      }
+    }
+    
+    if (itemIdsToUpdate.size > 0) {
+      await supabase.from('items').update({ status: itemStatus }).in('id', Array.from(itemIdsToUpdate));
+    }
+  }
 }
 
 export async function deleteJob(id: string): Promise<void> {
@@ -174,9 +212,10 @@ export async function deleteJob(id: string): Promise<void> {
   if (error) throw new DashboardError(error.message, 'DELETE_JOB_FAILED');
 
   if (job?.cashflow_tx_id) {
-    await supabase.from('cashflow').delete().eq('id', job.cashflow_tx_id);
+    await supabase.from('transactions').delete().eq('id', job.cashflow_tx_id);
   } else {
-    await supabase.from('cashflow').delete().eq('reference_id', id);
+    // Attempt fallback deletion by reference_id
+    await supabase.from('transactions').delete().eq('reference_id', id);
   }
 }
 
