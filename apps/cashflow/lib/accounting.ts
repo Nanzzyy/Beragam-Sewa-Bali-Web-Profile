@@ -270,15 +270,28 @@ export async function createTransaction(
 
   const transactionId = txData.id;
 
+  // Fetch latest account data directly from DB to prevent state desync
+  const { data: dbAccounts, error: dbAccError } = await supabase
+    .from('accounts')
+    .select('account_code, created_by')
+    .in('account_code', input.entries.map(e => e.account_code));
+
+  if (dbAccError || !dbAccounts) {
+    throw new AccountingError('Gagal memvalidasi akun di database.', 'DB_ACC_ERROR');
+  }
+
   // Step 4: Insert journal entries
   const journalRows = input.entries.map(e => {
-    const acc = accounts.find(a => a.account_code === e.account_code);
+    const acc = dbAccounts.find(a => a.account_code === e.account_code);
+    if (!acc) {
+      throw new AccountingError(`Akun ${e.account_code} tidak valid atau Anda tidak memiliki akses.`, 'INVALID_ACC');
+    }
     return {
       transaction_id: transactionId,
       account_code: e.account_code,
       debit: e.debit,
       credit: e.credit,
-      created_by: acc?.created_by || user.id,
+      created_by: acc.created_by,
     };
   });
 
@@ -373,13 +386,30 @@ export async function updateTransaction(
     );
   }
 
-  // Step 4: Insert new journal entries
-  const journalRows = input.entries.map(e => ({
-    transaction_id: transactionId,
-    account_code: e.account_code,
-    debit: e.debit,
-    credit: e.credit,
-  }));
+  // Fetch latest account data directly from DB to prevent state desync
+  const { data: dbAccounts, error: dbAccError } = await supabase
+    .from('accounts')
+    .select('account_code, created_by')
+    .in('account_code', input.entries.map(e => e.account_code));
+
+  if (dbAccError || !dbAccounts) {
+    throw new AccountingError('Gagal memvalidasi akun di database.', 'DB_ACC_ERROR');
+  }
+
+  // 3. Prepare new entries with fresh created_by from DB
+  const journalRows = input.entries.map(e => {
+    const acc = dbAccounts.find(a => a.account_code === e.account_code);
+    if (!acc) {
+      throw new AccountingError(`Akun ${e.account_code} tidak valid atau Anda tidak memiliki akses.`, 'INVALID_ACC');
+    }
+    return {
+      transaction_id: transactionId,
+      account_code: e.account_code,
+      debit: e.debit,
+      credit: e.credit,
+      created_by: acc.created_by,
+    };
+  });
 
   const { error: jeError } = await supabase
     .from('journal_entries')
