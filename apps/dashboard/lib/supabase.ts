@@ -82,6 +82,7 @@ export interface JobStaff {
   created_at: string;
   // Joined fields
   email?: string;
+  full_name?: string;
 }
 
 export interface JobProof {
@@ -97,6 +98,7 @@ export interface Profile {
   id: string;
   email: string;
   role: AppRole;
+  full_name?: string;
 }
 
 // ============================================================

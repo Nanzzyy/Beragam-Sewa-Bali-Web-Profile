@@ -88,7 +88,6 @@ export async function createJob(input: Omit<Job, 'id' | 'created_at' | 'updated_
   if (amount > 0 && ACTIVE_CASHFLOW_STATUSES.includes(input.status)) {
       const { data: cfData } = await supabase.from('transactions').insert({
         description: `Pembayaran Sewa Job: ${input.client_name}`,
-        reference_id: jobId,
         date: input.job_date || new Date().toISOString(),
         created_by: user.id
       }).select('id').single();
@@ -149,7 +148,6 @@ export async function syncJobCashflow(jobId: string): Promise<void> {
       // Insert new transaction
       const { data: txData } = await supabase.from('transactions').insert({
         description: `Pembayaran Sewa Job: ${job.client_name}`,
-        reference_id: jobId,
         date: job.job_date || new Date().toISOString(),
         created_by: job.created_by
       }).select('id').single();
@@ -213,9 +211,6 @@ export async function deleteJob(id: string): Promise<void> {
 
   if (job?.cashflow_tx_id) {
     await supabase.from('transactions').delete().eq('id', job.cashflow_tx_id);
-  } else {
-    // Attempt fallback deletion by reference_id
-    await supabase.from('transactions').delete().eq('reference_id', id);
   }
 }
 
@@ -272,7 +267,7 @@ export async function fetchJobStaff(jobId: string): Promise<JobStaff[]> {
     .from('job_staff')
     .select(`
       *,
-      profiles:profile_id ( email )
+      profiles:profile_id ( email, full_name )
     `)
     .eq('job_id', jobId)
     .order('created_at');
@@ -281,6 +276,7 @@ export async function fetchJobStaff(jobId: string): Promise<JobStaff[]> {
   return (data || []).map((row: Record<string, unknown>) => ({
     ...(row as unknown as JobStaff),
     email: ((row as Record<string, unknown>).profiles as Record<string, unknown>)?.email as string || '',
+    full_name: ((row as Record<string, unknown>).profiles as Record<string, unknown>)?.full_name as string || '',
   }));
 }
 
@@ -312,6 +308,20 @@ export async function fetchJobProofs(jobId: string): Promise<JobProof[]> {
 export async function addJobProof(proof: Omit<JobProof, 'id' | 'created_at'>): Promise<void> {
   const { error } = await supabase.from('job_proofs').insert(proof);
   if (error) throw new DashboardError(error.message, 'ADD_JOB_PROOF_FAILED');
+}
+
+export async function deleteJobProof(id: string, photoUrl: string): Promise<void> {
+  try {
+    const urlParts = photoUrl.split('/job-proofs/');
+    if (urlParts.length > 1) {
+      const fileName = urlParts[1].split('?')[0];
+      await supabase.storage.from('job-proofs').remove([fileName]);
+    }
+  } catch (err) {
+    console.error('Failed to delete photo from storage:', err);
+  }
+  const { error } = await supabase.from('job_proofs').delete().eq('id', id);
+  if (error) throw new DashboardError(error.message, 'DELETE_JOB_PROOF_FAILED');
 }
 
 // ============================================================

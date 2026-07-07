@@ -10,9 +10,12 @@ type TxWithEntries = Transaction & { journal_entries: JournalEntryWithAccount[] 
 interface LedgerByAccountProps {
   userRole?: string;
   currentUserId?: string;
+  filterMonth?: number;
+  filterYear?: number;
+  isFilterEnabled?: boolean;
 }
 
-export default function LedgerByAccount({ userRole = 'guest', currentUserId = '' }: LedgerByAccountProps) {
+export default function LedgerByAccount({ userRole = 'guest', currentUserId = '', filterMonth = new Date().getMonth() + 1, filterYear = new Date().getFullYear(), isFilterEnabled = true }: LedgerByAccountProps) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<TxWithEntries[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,11 +80,14 @@ export default function LedgerByAccount({ userRole = 'guest', currentUserId = ''
     });
   });
 
-  // Filter by search query
-  const filteredEntries = ledgerEntries.filter(entry => 
-    entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    new Date(entry.date).toLocaleDateString('id-ID').includes(searchQuery)
-  );
+  // Filter by search query and date
+  const filteredEntries = ledgerEntries.filter(entry => {
+    const entryDate = new Date(entry.date);
+    const matchesDate = !isFilterEnabled || (entryDate.getMonth() + 1 === filterMonth && entryDate.getFullYear() === filterYear);
+    const matchesSearch = entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          new Date(entry.date).toLocaleDateString('id-ID').includes(searchQuery);
+    return matchesDate && matchesSearch;
+  });
 
   const fmt = (num: number) => num === 0 ? '-' : `Rp${Math.abs(num).toLocaleString('id-ID')}`;
 

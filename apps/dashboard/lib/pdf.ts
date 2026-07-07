@@ -123,7 +123,7 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
   ]);
 
   autoTable(doc, {
-    startY: 80 + yOffset,
+    startY: 95 + yOffset,
     head: [['No', 'Nama Barang / Deskripsi', 'Qty']],
     body: tableData,
     theme: 'grid',
@@ -270,7 +270,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   doc.text(doc.splitTextToSize(bankOwner, 60), rTextX, bankY + 10);
 
   // Title and Number
-  const titleY = baseY + 40;
+  const titleY = Math.max(baseY + 45, bankY + 25);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text(type, 14, titleY);
@@ -310,7 +310,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   }
 
   autoTable(doc, {
-    startY: titleY + 5,
+    startY: titleY + 15,
     head: [['No', 'Description', 'Qty', 'Unit', 'Day', 'Unit Price (Rp)', 'Jumlah (Rp)']],
     body: tableData,
     theme: 'grid',

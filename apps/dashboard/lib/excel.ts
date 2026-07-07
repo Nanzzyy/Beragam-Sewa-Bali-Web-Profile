@@ -49,14 +49,15 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     // Columns setup
     ws.columns = [
       { width: 4 },   // A: Space
-      { width: 15 },  // B: Label
+      { width: 12 },  // B: No / Left Label
       { width: 2 },   // C: Colon
-      { width: 35 },  // D: Value
-      { width: 20 },  // E: Space middle
-      { width: 15 },  // F: Right Label
-      { width: 2 },   // G: Colon
-      { width: 35 },  // H: Right Value
-      { width: 4 }    // I: Space
+      { width: 35 },  // D: Left Value
+      { width: 8 },   // E: Qty
+      { width: 12 },  // F: Unit / Right Label
+      { width: 8 },   // G: Day / Colon
+      { width: 18 },  // H: Unit Price / Right Value 1
+      { width: 20 },  // I: Jumlah / Right Value 2
+      { width: 4 }    // J: Space
     ];
 
     // Fetch config
@@ -100,8 +101,9 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       }
       if (rightLabel) {
         row.getCell('F').value = rightLabel; row.getCell('F').font = { bold: true, size: 10 };
-        row.getCell('G').value = ':'; row.getCell('G').font = { bold: true, size: 10 };
+        row.getCell('G').value = ':'; row.getCell('G').font = { bold: true, size: 10 }; row.getCell('G').alignment = { horizontal: 'left' };
         row.getCell('H').value = rightVal; row.getCell('H').font = { size: 10 };
+        ws.mergeCells(`H${rowNum}:I${rowNum}`);
         row.getCell('H').alignment = { wrapText: true, vertical: 'top' };
       }
     };
@@ -130,33 +132,35 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     const docTypeCode = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
     const docNumber = `01/BSB/${docTypeCode}/${getRomanMonth(date)}/${date.getFullYear()}`;
     
-    const titleRow = ws.getRow(startRow + 1);
+    const titleRow = ws.getRow(startRow + 2);
     titleRow.getCell('B').value = docTypeLabel;
     titleRow.getCell('B').font = { bold: true, size: 16 };
-    titleRow.getCell('H').value = `NO : ${docNumber}`;
-    titleRow.getCell('H').font = { bold: true, size: 10 };
-    titleRow.getCell('H').alignment = { horizontal: 'right' };
+    ws.mergeCells(`B${startRow + 2}:D${startRow + 2}`);
+    titleRow.getCell('I').value = `NO : ${docNumber}`;
+    titleRow.getCell('I').font = { bold: true, size: 10 };
+    titleRow.getCell('I').alignment = { horizontal: 'right' };
     
-    startRow += 3;
+    startRow += 4;
 
     // 3. Table Header
     const headerRow = ws.getRow(startRow);
     headerRow.getCell('B').value = 'NO';
-    headerRow.getCell('D').value = 'NAMA ITEM / DESKRIPSI';
-    ws.mergeCells(`D${startRow}:E${startRow}`);
-    headerRow.getCell('F').value = 'DAYS';
-    headerRow.getCell('G').value = 'QTY';
-    headerRow.getCell('H').value = 'H. SATUAN';
-    headerRow.getCell('I').value = 'TOTAL';
+    headerRow.getCell('C').value = 'NAMA BARANG / DESKRIPSI';
+    ws.mergeCells(`C${startRow}:D${startRow}`);
+    headerRow.getCell('E').value = 'QTY';
+    headerRow.getCell('F').value = 'UNIT';
+    headerRow.getCell('G').value = 'DAY';
+    headerRow.getCell('H').value = 'UNIT PRICE';
+    headerRow.getCell('I').value = 'JUMLAH';
     
-    ['B', 'D', 'F', 'G', 'H', 'I'].forEach(col => {
+    ['B', 'C', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
       const cell = headerRow.getCell(col);
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
       cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
     });
-    headerRow.getCell('D').alignment = { horizontal: 'left', vertical: 'middle' };
+    headerRow.getCell('C').alignment = { horizontal: 'left', vertical: 'middle' };
     
     startRow++;
 
@@ -174,24 +178,30 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
         displayName = packageInfo;
       }
       
-      const total = item.qty * item.days * Number(item.price);
+      const qty = item.quantity || 0;
+      const days = item.days || 1;
+      const price = item.sub_rent_cost || 0;
+      const total = qty * days * price;
       subtotal += total;
 
       const row = ws.getRow(startRow);
       row.getCell('B').value = i + 1;
-      row.getCell('D').value = displayName;
-      ws.mergeCells(`D${startRow}:E${startRow}`);
-      row.getCell('F').value = item.days;
-      row.getCell('G').value = item.qty;
-      row.getCell('H').value = Number(item.price);
+      row.getCell('C').value = displayName;
+      ws.mergeCells(`C${startRow}:D${startRow}`);
+      row.getCell('E').value = qty;
+      row.getCell('F').value = item.is_package ? 'pkg' : 'unit';
+      row.getCell('G').value = days;
+      row.getCell('H').value = price;
       row.getCell('I').value = total;
 
-      ['B', 'D', 'F', 'G', 'H', 'I'].forEach(col => {
+      ['B', 'C', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
         const cell = row.getCell(col);
-        cell.alignment = { vertical: 'top', wrapText: true, horizontal: col === 'D' ? 'left' : 'center' };
+        cell.alignment = { vertical: 'top', wrapText: true, horizontal: col === 'C' ? 'left' : 'center' };
         cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         if (col === 'H' || col === 'I') cell.numFmt = 'Rp #,##0';
       });
+      if (item.is_package) row.getCell('C').font = { bold: true };
+      
       startRow++;
     }
 

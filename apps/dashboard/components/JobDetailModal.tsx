@@ -584,7 +584,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                 ) : (
                   staff.map(s => {
                     const sNickname = availableStaff.find(a => a.id === s.profile_id)?.nickname;
-                    const displayName = sNickname || s.email || '-';
+                    const displayName = s.full_name || sNickname || s.email || '-';
                     return (
                       <div key={s.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
                         <div className="flex items-center gap-3">
@@ -638,11 +638,31 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   {proofs.map(p => (
                     <div key={p.id} className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
                       <img src={p.photo_url} alt={`Bukti ${p.type}`} className="w-full h-40 object-cover" loading="lazy" />
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                        <span className={`text-xs font-semibold uppercase ${p.type === 'delivery' ? 'text-blue-400' : 'text-red-500'}`}>
-                          {p.type === 'delivery' ? 'Pengiriman' : 'Pengembalian'}
-                        </span>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">{formatDate(p.created_at)}</div>
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-3 flex items-center justify-between">
+                        <div>
+                          <span className={`text-xs font-semibold uppercase ${p.type === 'delivery' ? 'text-blue-400' : 'text-red-500'}`}>
+                            {p.type === 'delivery' ? 'Pengiriman' : 'Pengembalian'}
+                          </span>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{formatDate(p.created_at)}</div>
+                        </div>
+                        {canModify && (
+                          <button 
+                            onClick={async () => {
+                              if (confirm('Yakin ingin menghapus foto ini?')) {
+                                try {
+                                  await import('../lib/jobs').then(m => m.deleteJobProof(p.id, p.photo_url));
+                                  loadDetails();
+                                } catch (e) {
+                                  toast.error('Gagal menghapus foto');
+                                }
+                              }
+                            }}
+                            className="p-1.5 text-white/50 hover:text-red-500 bg-black/20 hover:bg-black/50 rounded-lg transition-colors"
+                            title="Hapus Foto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

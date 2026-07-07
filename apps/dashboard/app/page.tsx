@@ -139,6 +139,7 @@ export default function DashboardApp() {
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
 
   // Staff Modal State
   const [staffModalOpen, setStaffModalOpen] = useState(false);
@@ -338,7 +339,7 @@ export default function DashboardApp() {
         fetchDashboardStats(),
         supabase.from('items').select('*').order('name'),
         supabase.from('profiles').select('*').order('email'),
-        supabase.from('jobs').select(`id, client_name, venue, job_items ( item_id, source_vendor_id, quantity ), job_staff ( profile_id )`).eq('status', 'on_going'),
+        supabase.from('jobs').select(`id, client_name, venue, job_items ( item_id, source_vendor_id, quantity, is_package, package_id ), job_staff ( profile_id )`).eq('status', 'on_going'),
         supabase.from('site_content').select('content_value').eq('content_key', 'site_logo_dashboard').single(),
         supabase.from('packages').select('*, package_items(item_id, qty)').order('name'),
       ];
@@ -1146,12 +1147,18 @@ export default function DashboardApp() {
                   )}
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-4">
-                  <div className="mb-4">
-                    <div className="relative w-full max-w-sm">
+                  <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                    <div className="relative w-full sm:max-w-sm">
                       <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input type="text" value={itemSearchQuery} onChange={e => setItemSearchQuery(e.target.value)} placeholder="Cari barang..."
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
                     </div>
+                    <select value={selectedCategoryFilter} onChange={(e) => setSelectedCategoryFilter(e.target.value)} className="w-full sm:w-48 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition">
+                      <option value="all">Semua Kategori</option>
+                      {itemCategories.map(cat => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
                   </div>
                   {itemsList.length === 0 ? (
                     <div className="text-center py-12">
@@ -1160,11 +1167,35 @@ export default function DashboardApp() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {itemsList.filter(item => item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) || item.category?.toLowerCase().includes(itemSearchQuery.toLowerCase())).map(item => {
-                        const itemActiveJobs = activeJobs.filter(job => job.job_items?.some((ji: any) => ji.item_id === item.id));
+                      {itemsList.filter(item => {
+                        const matchesSearch = item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) || item.category?.toLowerCase().includes(itemSearchQuery.toLowerCase());
+                        const matchesCategory = selectedCategoryFilter === 'all' || item.category === selectedCategoryFilter;
+                        return matchesSearch && matchesCategory;
+                      }).map(item => {
+                        const itemActiveJobs = activeJobs.filter(job => job.job_items?.some((ji: any) => {
+                          if (!ji.is_package && ji.item_id === item.id) return true;
+                          if (ji.is_package && ji.package_id) {
+                            const pkg = packagesList.find(p => p.id === ji.package_id);
+                            if (pkg && pkg.package_items?.some((pi: any) => pi.item_id === item.id)) return true;
+                          }
+                          return false;
+                        }));
                         const usedQuantity = itemActiveJobs.reduce((acc, job) => {
-                          const ji = job.job_items.find((ji: any) => ji.item_id === item.id);
-                          return acc + (ji ? ji.quantity : 0);
+                          const directItem = job.job_items.find((ji: any) => !ji.is_package && ji.item_id === item.id);
+                          let totalUsed = directItem ? directItem.quantity : 0;
+                          
+                          job.job_items.forEach((ji: any) => {
+                            if (ji.is_package && ji.package_id) {
+                              const pkg = packagesList.find(p => p.id === ji.package_id);
+                              if (pkg) {
+                                const packageItemMatch = pkg.package_items?.find((pi: any) => pi.item_id === item.id);
+                                if (packageItemMatch) {
+                                  totalUsed += (ji.quantity || 1) * (packageItemMatch.qty || 1);
+                                }
+                              }
+                            }
+                          });
+                          return acc + totalUsed;
                         }, 0);
                         
                         return (

@@ -62,6 +62,7 @@ export default function CashflowDashboard() {
   const currentDate = new Date();
   const [filterMonth, setFilterMonth] = useState<number>(currentDate.getMonth() + 1);
   const [filterYear, setFilterYear] = useState<number>(currentDate.getFullYear());
+  const [isFilterEnabled, setIsFilterEnabled] = useState<boolean>(true);
 
   useEffect(() => {
     setMounted(true);
@@ -187,7 +188,7 @@ export default function CashflowDashboard() {
 
   // ======== TANSTACK QUERY ========
   const { data: cashflowData, isLoading: queryLoading } = useQuery({
-    queryKey: ['cashflow_dashboard', currentUserId, userRole, filterMonth, filterYear],
+    queryKey: ['cashflow_dashboard', currentUserId, userRole],
     enabled: authReady && !!currentUserId,
     queryFn: async () => {
       let activeRole = userRole;
@@ -200,13 +201,10 @@ export default function CashflowDashboard() {
         activeRole = data?.role || 'guest';
       }
 
-      const startDate = `${filterYear}-${String(filterMonth).padStart(2, '0')}-01`;
-      const endDate = new Date(filterYear, filterMonth, 0).toISOString().split('T')[0];
-
       const [accs, tb, txs] = await Promise.all([
         fetchAccounts(),
         fetchTrialBalance(),
-        fetchTransactionsWithEntries({ dateFrom: startDate, dateTo: endDate, limit: 2000 }),
+        fetchTransactionsWithEntries({ limit: 2000 }),
       ]);
 
       let finalTxs = txs;
@@ -482,19 +480,34 @@ export default function CashflowDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            {mounted && (
+            {mounted && (tab === 'ledger' || tab === 'ledger-acc') && (
               <div className="flex items-center gap-2 mr-2">
-                <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-2 py-1.5 outline-none font-medium text-slate-700 dark:text-slate-300">
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                    <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('id-ID', { month: 'short' })}</option>
-                  ))}
-                </select>
-                <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-2 py-1.5 outline-none font-medium text-slate-700 dark:text-slate-300">
-                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 mr-2 cursor-pointer">
+                  <input type="checkbox" checked={isFilterEnabled} onChange={e => setIsFilterEnabled(e.target.checked)} className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                  Filter by
+                </label>
+                {isFilterEnabled && (
+                  <>
+                    <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-2 py-1.5 outline-none font-medium text-slate-700 dark:text-slate-300">
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                        <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('id-ID', { month: 'short' })}</option>
+                      ))}
+                    </select>
+                    <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-2 py-1.5 outline-none font-medium text-slate-700 dark:text-slate-300">
+                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
                 <button onClick={toggleTheme} className="p-2 ml-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors border-l border-slate-200 dark:border-slate-700 pl-3">
+                  {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </button>
+              </div>
+            )}
+            {mounted && tab !== 'ledger' && tab !== 'ledger-acc' && (
+              <div className="flex items-center gap-2 mr-2">
+                <button onClick={toggleTheme} className="p-2 ml-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors border-slate-200 dark:border-slate-700">
                   {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 </button>
               </div>
@@ -618,7 +631,7 @@ export default function CashflowDashboard() {
         )}
 
         {tab === 'ledger-acc' && (
-          <LedgerByAccount userRole={userRole} currentUserId={currentUserId} />
+          <LedgerByAccount userRole={userRole} currentUserId={currentUserId} filterMonth={filterMonth} filterYear={filterYear} isFilterEnabled={isFilterEnabled} />
         )}
 
         {tab === 'accounts' && (
@@ -721,15 +734,15 @@ export default function CashflowDashboard() {
             </div>
 
             <div className="space-y-4">
-              {filteredTransactions.filter(t => !t.is_adjusting).length === 0 ? (
+              {filteredTransactions.filter(t => !t.is_adjusting && (!isFilterEnabled || (new Date(t.date).getMonth() + 1 === filterMonth && new Date(t.date).getFullYear() === filterYear))).length === 0 ? (
                 <div className="glass-card p-12 text-center flex flex-col items-center">
                   <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-4"><BookOpen className="w-8 h-8" /></div>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">Belum ada transaksi yang tercatat atau cocok dengan pencarian.</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">Belum ada transaksi yang tercatat atau cocok dengan pencarian pada bulan dan tahun ini.</p>
                   <button onClick={() => setShowModal(true)} className="mt-4 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors">
                     + Buat transaksi pertama
                   </button>
                 </div>
-              ) : filteredTransactions.filter(t => !t.is_adjusting).map(tx => (
+              ) : filteredTransactions.filter(t => !t.is_adjusting && (!isFilterEnabled || (new Date(t.date).getMonth() + 1 === filterMonth && new Date(t.date).getFullYear() === filterYear))).map(tx => (
                 <div key={tx.id} className="glass-card p-0 overflow-hidden">
                   <div className="px-5 py-3 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
                     <div>
