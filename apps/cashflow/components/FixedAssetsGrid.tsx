@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { fetchFixedAssets, upsertFixedAsset, deleteFixedAsset } from '../lib/accounting';
 import type { FixedAsset } from '../lib/supabase';
-import { Loader2, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, Check, X, Search } from 'lucide-react';
 
 export default function FixedAssetsGrid() {
   const [assets, setAssets] = useState<FixedAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<FixedAsset>>({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -81,6 +82,17 @@ export default function FixedAssetsGrid() {
         </button>
       </div>
 
+      <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 shadow-sm mb-4">
+        <Search className="w-4 h-4 text-slate-400 mr-2" />
+        <input 
+          type="text" 
+          placeholder="Cari kode atau nama aset..." 
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="bg-transparent border-none outline-none w-full text-sm text-slate-900 dark:text-white"
+        />
+      </div>
+
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-sm">
         <table className="w-full text-sm text-left text-slate-700 dark:text-slate-300 whitespace-nowrap">
           <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-800/60">
@@ -99,7 +111,10 @@ export default function FixedAssetsGrid() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-[11px]">
-            {assets.map((asset) => {
+            {assets.filter(asset => 
+              asset.asset_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              asset.asset_code.toLowerCase().includes(searchQuery.toLowerCase())
+            ).map((asset) => {
               const isEditing = editingId === asset.id;
               
               // Calculations

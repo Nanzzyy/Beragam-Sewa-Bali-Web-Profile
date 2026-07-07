@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { fetchAccounts, upsertAccount, deleteAccount } from '../lib/accounting';
 import type { Account } from '../lib/supabase';
-import { Loader2, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, Check, X, Search } from 'lucide-react';
 
 export default function ChartOfAccountsGrid() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Account>>({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -77,6 +78,17 @@ export default function ChartOfAccountsGrid() {
         </button>
       </div>
 
+      <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 shadow-sm mb-4">
+        <Search className="w-4 h-4 text-slate-400 mr-2" />
+        <input 
+          type="text" 
+          placeholder="Cari kode atau nama akun..." 
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="bg-transparent border-none outline-none w-full text-sm text-slate-900 dark:text-white"
+        />
+      </div>
+
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-sm">
         <table className="w-full text-sm text-left text-slate-700 dark:text-slate-300">
           <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-800/60">
@@ -89,7 +101,10 @@ export default function ChartOfAccountsGrid() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {accounts.map((acc) => {
+            {accounts.filter(acc => 
+              acc.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              acc.account_code.toLowerCase().includes(searchQuery.toLowerCase())
+            ).map((acc) => {
               const isEditing = editingCode === acc.account_code;
               return (
                 <tr key={acc.account_code} className="hover:bg-slate-50 dark:bg-slate-950/50 transition-colors group">

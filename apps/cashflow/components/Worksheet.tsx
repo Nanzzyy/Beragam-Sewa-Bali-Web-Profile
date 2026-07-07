@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { fetchGeneralLedger, fetchAccounts } from '../lib/accounting';
 import type { GeneralLedgerRow, Account } from '../lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 
 export default function Worksheet() {
   const [ledger, setLedger] = useState<GeneralLedgerRow[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -36,7 +37,12 @@ export default function Worksheet() {
     </div>
   );
 
-  const rows = accounts.map(acc => {
+  const filteredAccounts = accounts.filter(acc => 
+    acc.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    acc.account_code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const rows = filteredAccounts.map(acc => {
     const accountEntries = ledger.filter(l => l.account_code === acc.account_code);
     
     const normalEntries = accountEntries.filter(l => !l.is_adjusting);
@@ -105,8 +111,21 @@ export default function Worksheet() {
   const formatCurrency = (val: number) => val === 0 ? '-' : `Rp. ${val.toLocaleString('id-ID')}`;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-sm">
-      <table className="w-full text-[11px] text-left text-slate-600 dark:text-slate-400">
+    <div className="w-full">
+      <div className="px-6 py-4">
+        <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 shadow-sm">
+          <Search className="w-4 h-4 text-slate-400 mr-2" />
+          <input 
+            type="text" 
+            placeholder="Cari kode atau nama akun..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none w-full text-sm text-slate-900 dark:text-white"
+          />
+        </div>
+      </div>
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-sm">
+        <table className="w-full text-[11px] text-left text-slate-600 dark:text-slate-400">
         <thead className="text-[10px] uppercase bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold tracking-wider">
           <tr>
             <th rowSpan={2} className="px-4 py-3 whitespace-nowrap border-b border-slate-200 dark:border-slate-800/60">Kode</th>
@@ -174,6 +193,7 @@ export default function Worksheet() {
           )}
         </tfoot>
       </table>
+    </div>
     </div>
   );
 }

@@ -14,7 +14,7 @@ import dynamic from 'next/dynamic';
 
 const ExcelExportButton = dynamic(() => import('../components/ExcelExportButton'), { ssr: false });
 const DashboardChart = dynamic(() => import('../components/DashboardChart'), { ssr: false });
-import { LayoutDashboard, BookOpen, BookText, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud, Pencil } from 'lucide-react';
+import { LayoutDashboard, BookOpen, BookText, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud, Pencil, Search } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 type Tab = 'dashboard' | 'ledger' | 'ledger-acc' | 'neraca' | 'adjusting' | 'worksheet' | 'accounts' | 'assets';
@@ -26,6 +26,7 @@ export default function CashflowDashboard() {
 
   const setTab = (newTab: Tab) => {
     setTabState(newTab);
+    setSearchQuery('');
     if (typeof window !== 'undefined') safeSetItem('bsb_cashflow_tab', newTab);
   };
 
@@ -56,6 +57,7 @@ export default function CashflowDashboard() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -448,6 +450,19 @@ export default function CashflowDashboard() {
     Expense: 'text-amber-700 bg-amber-50 dark:bg-amber-500/10 border-amber-200',
   };
 
+  const filteredTrialBalance = trialBalance.filter(row => 
+    row.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    row.account_code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredTransactions = transactions.filter(tx => 
+    tx.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.journal_entries.some(je => 
+      je.account_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      je.account_code.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white pb-24 font-sans selection:bg-emerald-500/20 dark:selection:bg-emerald-500/30  transition-colors duration-300">
       <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/60 px-4 py-3 shadow-sm transition-colors duration-300">
@@ -601,9 +616,22 @@ export default function CashflowDashboard() {
 
         {tab === 'neraca' && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><ClipboardList className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Neraca Saldo (Trial Balance)</h2>
-              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800/60">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                  <input 
+                    type="text"
+                    placeholder="Cari kode atau nama akun..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-4 py-2 w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 outline-none shadow-sm"
+                  />
+                </div>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800/60 whitespace-nowrap">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              </div>
             </div>
             <div className="glass-card overflow-hidden">
               <div className="overflow-x-auto">
@@ -619,7 +647,7 @@ export default function CashflowDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {trialBalance.map(row => (
+                    {filteredTrialBalance.map(row => (
                       <tr key={row.account_code} className="hover:bg-slate-50 dark:bg-slate-950/80 transition-colors">
                         <td className="px-5 py-3 font-mono font-bold text-slate-600 dark:text-slate-400">{row.account_code}</td>
                         <td className="px-5 py-3 text-slate-900 dark:text-white font-medium">{row.account_name}</td>
@@ -652,24 +680,37 @@ export default function CashflowDashboard() {
 
         {tab === 'ledger' && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Jurnal Umum (General Ledger)</h2>
-              <button onClick={() => setShowModal(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 text-white dark:text-slate-900 font-semibold rounded-lg text-xs transition-all shadow-sm">
-                <Plus className="w-3.5 h-3.5" /> Tambah Jurnal
-              </button>
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                  <input 
+                    type="text"
+                    placeholder="Cari transaksi..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-4 py-2 w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 outline-none shadow-sm"
+                  />
+                </div>
+                <button onClick={() => setShowModal(true)}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 text-white dark:text-slate-900 font-semibold rounded-lg text-xs transition-all shadow-sm whitespace-nowrap">
+                  <Plus className="w-3.5 h-3.5" /> Tambah Jurnal
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">
-              {transactions.filter(t => !t.is_adjusting).length === 0 ? (
+              {filteredTransactions.filter(t => !t.is_adjusting).length === 0 ? (
                 <div className="glass-card p-12 text-center flex flex-col items-center">
                   <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-4"><BookOpen className="w-8 h-8" /></div>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">Belum ada transaksi yang tercatat.</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">Belum ada transaksi yang tercatat atau cocok dengan pencarian.</p>
                   <button onClick={() => setShowModal(true)} className="mt-4 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors">
                     + Buat transaksi pertama
                   </button>
                 </div>
-              ) : transactions.filter(t => !t.is_adjusting).map(tx => (
+              ) : filteredTransactions.filter(t => !t.is_adjusting).map(tx => (
                 <div key={tx.id} className="glass-card p-0 overflow-hidden">
                   <div className="px-5 py-3 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
                     <div>
@@ -716,16 +757,29 @@ export default function CashflowDashboard() {
 
         {tab === 'adjusting' && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Settings className="w-5 h-5 text-amber-600 dark:text-amber-400" /> Jurnal Penyesuaian</h2>
-              <button onClick={() => setShowAdjModal(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg text-xs transition-all shadow-sm shadow-amber-600/20">
-                <Plus className="w-3.5 h-3.5" /> Tambah Penyesuaian
-              </button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Jurnal Penyesuaian (Adjusting Entries)</h2>
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                  <input 
+                    type="text"
+                    placeholder="Cari jurnal penyesuaian..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-4 py-2 w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm"
+                  />
+                </div>
+                <button onClick={() => setShowAdjModal(true)}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition-all shadow-sm shadow-indigo-200 dark:shadow-none whitespace-nowrap">
+                  <Plus className="w-3.5 h-3.5" /> Jurnal Penyesuaian
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">
-              {transactions.filter(t => t.is_adjusting).length === 0 ? (
+              {filteredTransactions.filter(t => t.is_adjusting).length === 0 ? (
                 <div className="glass-card p-12 text-center flex flex-col items-center">
                   <div className="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mb-4"><Settings className="w-8 h-8" /></div>
                   <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">Belum ada jurnal penyesuaian yang tercatat.</p>
@@ -733,7 +787,7 @@ export default function CashflowDashboard() {
                     + Buat jurnal penyesuaian
                   </button>
                 </div>
-              ) : transactions.filter(t => t.is_adjusting).map(tx => (
+              ) : filteredTransactions.filter(t => t.is_adjusting).map(tx => (
                 <div key={tx.id} className="glass-card p-0 overflow-hidden border-t-4 border-t-amber-400">
                   <div className="px-5 py-3 bg-amber-50/30 border-b border-amber-100/50 flex items-center justify-between">
                     <div>
