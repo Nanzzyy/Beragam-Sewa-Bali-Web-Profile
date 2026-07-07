@@ -123,8 +123,6 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     const eventDateRange = tglSelesai && tglSelesai !== '-' ? `${tglMulai} s/d ${tglSelesai}` : tglMulai;
     writeField(startRow++, 'TGL EVENT', eventDateRange, '', bankNumber);
     writeField(startRow++, '', '', '', bankOwner);
-
-    ws.addRow([]);
     
     // 2. Title & Number
     const docTypeLabel = type === 'invoice' ? 'INVOICE' : type === 'quotation' ? 'QUOTATION' : 'KUITANSI';
@@ -132,15 +130,15 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     const docTypeCode = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
     const docNumber = `01/BSB/${docTypeCode}/${getRomanMonth(date)}/${date.getFullYear()}`;
     
-    const titleRow = ws.getRow(startRow + 2);
+    const titleRow = ws.getRow(startRow + 1);
     titleRow.getCell('B').value = docTypeLabel;
     titleRow.getCell('B').font = { bold: true, size: 16 };
-    ws.mergeCells(`B${startRow + 2}:D${startRow + 2}`);
+    ws.mergeCells(`B${startRow + 1}:D${startRow + 1}`);
     titleRow.getCell('I').value = `NO : ${docNumber}`;
     titleRow.getCell('I').font = { bold: true, size: 10 };
     titleRow.getCell('I').alignment = { horizontal: 'right' };
     
-    startRow += 4;
+    startRow += 3;
 
     // 3. Table Header
     const headerRow = ws.getRow(startRow);

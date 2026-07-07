@@ -270,7 +270,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   doc.text(doc.splitTextToSize(bankOwner, 60), rTextX, bankY + 10);
 
   // Title and Number
-  const titleY = Math.max(baseY + 45, bankY + 25);
+  const titleY = Math.max(baseY + 37, bankY + 20);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text(type, 14, titleY);
@@ -310,7 +310,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   }
 
   autoTable(doc, {
-    startY: titleY + 15,
+    startY: titleY + 8,
     head: [['No', 'Description', 'Qty', 'Unit', 'Day', 'Unit Price (Rp)', 'Jumlah (Rp)']],
     body: tableData,
     theme: 'grid',
