@@ -249,12 +249,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       subtotal += total;
 
       const row = ws.getRow(startRow);
-
-      // Dynamic row height: base padding + extra per line of text
-      const lineCount = (displayName.match(/\n/g) || []).length + 1;
-      const BASE_ROW_HEIGHT = 22;  // comfortable single-line height with padding
-      const PER_LINE_HEIGHT = 14;  // extra height per additional line
-      row.height = BASE_ROW_HEIGHT + Math.max(0, lineCount - 1) * PER_LINE_HEIGHT;
+      row.height = 28; // Data row padding
 
       row.getCell('B').value = i + 1;
       row.getCell('C').value = displayName;
