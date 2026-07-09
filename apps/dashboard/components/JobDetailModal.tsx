@@ -425,8 +425,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                       if (addMode === 'item') {
                         const selectedItemId = target.target_id.value;
                         const selectedItem = availableItems.find(i => i.id === selectedItemId);
-                        if (selectedItem && qty > selectedItem.available) {
-                          toast.error(`Stok tidak mencukupi! Hanya tersedia ${selectedItem.available} unit.`);
+                        if (selectedItem && qty > (selectedItem.available ?? 0)) {
+                          toast.error(`Stok tidak mencukupi! Hanya tersedia ${selectedItem.available ?? 0} unit.`);
                           setUploading(false);
                           return;
                         }

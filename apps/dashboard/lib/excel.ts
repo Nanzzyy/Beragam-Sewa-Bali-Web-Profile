@@ -39,6 +39,24 @@ function getRomanMonth(date: Date) {
   return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][date.getMonth()];
 }
 
+/** Detect image extension from a base64 data URI string */
+function detectImageExt(base64: string): 'png' | 'jpeg' {
+  const match = base64.match(/data:image\/(png|jpeg|jpg);base64,/i);
+  if (match) {
+    const raw = match[1].toLowerCase();
+    return raw === 'jpg' ? 'jpeg' : (raw as 'png' | 'jpeg');
+  }
+  return 'png';
+}
+
+/** Thin border style constant for reuse */
+const THIN_BORDER: Partial<ExcelJS.Borders> = {
+  top: { style: 'thin' },
+  bottom: { style: 'thin' },
+  left: { style: 'thin' },
+  right: { style: 'thin' },
+};
+
 export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'quotation' | 'receipt') {
   try {
     const wb = new ExcelJS.Workbook();
@@ -46,38 +64,38 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     const targetSheetName = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
     const ws = wb.addWorksheet(targetSheetName, { views: [{ showGridLines: false }] });
 
-    // Columns setup
+    // ── Column widths ──
     ws.columns = [
-      { width: 4 },   // A: Space
-      { width: 12 },  // B: No / Left Label
+      { width: 4 },   // A: Left margin
+      { width: 12 },  // B: No / Label
       { width: 2 },   // C: Colon
-      { width: 45 },  // D: Left Value
+      { width: 45 },  // D: Value
       { width: 8 },   // E: Qty
-      { width: 12 },  // F: Unit / Right Label
-      { width: 8 },   // G: Day / Colon
-      { width: 18 },  // H: Unit Price / Right Value 1
-      { width: 20 },  // I: Jumlah / Right Value 2
-      { width: 4 }    // J: Space
+      { width: 12 },  // F: Unit
+      { width: 8 },   // G: Day
+      { width: 18 },  // H: Unit Price
+      { width: 20 },  // I: Jumlah
+      { width: 4 },   // J: Right margin
     ];
 
-    // Fetch config
+    // ── Fetch company config (shared with PDF) ──
     const { getCompanyConfig } = await import('./pdf');
     const config = await getCompanyConfig();
 
+    // Parse bank info from payment string
     let bankName = 'BCA';
     let bankNumber = '6110252194';
     let bankOwner = 'an. Eka Sutrisna Putra';
     if (config.payment) {
-      const paymentStr = config.payment;
-      const bankMatch = paymentStr.match(/Bank\s+([A-Za-z0-9]+)/i);
-      const numMatch = paymentStr.match(/(?:No\.?\s*Rek\.?\s*)?(\d{5,20})/i);
-      const ownerMatch = paymentStr.match(/(?:a\.n\.?|an\.?)\s*([^,\n]+)/i);
+      const bankMatch = config.payment.match(/Bank\s+([A-Za-z0-9]+)/i);
+      const numMatch = config.payment.match(/(?:No\.?\s*Rek\.?\s*)?(\d{5,20})/i);
+      const ownerMatch = config.payment.match(/(?:a\.n\.?|an\.?)\s*([^,\n]+)/i);
       if (bankMatch) bankName = bankMatch[1].toUpperCase();
       if (numMatch) bankNumber = numMatch[1];
       if (ownerMatch) bankOwner = 'an. ' + ownerMatch[1].trim();
     }
 
-    // Pre-fetch package items
+    // Pre-fetch package sub-items
     const packageItemsMap: Record<string, any[]> = {};
     for (const item of items) {
       if (item.is_package && item.package_id && !packageItemsMap[item.package_id]) {
@@ -86,42 +104,60 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       }
     }
 
-    // HEADER SPACE
-    ws.addRow([]);
-    ws.addRow([]);
-    ws.addRow([]);
+    // ══════════════════════════════════════════════
+    //  ROWS 1-3: Company Header Image Area
+    // ══════════════════════════════════════════════
+    // Reserve 3 rows for the header image, matching the PDF layout
+    ws.addRow([]); // row 1
+    ws.addRow([]); // row 2
+    ws.addRow([]); // row 3
+
+    // Set header rows height to accommodate the image
+    ws.getRow(1).height = 25;
+    ws.getRow(2).height = 25;
+    ws.getRow(3).height = 25;
 
     if (config.header) {
       try {
-        const extMatch = config.header.match(/data:image\/(png|jpeg|jpg);base64,/i);
-        const ext = (extMatch && extMatch[1] ? extMatch[1].toLowerCase() : 'png') as 'png' | 'jpeg';
-        const imageId = wb.addImage({
+        const headerImgId = wb.addImage({
           base64: config.header,
-          extension: ext === 'jpg' ? 'jpeg' : ext,
+          extension: detectImageExt(config.header),
         });
-        ws.addImage(imageId, {
-          tl: { col: 1, row: 0 },
-          ext: { width: 750, height: 100 }
+        // Span the header across columns A-J, rows 1-3
+        ws.addImage(headerImgId, {
+          tl: { col: 0, row: 0 } as any,
+          br: { col: 9, row: 3 } as any,
         });
-        ws.getRow(1).height = 40;
-        ws.getRow(2).height = 40;
       } catch (e) {
-        console.error('Failed to add header image:', e);
+        console.error('Failed to add header image to Excel:', e);
       }
     }
 
-    // 1. Client Info (Left) & Office Info (Right)
+    // Row 4: spacer
+    ws.addRow([]);
+
+    // ══════════════════════════════════════════════
+    //  SECTION 1: Client Info (Left) & Office Info (Right)
+    // ══════════════════════════════════════════════
     const writeField = (rowNum: number, leftLabel: string, leftVal: string, rightLabel: string, rightVal: string) => {
       const row = ws.getRow(rowNum);
+      row.height = 18;
       if (leftLabel) {
-        row.getCell('B').value = leftLabel; row.getCell('B').font = { bold: true, size: 10 };
-        row.getCell('C').value = ':'; row.getCell('C').font = { bold: true, size: 10 };
-        row.getCell('D').value = leftVal; row.getCell('D').font = { size: 10 };
+        row.getCell('B').value = leftLabel;
+        row.getCell('B').font = { bold: true, size: 10 };
+        row.getCell('C').value = ':';
+        row.getCell('C').font = { bold: true, size: 10 };
+        row.getCell('D').value = leftVal;
+        row.getCell('D').font = { size: 10 };
       }
       if (rightLabel) {
-        row.getCell('F').value = rightLabel; row.getCell('F').font = { bold: true, size: 10 };
-        row.getCell('G').value = ':'; row.getCell('G').font = { bold: true, size: 10 }; row.getCell('G').alignment = { horizontal: 'left' };
-        row.getCell('H').value = rightVal; row.getCell('H').font = { size: 10 };
+        row.getCell('F').value = rightLabel;
+        row.getCell('F').font = { bold: true, size: 10 };
+        row.getCell('G').value = ':';
+        row.getCell('G').font = { bold: true, size: 10 };
+        row.getCell('G').alignment = { horizontal: 'left' };
+        row.getCell('H').value = rightVal;
+        row.getCell('H').font = { size: 10 };
         ws.mergeCells(`H${rowNum}:I${rowNum}`);
         row.getCell('H').alignment = { wrapText: true, vertical: 'top' };
       }
@@ -132,36 +168,43 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     writeField(startRow++, 'CONTACT', job.contact_person || job.client_name, '', '');
     writeField(startRow++, 'ADDRESS', job.client_address || '-', 'PHONE', config.phone);
     writeField(startRow++, 'EMAIL', job.client_email || '-', 'EMAIL', config.email);
-    
+
     const projectName = (job.description || 'EVENT') + (job.venue ? ` / ${job.venue}` : '');
     writeField(startRow++, 'PHONE', job.client_phone || '-', 'NPWP', config.npwp || '-');
     writeField(startRow++, 'PROJECT', projectName, 'BANK ACCOUNT', bankName);
-    
+
     const tglMulai = formatDate(job.job_date);
     const tglSelesai = job.completion_date ? formatDate(job.completion_date) : '';
     const eventDateRange = tglSelesai && tglSelesai !== '-' ? `${tglMulai} s/d ${tglSelesai}` : tglMulai;
     writeField(startRow++, 'TGL EVENT', eventDateRange, '', bankNumber);
     writeField(startRow++, '', '', '', bankOwner);
-    
-    // 2. Title & Number
+
+    // ══════════════════════════════════════════════
+    //  SECTION 2: Document Title & Number
+    // ══════════════════════════════════════════════
     const docTypeLabel = type === 'invoice' ? 'INVOICE' : type === 'quotation' ? 'QUOTATION' : 'KUITANSI';
     const date = new Date(job.created_at || Date.now());
     const docTypeCode = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'KWT';
     const docNumber = `01/BSB/${docTypeCode}/${getRomanMonth(date)}/${date.getFullYear()}`;
-    
-    const titleRow = ws.getRow(startRow + 1);
+
+    const titleRowNum = startRow + 1;
+    const titleRow = ws.getRow(titleRowNum);
+    titleRow.height = 28;
     titleRow.getCell('B').value = docTypeLabel;
     titleRow.getCell('B').font = { bold: true, size: 16 };
-    ws.mergeCells(`B${startRow + 1}:D${startRow + 1}`);
+    ws.mergeCells(`B${titleRowNum}:D${titleRowNum}`);
     titleRow.getCell('I').value = `NO : ${docNumber}`;
     titleRow.getCell('I').font = { bold: true, size: 10 };
-    titleRow.getCell('I').alignment = { horizontal: 'right' };
-    
-    startRow += 3;
+    titleRow.getCell('I').alignment = { horizontal: 'right', vertical: 'middle' };
 
-    // 3. Table Header
+    startRow = titleRowNum + 2;
+
+    // ══════════════════════════════════════════════
+    //  SECTION 3: Table Header  (height = 0.55" ≈ 39.6pt)
+    // ══════════════════════════════════════════════
     const headerRow = ws.getRow(startRow);
-    headerRow.height = 35;
+    headerRow.height = 39.6; // 0.55 inch
+
     headerRow.getCell('B').value = 'NO';
     headerRow.getCell('C').value = 'NAMA BARANG / DESKRIPSI';
     ws.mergeCells(`C${startRow}:D${startRow}`);
@@ -170,19 +213,22 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     headerRow.getCell('G').value = 'DAY';
     headerRow.getCell('H').value = 'UNIT PRICE';
     headerRow.getCell('I').value = 'JUMLAH';
-    
+
     ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
       const cell = headerRow.getCell(col);
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      cell.border = THIN_BORDER;
     });
-    headerRow.getCell('C').alignment = { horizontal: 'left', vertical: 'middle' };
-    
+    // Description column left-aligned
+    headerRow.getCell('C').alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+
     startRow++;
 
-    // 4. Table Items
+    // ══════════════════════════════════════════════
+    //  SECTION 4: Table Data Rows (with padding)
+    // ══════════════════════════════════════════════
     let subtotal = 0;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -195,7 +241,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
         }
         displayName = packageInfo;
       }
-      
+
       const qty = item.quantity || 0;
       const days = item.days || 1;
       const price = item.sub_rent_cost || 0;
@@ -203,7 +249,8 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       subtotal += total;
 
       const row = ws.getRow(startRow);
-      row.height = 30;
+      row.height = 28; // Data row padding
+
       row.getCell('B').value = i + 1;
       row.getCell('C').value = displayName;
       ws.mergeCells(`C${startRow}:D${startRow}`);
@@ -215,31 +262,42 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
 
       ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
         const cell = row.getCell(col);
-        
-        let halign: 'left' | 'center' | 'right' = 'center';
-        if (col === 'C' || col === 'D') halign = 'left';
-        if (col === 'H' || col === 'I') halign = 'right';
+        const isDesc = col === 'C' || col === 'D';
+        const isMoney = col === 'H' || col === 'I';
 
-        cell.alignment = { vertical: 'middle', wrapText: true, horizontal: halign };
-        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        if (col === 'H' || col === 'I') cell.numFmt = 'Rp #,##0';
+        cell.alignment = {
+          vertical: 'middle',
+          wrapText: true,
+          horizontal: isDesc ? 'left' : isMoney ? 'right' : 'center',
+          indent: isDesc ? 1 : isMoney ? 1 : 0,
+        };
+        cell.border = THIN_BORDER;
+        cell.font = { size: 10 };
+        if (isMoney) cell.numFmt = 'Rp #,##0';
       });
-      if (item.is_package) row.getCell('C').font = { bold: true };
-      
+
+      if (item.is_package) {
+        row.getCell('C').font = { bold: true, size: 10 };
+      }
+
       startRow++;
     }
 
-    // 5. Totals
+    // ══════════════════════════════════════════════
+    //  SECTION 5: Totals
+    // ══════════════════════════════════════════════
     const writeTotal = (label: string, amount: number, isBold: boolean = false) => {
       const row = ws.getRow(startRow);
+      row.height = 22;
       row.getCell('H').value = label;
-      row.getCell('H').font = { bold: isBold };
-      row.getCell('H').alignment = { horizontal: 'right' };
-      
+      row.getCell('H').font = { bold: isBold, size: 10 };
+      row.getCell('H').alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+
       row.getCell('I').value = amount;
-      row.getCell('I').font = { bold: isBold };
+      row.getCell('I').font = { bold: isBold, size: 10 };
       row.getCell('I').numFmt = 'Rp #,##0';
-      row.getCell('I').border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      row.getCell('I').alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+      row.getCell('I').border = THIN_BORDER;
       startRow++;
     };
 
@@ -249,59 +307,80 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
 
     startRow += 2;
 
-    // 6. Notes & Terbilang
+    // ══════════════════════════════════════════════
+    //  SECTION 6: Notes & Terbilang
+    // ══════════════════════════════════════════════
     const noteRow = ws.getRow(startRow);
     noteRow.getCell('B').value = 'NOTE';
+    noteRow.getCell('B').font = { bold: true, size: 10 };
     noteRow.getCell('C').value = ':';
+    noteRow.getCell('C').font = { bold: true, size: 10 };
     noteRow.getCell('D').value = 'Termin Pembayaran :';
-    noteRow.getCell('D').font = { bold: true };
+    noteRow.getCell('D').font = { bold: true, size: 10 };
     startRow++;
-    
-    ws.getCell(`D${startRow++}`).value = '1. Tahap 1 = 50% dari total of payment';
+
+    ws.getCell(`D${startRow}`).value = '1. Tahap 1 = 50% dari total of payment';
+    ws.getCell(`D${startRow}`).font = { size: 10 };
+    startRow++;
+
     ws.getCell(`D${startRow}`).value = '2. Tahap 2 = 50% dari total of payment pada Pelunasan Saat Pengiriman dan Barang sudah di cek berfungsi normal';
-    ws.getCell(`D${startRow++}`).alignment = { wrapText: true };
-    ws.getCell(`D${startRow++}`).value = '*Harga diatas Belum Termasuk Pajak';
-    
+    ws.getCell(`D${startRow}`).font = { size: 10 };
+    ws.getCell(`D${startRow}`).alignment = { wrapText: true };
+    ws.getRow(startRow).height = 30;
     startRow++;
+
+    ws.getCell(`D${startRow}`).value = '*Harga diatas Belum Termasuk Pajak';
+    ws.getCell(`D${startRow}`).font = { size: 10, italic: true };
+    startRow += 2;
+
     const terbilangRow = ws.getRow(startRow);
     terbilangRow.getCell('B').value = 'TERBILANG';
-    terbilangRow.getCell('B').font = { bold: true, italic: true };
+    terbilangRow.getCell('B').font = { bold: true, italic: true, size: 10 };
     terbilangRow.getCell('C').value = ':';
+    terbilangRow.getCell('C').font = { size: 10 };
     terbilangRow.getCell('D').value = terbilang(Number(job.total_rental_fee)) + ' Rupiah';
-    terbilangRow.getCell('D').font = { bold: true, italic: true };
+    terbilangRow.getCell('D').font = { bold: true, italic: true, size: 10 };
     ws.mergeCells(`D${startRow}:H${startRow}`);
     startRow += 3;
 
-    // 7. Signatures
+    // ══════════════════════════════════════════════
+    //  SECTION 7: Signatures + Stamp Image
+    // ══════════════════════════════════════════════
+    const signatureStartRow = startRow;
+
     ws.getCell(`D${startRow}`).value = 'Hormat Kami,';
-    ws.getCell(`H${startRow}`).value = 'Penyewa,';
+    ws.getCell(`D${startRow}`).font = { size: 10 };
     ws.getCell(`D${startRow}`).alignment = { horizontal: 'center' };
+    ws.getCell(`H${startRow}`).value = 'Penyewa,';
+    ws.getCell(`H${startRow}`).font = { size: 10 };
     ws.getCell(`H${startRow}`).alignment = { horizontal: 'center' };
 
+    // Place stamp image between "Hormat Kami," and the signature line
     if (config.stamp) {
       try {
-        const extMatch = config.stamp.match(/data:image\/(png|jpeg|jpg);base64,/i);
-        const ext = (extMatch && extMatch[1] ? extMatch[1].toLowerCase() : 'png') as 'png' | 'jpeg';
-        const stampId = wb.addImage({
+        const stampImgId = wb.addImage({
           base64: config.stamp,
-          extension: ext === 'jpg' ? 'jpeg' : ext,
+          extension: detectImageExt(config.stamp),
         });
-        ws.addImage(stampId, {
-          tl: { col: 3.2, row: startRow },
-          ext: { width: 120, height: 80 }
+        // Position stamp under "Hormat Kami," (column D area, ~row signatureStartRow+1)
+        ws.addImage(stampImgId, {
+          tl: { col: 3, row: signatureStartRow + 0.5 } as any,
+          ext: { width: 130, height: 85 },
         });
       } catch (e) {
-        console.error('Failed to add stamp image:', e);
+        console.error('Failed to add stamp image to Excel:', e);
       }
     }
 
     startRow += 4;
     ws.getCell(`D${startRow}`).value = '( ................................... )';
-    ws.getCell(`H${startRow}`).value = `( ${job.client_name} )`;
+    ws.getCell(`D${startRow}`).font = { size: 10 };
     ws.getCell(`D${startRow}`).alignment = { horizontal: 'center' };
+    ws.getCell(`H${startRow}`).value = `( ${job.client_name} )`;
+    ws.getCell(`H${startRow}`).font = { size: 10 };
     ws.getCell(`H${startRow}`).alignment = { horizontal: 'center' };
 
-    // Export
+    // ── Export ──
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `${targetSheetName}_${job.client_name.replace(/[^a-zA-Z0-9]/g, '_')}_${docNumber.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
