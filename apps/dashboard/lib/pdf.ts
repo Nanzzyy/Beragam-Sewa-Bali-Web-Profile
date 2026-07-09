@@ -131,10 +131,11 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
   });
 
   // Footer / Signatures
-  const finalY = (doc as any).lastAutoTable.finalY || 100;
+  let finalY = (doc as any).lastAutoTable.finalY || 100;
   
-  if (finalY + 40 > pageHeight) {
+  if (finalY + 45 > pageHeight) {
     doc.addPage();
+    finalY = 20;
   }
 
   doc.text('Penerima,', 30, finalY + 30);
@@ -334,7 +335,13 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
     }
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY || 100;
+  let finalY = (doc as any).lastAutoTable.finalY || 100;
+
+  // Ensure enough space for the footer (totals, notes, signatures)
+  if (finalY + 95 > pageHeight) {
+    doc.addPage();
+    finalY = 20;
+  }
 
   let totalTagihan = job.total_rental_fee;
   let pphAmount = 0;

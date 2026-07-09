@@ -151,7 +151,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     headerRow.getCell('H').value = 'UNIT PRICE';
     headerRow.getCell('I').value = 'JUMLAH';
     
-    ['B', 'C', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
+    ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
       const cell = headerRow.getCell(col);
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } };
@@ -192,9 +192,9 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       row.getCell('H').value = price;
       row.getCell('I').value = total;
 
-      ['B', 'C', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
+      ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
         const cell = row.getCell(col);
-        cell.alignment = { vertical: 'top', wrapText: true, horizontal: col === 'C' ? 'left' : 'center' };
+        cell.alignment = { vertical: 'top', wrapText: true, horizontal: (col === 'C' || col === 'D') ? 'left' : 'center' };
         cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         if (col === 'H' || col === 'I') cell.numFmt = 'Rp #,##0';
       });
@@ -209,6 +209,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       row.getCell('H').value = label;
       row.getCell('H').font = { bold: isBold };
       row.getCell('H').alignment = { horizontal: 'right' };
+      row.getCell('H').border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       
       row.getCell('I').value = amount;
       row.getCell('I').font = { bold: isBold };
