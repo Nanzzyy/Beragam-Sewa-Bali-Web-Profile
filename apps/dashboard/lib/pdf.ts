@@ -133,7 +133,7 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
   // Footer / Signatures
   let finalY = (doc as any).lastAutoTable.finalY || 100;
   
-  if (finalY + 45 > pageHeight) {
+  if (finalY + 60 > pageHeight) {
     doc.addPage();
     finalY = 20;
   }
@@ -337,8 +337,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
 
   let finalY = (doc as any).lastAutoTable.finalY || 100;
 
-  // Ensure enough space for the footer (totals, notes, signatures)
-  if (finalY + 95 > pageHeight) {
+  if (finalY + 100 > pageHeight) {
     doc.addPage();
     finalY = 20;
   }

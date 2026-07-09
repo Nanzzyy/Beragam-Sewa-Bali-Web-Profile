@@ -1138,7 +1138,8 @@ export default function DashboardApp() {
                         <Filter className="w-4 h-4" /> Kelola Kategori
                       </button>
                       <button onClick={() => {
-                        setItemModalData({ name: '', category: 'other', quantity: 1, sku: generateSkuForCategory('other') });
+                        const initialCat = categoriesList.length > 0 ? categoriesList[0] : 'other';
+                        setItemModalData({ name: '', category: initialCat, quantity: 1, sku: generateSkuForCategory(initialCat) });
                         setItemModalOpen(true);
                       }} className="flex-1 w-full sm:w-auto flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 justify-center">
                         <Plus className="w-4 h-4" /> Tambah Barang
@@ -1155,7 +1156,7 @@ export default function DashboardApp() {
                     </div>
                     <select value={selectedCategoryFilter} onChange={(e) => setSelectedCategoryFilter(e.target.value)} className="w-full sm:w-48 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition">
                       <option value="all">Semua Kategori</option>
-                      {[...categoriesList].sort().map(cat => (
+                      {categoriesList.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>

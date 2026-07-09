@@ -51,7 +51,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       { width: 4 },   // A: Space
       { width: 12 },  // B: No / Left Label
       { width: 2 },   // C: Colon
-      { width: 35 },  // D: Left Value
+      { width: 45 },  // D: Left Value
       { width: 8 },   // E: Qty
       { width: 12 },  // F: Unit / Right Label
       { width: 8 },   // G: Day / Colon
@@ -194,7 +194,12 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
 
       ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
         const cell = row.getCell(col);
-        cell.alignment = { vertical: 'top', wrapText: true, horizontal: (col === 'C' || col === 'D') ? 'left' : 'center' };
+        
+        let halign: 'left' | 'center' | 'right' = 'center';
+        if (col === 'C' || col === 'D') halign = 'left';
+        if (col === 'H' || col === 'I') halign = 'right';
+
+        cell.alignment = { vertical: 'middle', wrapText: true, horizontal: halign };
         cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         if (col === 'H' || col === 'I') cell.numFmt = 'Rp #,##0';
       });
@@ -209,7 +214,6 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       row.getCell('H').value = label;
       row.getCell('H').font = { bold: isBold };
       row.getCell('H').alignment = { horizontal: 'right' };
-      row.getCell('H').border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       
       row.getCell('I').value = amount;
       row.getCell('I').font = { bold: isBold };
