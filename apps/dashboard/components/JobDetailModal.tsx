@@ -421,6 +421,17 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     try {
                       const price = itemPrice ? parseFloat(itemPrice) : 0;
                       const qty = parseInt(target.quantity.value) || 1;
+                      
+                      if (addMode === 'item') {
+                        const selectedItemId = target.target_id.value;
+                        const selectedItem = availableItems.find(i => i.id === selectedItemId);
+                        if (selectedItem && qty > selectedItem.available) {
+                          toast.error(`Stok tidak mencukupi! Hanya tersedia ${selectedItem.available} unit.`);
+                          setUploading(false);
+                          return;
+                        }
+                      }
+
                       const days = parseFloat(itemDays) || 1;
                       const newItemTotal = price * qty * days;
                       

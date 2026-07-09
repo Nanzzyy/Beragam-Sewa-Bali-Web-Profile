@@ -91,6 +91,25 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     ws.addRow([]);
     ws.addRow([]);
 
+    if (config.header) {
+      try {
+        const extMatch = config.header.match(/data:image\/(png|jpeg|jpg);base64,/i);
+        const ext = (extMatch && extMatch[1] ? extMatch[1].toLowerCase() : 'png') as 'png' | 'jpeg';
+        const imageId = wb.addImage({
+          base64: config.header,
+          extension: ext === 'jpg' ? 'jpeg' : ext,
+        });
+        ws.addImage(imageId, {
+          tl: { col: 1, row: 0 },
+          ext: { width: 750, height: 100 }
+        });
+        ws.getRow(1).height = 40;
+        ws.getRow(2).height = 40;
+      } catch (e) {
+        console.error('Failed to add header image:', e);
+      }
+    }
+
     // 1. Client Info (Left) & Office Info (Right)
     const writeField = (rowNum: number, leftLabel: string, leftVal: string, rightLabel: string, rightVal: string) => {
       const row = ws.getRow(rowNum);
@@ -142,6 +161,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
 
     // 3. Table Header
     const headerRow = ws.getRow(startRow);
+    headerRow.height = 35;
     headerRow.getCell('B').value = 'NO';
     headerRow.getCell('C').value = 'NAMA BARANG / DESKRIPSI';
     ws.mergeCells(`C${startRow}:D${startRow}`);
@@ -183,6 +203,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
       subtotal += total;
 
       const row = ws.getRow(startRow);
+      row.height = 30;
       row.getCell('B').value = i + 1;
       row.getCell('C').value = displayName;
       ws.mergeCells(`C${startRow}:D${startRow}`);
@@ -256,7 +277,24 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     ws.getCell(`H${startRow}`).value = 'Penyewa,';
     ws.getCell(`D${startRow}`).alignment = { horizontal: 'center' };
     ws.getCell(`H${startRow}`).alignment = { horizontal: 'center' };
-    
+
+    if (config.stamp) {
+      try {
+        const extMatch = config.stamp.match(/data:image\/(png|jpeg|jpg);base64,/i);
+        const ext = (extMatch && extMatch[1] ? extMatch[1].toLowerCase() : 'png') as 'png' | 'jpeg';
+        const stampId = wb.addImage({
+          base64: config.stamp,
+          extension: ext === 'jpg' ? 'jpeg' : ext,
+        });
+        ws.addImage(stampId, {
+          tl: { col: 3.2, row: startRow },
+          ext: { width: 120, height: 80 }
+        });
+      } catch (e) {
+        console.error('Failed to add stamp image:', e);
+      }
+    }
+
     startRow += 4;
     ws.getCell(`D${startRow}`).value = '( ................................... )';
     ws.getCell(`H${startRow}`).value = `( ${job.client_name} )`;
