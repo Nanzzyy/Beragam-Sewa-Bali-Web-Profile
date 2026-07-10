@@ -10,6 +10,7 @@ const JobDetailModal = dynamic(() => import('../components/JobDetailModal'), { s
 const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: false });
 const PackageModal = dynamic(() => import('../components/PackageModal'), { ssr: false });
 const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
+const SupplierItemsModal = dynamic(() => import('../components/SupplierItemsModal'), { ssr: false });
 import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie, History } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useTheme } from 'next-themes';
@@ -157,6 +158,8 @@ export default function DashboardApp() {
   // Supplier Modal State
   const [supplierModalOpen, setSupplierModalOpen] = useState(false);
   const [supplierModalData, setSupplierModalData] = useState<{ id?: string; name: string; contact_name: string; phone: string; email: string } | null>(null);
+  const [supplierItemsOpen, setSupplierItemsOpen] = useState(false);
+  const [activeSupplierForItems, setActiveSupplierForItems] = useState<{ id: string; name: string } | null>(null);
 
   // Landing Page Content Modal State
   const [landingModalOpen, setLandingModalOpen] = useState(false);
@@ -341,7 +344,7 @@ export default function DashboardApp() {
         supabase.from('profiles').select('*').order('email'),
         supabase.from('jobs').select(`id, client_name, venue, job_items ( item_id, source_vendor_id, quantity, is_package, package_id ), job_staff ( profile_id )`).eq('status', 'on_going'),
         supabase.from('site_content').select('content_value').eq('content_key', 'site_logo_dashboard').single(),
-        supabase.from('packages').select('*, package_items(item_id, qty)').order('name'),
+        supabase.from('packages').select('*, package_items(item_id, supplier_item_id, qty)').order('name'),
       ];
 
       // Conditionally add owner/accounting queries
@@ -1576,9 +1579,15 @@ export default function DashboardApp() {
                         )}
                         <div className="flex justify-end gap-1 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
                           <button onClick={() => {
+                            setActiveSupplierForItems({ id: sup.id, name: sup.name });
+                            setSupplierItemsOpen(true);
+                          }} className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-red-600 bg-slate-50 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                            <Package className="w-3.5 h-3.5" /> Barang
+                          </button>
+                          <button onClick={() => {
                             setSupplierModalData({ id: sup.id, name: sup.name, contact_name: sup.contact_name || '', phone: sup.phone || '', email: sup.email || '' });
                             setSupplierModalOpen(true);
-                          }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
                             <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => {
@@ -1592,7 +1601,7 @@ export default function DashboardApp() {
                               }
                             });
                             setConfirmModalOpen(true);
-                          }} className="p-1.5 text-slate-400 hover:text-red-500 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          }} className="p-1.5 text-slate-400 hover:text-red-500 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -1660,6 +1669,15 @@ export default function DashboardApp() {
         itemsList={itemsList}
         onClose={() => setPackageModalOpen(false)}
         onSaved={() => loadData(true)}
+      />
+
+      <SupplierItemsModal
+        isOpen={supplierItemsOpen}
+        supplier={activeSupplierForItems}
+        onClose={() => {
+          setSupplierItemsOpen(false);
+          setActiveSupplierForItems(null);
+        }}
       />
 
       {showJobForm && (

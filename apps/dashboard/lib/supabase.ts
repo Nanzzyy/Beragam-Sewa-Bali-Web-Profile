@@ -43,16 +43,29 @@ export interface Package {
   name: string;
   description: string | null;
   base_price: number | null;
+  supplier_id?: string | null;
   created_at: string;
+}
+
+export interface SupplierItem {
+  id: string;
+  supplier_id: string;
+  name: string;
+  price: number;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PackageItem {
   id: string;
   package_id: string;
-  item_id: string;
+  item_id: string | null;
+  supplier_item_id?: string | null;
   qty: number;
   // Joined
   item_name?: string;
+  supplier_item_name?: string;
 }
 
 export interface JobItem {

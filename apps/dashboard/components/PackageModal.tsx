@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Package, Plus, Trash2 } from 'lucide-react';
 import { supabase, formatRupiah } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
@@ -19,16 +19,67 @@ export default function PackageModal({
   itemsList: any[]
 }) {
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState(data);
+  const [formData, setFormData] = useState<any>(null);
+  const [supplierItems, setSupplierItems] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
 
-  React.useEffect(() => {
-    setFormData(data);
+  // Load suppliers and supplier items
+  const loadSupplierData = async () => {
+    setLoadingItems(true);
+    try {
+      const { data: sups, error: err1 } = await supabase
+        .from('suppliers')
+        .select('id, name')
+        .eq('is_deleted', false);
+      if (err1) throw err1;
+      setSuppliers(sups || []);
+
+      const { data: sItems, error: err2 } = await supabase
+        .from('supplier_items')
+        .select('*');
+      if (err2) throw err2;
+      setSupplierItems(sItems || []);
+    } catch (err: any) {
+      toast.error('Gagal mengambil barang supplier: ' + err.message);
+    }
+    setLoadingItems(false);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadSupplierData();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (data) {
+      // Map items formatting (handling key differences)
+      const formattedItems = (data.items || []).map((i: any) => {
+        // If editing existing package, database structure might be item_id or supplier_item_id
+        const isSupplierItem = !!i.supplier_item_id;
+        const targetId = isSupplierItem ? i.supplier_item_id : i.item_id;
+        return {
+          type: isSupplierItem ? 'supplier' : 'internal',
+          target_id: targetId || '',
+          qty: i.qty || 1
+        };
+      });
+      setFormData({
+        ...data,
+        items: formattedItems,
+        supplier_id: data.supplier_id || ''
+      });
+    }
   }, [data]);
 
   if (!isOpen || !formData) return null;
 
   const addItemToPackage = () => {
-    setFormData({ ...formData, items: [...formData.items, { item_id: '', qty: 1 }] });
+    setFormData({ 
+      ...formData, 
+      items: [...formData.items, { type: 'internal', target_id: '', qty: 1 }] 
+    });
   };
 
   const removeItem = (index: number) => {
@@ -52,7 +103,8 @@ export default function PackageModal({
       const payload = {
         name: formData.name.trim(),
         description: formData.description?.trim() || null,
-        base_price: formData.base_price ? parseFloat(formData.base_price) : null
+        base_price: formData.base_price ? parseFloat(formData.base_price) : null,
+        supplier_id: formData.supplier_id || null
       };
 
       let pkgId = formData.id;
@@ -70,14 +122,16 @@ export default function PackageModal({
       // Insert new items
       if (formData.items.length > 0) {
         const itemsToInsert = formData.items
-          .filter((i: any) => i.item_id && i.qty > 0)
+          .filter((i: any) => i.target_id && i.qty > 0)
           .map((i: any) => ({
             package_id: pkgId,
-            item_id: i.item_id,
+            item_id: i.type === 'internal' ? i.target_id : null,
+            supplier_item_id: i.type === 'supplier' ? i.target_id : null,
             qty: i.qty
           }));
         if (itemsToInsert.length > 0) {
-          await supabase.from('package_items').insert(itemsToInsert);
+          const { error: insertErr } = await supabase.from('package_items').insert(itemsToInsert);
+          if (insertErr) throw insertErr;
         }
       }
 
@@ -116,14 +170,30 @@ export default function PackageModal({
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Base Price (Opsional)</label>
-              <input type="number" value={formData.base_price} onChange={e => setFormData({...formData, base_price: e.target.value})} placeholder="Contoh: 1500000" min="0" 
+              <input type="number" value={formData.base_price || ''} onChange={e => setFormData({...formData, base_price: e.target.value})} placeholder="Contoh: 1500000" min="0" 
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 outline-none transition-all text-sm font-medium" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Paket Milik Supplier (Opsional)</label>
+              <select 
+                value={formData.supplier_id || ''} 
+                onChange={e => setFormData({...formData, supplier_id: e.target.value || null})}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-red-500 outline-none transition-all text-sm font-medium"
+              >
+                <option value="">-- Milik Perusahaan (Internal) --</option>
+                {suppliers.map(sup => (
+                  <option key={sup.id} value={sup.id}>{sup.name}</option>
+                ))}
+              </select>
             </div>
           </div>
           
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Deskripsi (Opsional)</label>
-            <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={2} placeholder="Deskripsi paket..." 
+            <textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={2} placeholder="Deskripsi paket..." 
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 outline-none transition-all text-sm font-medium resize-none" />
           </div>
 
@@ -140,30 +210,55 @@ export default function PackageModal({
                 <p className="text-sm text-slate-500 italic py-2">Belum ada barang di paket ini.</p>
               )}
               {formData.items.map((item: any, index: number) => (
-                <div key={index} className="flex items-center gap-2">
-                  <select 
-                    value={item.item_id} 
-                    onChange={e => updateItem(index, 'item_id', e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:border-red-500 outline-none"
-                    required
-                  >
-                    <option value="">-- Pilih Barang --</option>
-                    {itemsList.map(inv => (
-                      <option key={inv.id} value={inv.id}>{inv.name}</option>
-                    ))}
-                  </select>
-                  <input 
-                    type="number" 
-                    value={item.qty} 
-                    onChange={e => updateItem(index, 'qty', parseInt(e.target.value) || 1)}
-                    min="1"
-                    placeholder="Qty"
-                    className="w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:border-red-500 outline-none"
-                    required
-                  />
-                  <button type="button" onClick={() => removeItem(index)} className="p-2 text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-500/10 rounded-lg transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div key={index} className="flex flex-col sm:flex-row gap-2 border border-slate-100 dark:border-slate-800 p-3 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+                  <div className="flex flex-1 gap-2">
+                    <select
+                      value={item.type}
+                      onChange={e => updateItem(index, 'type', e.target.value)}
+                      className="w-28 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:border-red-500 outline-none"
+                    >
+                      <option value="internal">Internal</option>
+                      <option value="supplier">Supplier</option>
+                    </select>
+
+                    <select 
+                      value={item.target_id} 
+                      onChange={e => updateItem(index, 'target_id', e.target.value)}
+                      className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:border-red-500 outline-none"
+                      required
+                    >
+                      <option value="">-- Pilih Barang --</option>
+                      {item.type === 'internal' ? (
+                        itemsList.map(inv => (
+                          <option key={inv.id} value={inv.id}>{inv.name}</option>
+                        ))
+                      ) : (
+                        supplierItems.map(si => {
+                          const ownerSup = suppliers.find(s => s.id === si.supplier_id);
+                          return (
+                            <option key={si.id} value={si.id}>
+                              {si.name} ({ownerSup?.name || 'Supplier'})
+                            </option>
+                          );
+                        })
+                      )}
+                    </select>
+                  </div>
+                  
+                  <div className="flex gap-2 justify-end sm:justify-start">
+                    <input 
+                      type="number" 
+                      value={item.qty} 
+                      onChange={e => updateItem(index, 'qty', parseInt(e.target.value) || 1)}
+                      min="1"
+                      placeholder="Qty"
+                      className="w-20 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:border-red-500 outline-none text-center"
+                      required
+                    />
+                    <button type="button" onClick={() => removeItem(index)} className="p-2 text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-slate-200 dark:border-slate-700">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
