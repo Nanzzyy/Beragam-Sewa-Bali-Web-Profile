@@ -308,6 +308,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
             const buffer = Buffer.from(await file.arrayBuffer());
             const url = await uploadToSupabase(buffer, file.type, 'logos');
             await upsertContent('site_logo', url);
+            
+            // Sync with local physical favicon files so Googlebot crawls the correct icon
+            try {
+                const fs = require('fs');
+                const pathLib = require('path');
+                // Path to apps/web/public/
+                const publicPath = pathLib.join(process.cwd(), 'public');
+                fs.writeFileSync(pathLib.join(publicPath, 'favicon.png'), buffer);
+                fs.writeFileSync(pathLib.join(publicPath, 'favicon.ico'), buffer);
+            } catch (err) {
+                console.error('Failed to write local favicon files', err);
+            }
+
             return NextResponse.json({ message: 'Updated', url });
         }
 
