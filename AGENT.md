@@ -87,3 +87,22 @@ PORT=3005
 ---
 *Dengan mematuhi panduan agen (Agent Guidelines) ini secara mutlak, kita memastikan bahwa seluruh ekosistem Beragam Sewa Bali (Web, Cashflow, Dashboard, Admin) tetap stabil, anti kehilangan data (No Data Loss), dan infrastruktur dapat dipelihara dengan aman oleh Developer atau AI mana pun di masa depan.*
 
+---
+
+## 5. ATURAN MUTLAK: EDIT KODE UNTUK AGENT AI
+
+Bagian ini mengikat bagi **Agent AI mana pun** yang mengubah kode di repositori ini. Tujuannya: perbaikan benar-benar selesai, tidak merusak sistem yang jalan, dan jujur soal apa yang sudah/belum dikerjakan.
+
+1. **Baca dulu sebelum edit.** Wajib baca dokumen yang relevan sebelum menyentuh kode: `AGENT.md` (ini), `apps/<app>/AGENTS.md` & `apps/<app>/CLAUDE.md`, `dev-doc/LOCAL-DEV.md`, `README-DEVELOPER.md`. Khusus app Next.js: `apps/<app>/AGENTS.md` memperingatkan bahwa versi Next.js di repo ini punya *breaking changes* — baca guide di `node_modules/next/dist/docs/` sebelum memakai API Next.js.
+2. **Aditif, bukan destruktif.** Tambahkan kode/fungsi; jangan menghapus atau mengubah perilaku fungsi lama yang masih dipakai. Hapus cuma yang sudah pasti tak terpakai. Sesuai §1: NO DATA LOSS — jangan `DROP TABLE`/`DROP COLUMN` tanpa persetujuan eksplisit. Migrasi schema selalu tambah field/tabel baru.
+3. **Lift terpendek dulu (YAGNI).** Sebelum tulis kode baru: cek apakah perlu ada? Apa stdlib/native/dependency yang sudah terpasang sudah cukup? Apa bisa satu baris? Baru setelah itu tulis kode minimum yang bekerja. Jangan tambah dependency baru bila yang ada cukup.
+4. **Jangan sentuh secrets.** DILARANG mengedit/meng-commit file berisi kredensial: `.env`, `.env.local`, `.env.bak*`, `.env.old`, `dev-prod-*.sql` (dump). File-file ini sudah di-`.gitignore`. Verifikasi `git status` sebelum commit — bila muncul file secret, **jangan** di-stage.
+5. **Verifikasi sebelum klaim selesai.** Jalankan minimal `npm run lint` (atau `eslint`) + build app yang disentuh + tes runtime bila mengubah kode berjalan. Jangan klaim "selesai/done" bila tes gagal atau belum dijalankan. Lapor hasil apa adanya: gagal = sebut gagal, skip = sebut skip.
+6. **Jangan rusak yang jalan.** Edit harus sederhana dan terlokalisasi. Sesuaikan gaya kode sekitarnya (nama, komentar, idiom). Test perubahan visual di app (`npm run dev:<app>`) sebelum anggap selesai.
+7. **Commit bersih & jujur.** Satu commit = satu perubahan koheren. Pesan commit jelas (apa & kenapa). Jangan `git add -A` membabi buta — stage file yang relevan saja. Jangan push ke `main` bila perubahan berisiko tanpa verifikasi lokal lebih dulu.
+8. **Tanya bila ragu.** Untuk keputusan destruktif (drop data, ubah schema produksi, ubah arsitektur, dependency baru, scope besar) — tanya pemilik repositori dulu. Jangan menebak lalu merusak.
+9. **Local dev → ikut `dev-doc/LOCAL-DEV.md`.** Untuk uji coba lokal, pakai clone lokal (bukan connect langsung tulis ke DB produksi). Operasi tulis ke produksi hanya via deploy Coolify yang terkontrol.
+
+*Agent yang melanggar aturan di atas berisiko merusak ekosistem produksi, bocornya kredensial, atau hilangnya data pelanggan — semua bersifat irreversibel.*
+
+

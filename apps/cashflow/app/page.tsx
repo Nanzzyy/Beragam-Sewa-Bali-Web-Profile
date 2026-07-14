@@ -455,6 +455,13 @@ export default function CashflowDashboard() {
     Expense: 'text-amber-700 bg-amber-50 dark:bg-amber-500/10 border-amber-200',
   };
 
+  // ponytail: literal class strings so Tailwind v4 generates them (dynamic bg-${color} was invisible)
+  const summaryAccent: Record<string, string> = {
+    emerald: 'bg-emerald-500/20 group-hover:bg-emerald-500/40',
+    rose: 'bg-rose-500/20 group-hover:bg-rose-500/40',
+    blue: 'bg-blue-500/20 group-hover:bg-blue-500/40',
+  };
+
   const filteredTrialBalance = trialBalance.filter(row => 
     row.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     row.account_code.toLowerCase().includes(searchQuery.toLowerCase())
@@ -479,12 +486,12 @@ export default function CashflowDashboard() {
               <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold tracking-widest uppercase">PT Praven Bali</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
             {mounted && (tab === 'ledger' || tab === 'ledger-acc') && (
-              <div className="flex items-center gap-2 mr-2">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 mr-2 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">
                   <input type="checkbox" checked={isFilterEnabled} onChange={e => setIsFilterEnabled(e.target.checked)} className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
-                  Filter by
+                  <span className="hidden sm:inline">Filter by</span>
                 </label>
                 {isFilterEnabled && (
                   <>
@@ -500,17 +507,12 @@ export default function CashflowDashboard() {
                     </select>
                   </>
                 )}
-                <button onClick={toggleTheme} className="p-2 ml-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors border-l border-slate-200 dark:border-slate-700 pl-3">
-                  {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                </button>
               </div>
             )}
-            {mounted && tab !== 'ledger' && tab !== 'ledger-acc' && (
-              <div className="flex items-center gap-2 mr-2">
-                <button onClick={toggleTheme} className="p-2 ml-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors border-slate-200 dark:border-slate-700">
-                  {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                </button>
-              </div>
+            {mounted && (
+              <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors border-l border-slate-200 dark:border-slate-700 pl-3 sm:ml-1">
+                {resolvedTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              </button>
             )}
             <ExcelExportButton trialBalance={trialBalance} userRole={userRole} currentUserId={currentUserId} />
             <div className="hidden sm:flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-800/60 pl-4">
@@ -524,10 +526,10 @@ export default function CashflowDashboard() {
       </header>
 
       <nav className="max-w-6xl mx-auto px-4 mt-6 overflow-x-auto hide-scrollbar">
-        <div className="flex gap-1.5 p-1 min-w-max border-b border-slate-200 dark:border-slate-800/60">
+        <div className="flex gap-1 sm:gap-1.5 p-1 min-w-max border-b border-slate-200 dark:border-slate-800/60">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl transition-all whitespace-nowrap border-b-2 -mb-[3px] ${tab === t.key ? 'text-emerald-700 dark:text-emerald-400 border-emerald-600 dark:border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/10' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'}`}>
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-[13px] sm:px-4 sm:py-2.5 sm:text-sm font-semibold rounded-t-xl transition-all whitespace-nowrap border-b-2 -mb-[3px] ${tab === t.key ? 'text-emerald-700 dark:text-emerald-400 border-emerald-600 dark:border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/10' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'}`}>
               {t.icon} {t.label}
             </button>
           ))}
@@ -545,9 +547,9 @@ export default function CashflowDashboard() {
                 { label: 'Laba Bersih', value: netIncome, color: netIncome >= 0 ? 'emerald' : 'rose' },
               ].map((card, i) => (
                 <div key={i} className="glass-card p-5 relative overflow-hidden group">
-                  <div className={`absolute top-0 right-0 w-2 h-full bg-${card.color}-500/20 group-hover:bg-${card.color}-500/40 transition-colors`} />
+                  <div className={`absolute top-0 right-0 w-2 h-full transition-colors ${summaryAccent[card.color] || ''}`} />
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{card.label}</p>
-                  <p className={`text-2xl font-extrabold mt-2 tracking-tight text-slate-900 dark:text-white`}>{fmtRp(card.value)}</p>
+                  <p className={`text-lg sm:text-2xl font-extrabold mt-2 tracking-tight text-slate-900 dark:text-white break-words`}>{fmtRp(card.value)}</p>
                 </div>
               ))}
             </div>

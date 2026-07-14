@@ -46,6 +46,16 @@ body {
   background: #94a3b8;
 }
 
+/* Hide scrollbar for horizontal tab nav (keep scroll, drop the cramped bar) */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Selection */
 ::selection {
   background: #10b98140;
