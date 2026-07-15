@@ -457,7 +457,8 @@ services:
         COPY ./volumes/db/pooler.sql /docker-entrypoint-initdb.d/migrations/99-pooler.sql
     restart: unless-stopped
     ports:
-      - "5435:5432"
+      # ponytail: map host 5435 ke PGPORT(${POSTGRES_PORT}); postgres jalan di ${POSTGRES_PORT}, bukan 5432 default
+      - "5435:${POSTGRES_PORT}"
     volumes:
       - db-data:/var/lib/postgresql/data
       # Use named volume to persist pgsodium decryption key between restarts
