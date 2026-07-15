@@ -15,6 +15,7 @@
     "dev:cashflow": "concurrently -n \"API,CASHFLOW\" -c \"blue,yellow\" \"npm run dev:api\" \"npm run dev:cashflow:only\"",
     "dev:dashboard": "concurrently -n \"API,DASHBOARD\" -c \"blue,magenta\" \"npm run dev:api\" \"npm run dev:dashboard:only\"",
     "dev:all": "concurrently -n \"API,WEB,CASHFLOW,DASHBOARD\" -c \"blue,green,yellow,magenta\" \"npm run dev:api\" \"npm run dev:web:only\" \"npm run dev:cashflow:only\" \"npm run dev:dashboard:only\"",
+    "dev:start": "bash scripts/dev-start.sh",
     "dev:up": "sh run.sh start",
     "dev:down": "sh run.sh stop",
     "dev:clone": "sh scripts/dev-clone-prod.sh",

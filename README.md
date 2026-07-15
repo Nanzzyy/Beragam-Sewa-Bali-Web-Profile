@@ -9,7 +9,7 @@ Our platform is built on a modern, robust, and scalable technology stack:
 - **Frontend:** Next.js & TypeScript
 - **Styling:** Tailwind CSS v4 (Pure Tailwind, no legacy Bootstrap)
 - **Backend & Database:** Dockerized Self-Hosted Supabase (PostgreSQL, Go true, PostgREST)
-- **Deployment:** Vercel (Frontend & Serverless API) & Local Docker Swarm
+- **Deployment:** Coolify (auto-deploy dari Git) — self-hosted Supabase via Docker Compose
 
 This architecture ensures blazing-fast load times, complete data ownership, and a seamless experience across all devices.
 
@@ -37,21 +37,85 @@ A double-entry accounting system fully integrated with the Dashboard. Every comp
 
 ## 💻 Menjalankan Secara Local (dengan data produksi)
 
-Untuk develop/upgrade-test lokal **tanpa mengganggu produksi**: stack Supabase Docker lokal di-clone dari data produksi (read-only di prod, tulisan isolasi di lokal). Frontend & API berjalan di laptop tapi tetap melihat data nyata.
+Stack Supabase Docker lokal di-clone dari produksi (read-only di prod), sehingga develop & uji upgrade **tanpa menyentuh data produksi**.
 
-**Alur cepat:**
+### Peta port lokal
+
+| App | Port | Perintah dev |
+|---|---|---|
+| Express API (`api/`) | `3005` | `npm run dev:api` |
+| Web Profile (`apps/web`) | `3000` | `npm run dev:web:only` |
+| Cashflow (`apps/cashflow`) | `3001` | `npm run dev:cashflow:only` |
+| Dashboard (`apps/dashboard`) | `3002` | `npm run dev:dashboard:only` |
+| Supabase Kong (gateway) | `8001` | otomatis via `run.sh` |
+| Supabase Postgres | `5435` | otomatis via `run.sh` |
+
+### Setup sekali (pertama kali)
+
+Detail lengkap di [`dev-doc/LOCAL-DEV.md`](./dev-doc/LOCAL-DEV.md). Inti:
+
 ```bash
-cp .env.example .env && sh utils/generate-keys.sh --update-env   # generate secrets lokal
-# (buat 4 volume external & isi section Express API di .env — lihat panduan)
-sh run.sh start           # start stack Supabase lokal
-npm run dev:clone         # clone schema + data produksi (read-only)
-npm run dev:user          # buat user dev lokal (role owner)
-npm run dev:all           # jalankan Web + Cashflow + Dashboard + API
+cp .env.example .env && sh utils/generate-keys.sh --update-env  # generate secrets lokal
+# isi section Express API di .env + buat 4 volume external (lihat LOCAL-DEV.md)
+sh run.sh start         # start stack Supabase lokal
+npm run dev:clone       # clone schema + data produksi (read-only)
+npm run dev:user        # buat user dev lokal (role owner)
 ```
 
-Login dev: `dev@beragamsewabali.com` / `devpass123`. Refresh data prod kapan saja: `npm run dev:clone && npm run dev:user`.
+Login dev: `dev@beragamsewabali.com` / `devpass123`.
 
-> 📖 **Panduan lengkap (prasyarat buildx, port, troubleshooting): [`dev-doc/LOCAL-DEV.md`](./dev-doc/LOCAL-DEV.md)**
+### Daily run — satu command
+
+```bash
+npm run dev:start
+```
+
+Otomatis: (1) memastikan stack Supabase hidup, lalu (2) menjalankan **API + Web + Cashflow + Dashboard** bersamaan di foreground. Tekan **Ctrl-C sekali** untuk menghentikan keempat app. Stack Docker tetap hidup; stop total dengan `npm run dev:down`.
+
+Buka: <http://localhost:3000> (web) · <http://localhost:3001> (cashflow) · <http://localhost:3002> (dashboard) · API di `:3005`.
+
+Refresh data dari produksi kapan saja:
+```bash
+npm run dev:clone && npm run dev:user
+```
+
+> 📖 **Troubleshooting & prasyarat (buildx, volume, SSL): [`dev-doc/LOCAL-DEV.md`](./dev-doc/LOCAL-DEV.md)**
+
+---
+
+## 🚀 Update & Deploy ke Produksi (workflow AI Agent / Developer)
+
+Produksi di-host di **Coolify** yang terhubung langsung ke repo Git ini (`origin` → GitHub). Setiap `git push` ke `main` memicu Coolify **auto-deploy** (clone repo → build → restart app). Jadi **"push ke produksi" = push kode ke `main`**.
+
+### Alur standar
+
+1. **Edit & uji lokal** — `npm run dev:start`. Pastikan semua app jalan & DB terhubung (cek `/api/health` dan `/api/content` di `:3005`).
+2. **Commit** — jangan pernah commit `.env`, `*.sql`, atau hasil build (semuanya sudah di `.gitignore`).
+   ```bash
+   git add <file_yg_diubah>
+   git commit -m "fix/feat: ... "
+   ```
+3. **Push** — Coolify auto-deploy tiap app (web, api, dashboard, cashflow).
+   ```bash
+   git push origin main
+   ```
+4. **Pantau** di dashboard Coolify — lihat status build & healthy tiap service.
+
+### Aturan mutlak (selengkapnya di [`AGENT.md`](./AGENT.md))
+
+- **NO DATA LOSS**: data produksi tidak boleh dihapus/ditimpa. Perubahan bersifat aditif (tambah, bukan kurang).
+- **Skema `public` saja**: dilarang memodifikasi skema bawaan Supabase (`auth`, `storage`, `realtime`) — akan menghancurkan API Gateway Kong permanen.
+- **`.env` & `*.sql` tidak pernah di-commit**. Di produksi, rahasia di-inject lewat tab *Environment Variables* Coolify (fitur "Paste .env").
+- **Backend** berkomunikasi via IP gateway internal Docker (`172.17.0.1`) dengan `ssl:false`; **frontend** pakai URL publik HTTPS (`https://api.beragamsewabali.com`).
+- Cashflow wajib menjaga **double-entry** seimbang (Debit = Credit).
+
+### Perubahan skema DB di produksi
+
+File SQL dump (mis. `latest_schema.sql`) diabaikan git, jadi tidak ikut ter-deploy. Jalankan manual:
+- via DBeaver/TablePlus ke Postgres yang di-expose Coolify, atau
+- SSH ke server lalu `./scripts/coolify_restore_db.sh /path/to/file.sql`
+
+Detail deploy per-app & self-host Supabase di Coolify: [`COOLIFY_DEPLOYMENT.md`](./COOLIFY_DEPLOYMENT.md).
 
 ---
 
