@@ -158,7 +158,7 @@ input[type="number"] { -moz-appearance: textfield; }
   z-index: 10;
 }
 
-.grid-stack > .grid-stack-item:hover .gs-delete-btn {
+.grid-stack > .grid-stack-item:hover .gs-del {
   opacity: 1 !important;
 }
 .grid-stack > .grid-stack-item.ui-draggable-dragging {
