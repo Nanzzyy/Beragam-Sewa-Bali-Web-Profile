@@ -49,7 +49,7 @@ export function defaultTemplate(type: PDFTemplateLayout['documentType']): PDFTem
     documentTitle: { x: 30, y: 32, width: 170, height: 14, enabled: true, fontSize: 16 },
     companyInfo: { x: 5, y: 0, width: 0, height: 0, enabled: false },
     clientInfo: { x: 5, y: 58, width: 100, height: 42, enabled: true },
-    officeInfo: { x: 110, y: 58, width: 95, height: 65, enabled: true },
+    officeInfo: { x: 105, y: 58, width: 100, height: 75, enabled: true },
     itemsTable: { x: 5, y: 128, width: 200, height: 70, enabled: true },
     totals: { x: 125, y: 202, width: 75, height: 35, enabled: true },
     notes: { x: 5, y: 202, width: 115, height: 35, enabled: true },
