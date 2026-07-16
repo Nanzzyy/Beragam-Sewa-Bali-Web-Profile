@@ -44,18 +44,18 @@ export function defaultTemplate(type: PDFTemplateLayout['documentType']): PDFTem
 
   return {
     documentType: type,
-    headerImage: { x: 0, y: 0, width: 210, height: 25, enabled: false },
-    companyLogo: { x: 5, y: 5, width: 20, height: 20, enabled: false },
-    documentTitle: { x: 30, y: 8, width: 170, height: 15, enabled: true, fontSize: 16 },
+    headerImage: { x: 0, y: 0, width: 210, height: 30, enabled: false },
+    companyLogo: { x: 5, y: 32, width: 22, height: 22, enabled: false },
+    documentTitle: { x: 30, y: 32, width: 170, height: 14, enabled: true, fontSize: 16 },
     companyInfo: { x: 5, y: 0, width: 0, height: 0, enabled: false },
-    clientInfo: { x: 5, y: 30, width: 100, height: 40, enabled: true },
-    officeInfo: { x: 110, y: 30, width: 95, height: 65, enabled: true },
-    itemsTable: { x: 5, y: 100, width: 200, height: 80, enabled: true },
-    totals: { x: 130, y: 185, width: 75, height: 30, enabled: true },
-    notes: { x: 5, y: 185, width: 120, height: 30, enabled: true },
-    terbilang: { x: 5, y: 220, width: 200, height: 12, enabled: true },
-    signatures: { x: 5, y: 240, width: 200, height: 30, enabled: true },
-    stamp: { x: 165, y: 245, width: 30, height: 20, enabled: false },
+    clientInfo: { x: 5, y: 58, width: 100, height: 42, enabled: true },
+    officeInfo: { x: 110, y: 58, width: 95, height: 65, enabled: true },
+    itemsTable: { x: 5, y: 128, width: 200, height: 70, enabled: true },
+    totals: { x: 125, y: 202, width: 75, height: 35, enabled: true },
+    notes: { x: 5, y: 202, width: 115, height: 35, enabled: true },
+    terbilang: { x: 5, y: 240, width: 200, height: 10, enabled: true },
+    signatures: { x: 5, y: 255, width: 200, height: 30, enabled: true },
+    stamp: { x: 170, y: 258, width: 28, height: 20, enabled: false },
   };
 }
 

@@ -78,9 +78,10 @@ async function getPDFTemplate(type: string): Promise<PDFTemplateLayout | null> {
 }
 
 function drawImage(doc: jsPDF, img: string | null, el: any) {
-  if (!img || !el || !el.enabled) return;
-  try { doc.addImage(img, 'PNG', el.x, el.y, el.width, el.height); }
-  catch (e) { try { doc.addImage(img, 'JPEG', el.x, el.y, el.width, el.height); } catch (e2) {} }
+  if (!img || !el || !el.enabled) return 0;
+  try { doc.addImage(img, 'PNG', el.x, el.y, el.width, el.height); return el.y + el.height; }
+  catch (e) { try { doc.addImage(img, 'JPEG', el.x, el.y, el.width, el.height); return el.y + el.height; } catch (e2) {} }
+  return 0;
 }
 
 function terbilang(angka: number): string {
@@ -240,9 +241,6 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   if (!tmpl || titleBox?.enabled) {
     const bx = titleBox?.enabled ? titleBox.x : 14;
     const by = titleBox?.enabled ? titleBox.y : 10;
-    const bw = titleBox?.enabled ? titleBox.width : 180;
-    const bh = titleBox?.enabled ? titleBox.height : 12;
-    const centerY = by + bh / 2;
     doc.setFontSize(titleBox?.fontSize || 16);
     doc.setFont('helvetica', 'bold');
     doc.text(type, bx, by + 4);
@@ -260,7 +258,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
     doc.text(`NO : ${docNumber}`, bx + bw, by + 4, { align: 'right' });
   }
 
-  // ── CLIENT INFO (in container box) ──
+  // ── CLIENT INFO ──
   if (!tmpl || tmpl.clientInfo?.enabled) {
     const b = tmpl?.clientInfo?.enabled ? tmpl.clientInfo : { x: 14, y: 22, width: 90, height: 40 };
     const rowH = 5;
