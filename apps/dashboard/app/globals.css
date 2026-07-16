@@ -130,3 +130,35 @@ input[type="number"] { -moz-appearance: textfield; }
   filter: brightness(1.15);
   transform: scaleY(1.1);
 }
+
+/* Gridstack PDF Template Editor */
+.grid-stack > .grid-stack-item > .grid-stack-item-content {
+  border-radius: 4px !important;
+  overflow: hidden !important;
+}
+
+.grid-stack > .grid-stack-item > .ui-resizable-se {
+  width: 10px !important;
+  height: 10px !important;
+  background: #6366f1 !important;
+  border-radius: 0 0 4px 0 !important;
+  opacity: 0.6;
+}
+
+.grid-stack > .grid-stack-item:hover > .ui-resizable-se {
+  opacity: 1;
+}
+
+.grid-stack > .grid-stack-item {
+  transition: box-shadow 0.15s ease;
+}
+
+.grid-stack > .grid-stack-item:hover {
+  box-shadow: 0 0 0 2px #6366f1;
+  z-index: 10;
+}
+
+.grid-stack > .grid-stack-item.ui-draggable-dragging {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  z-index: 100;
+}

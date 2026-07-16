@@ -11,6 +11,8 @@ const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: 
 const PackageModal = dynamic(() => import('../components/PackageModal'), { ssr: false });
 const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
 const SupplierItemsModal = dynamic(() => import('../components/SupplierItemsModal'), { ssr: false });
+import PDFTemplateEditor from '../components/PDFTemplateEditor';
+import { defaultTemplate, type PDFTemplateLayout } from '../lib/pdf-template';
 import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie, History } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useTheme } from 'next-themes';
@@ -99,6 +101,15 @@ export default function DashboardApp() {
   const [compStampImage, setCompStampImage] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string>('');
   const [staffNicknames, setStaffNicknames] = useState<Record<string, string>>({});
+
+  // PDF Template Layout state
+  const [pdfTemplateType, setPdfTemplateType] = useState<PDFTemplateLayout['documentType']>('invoice');
+  const [pdfTemplates, setPdfTemplates] = useState<Record<string, PDFTemplateLayout>>({
+    surat_jalan: defaultTemplate('surat_jalan'),
+    invoice: defaultTemplate('invoice'),
+    quotation: defaultTemplate('quotation'),
+    receipt: defaultTemplate('receipt'),
+  });
 
   // Custom Inventory Categories
   const [customCategories, setCustomCategories] = useState<string[]>([]);
@@ -193,7 +204,8 @@ export default function DashboardApp() {
       }
       
       supabase.from('site_content').select('*').in('content_key', [
-        'bsb_company_name', 'bsb_company_tax_name', 'bsb_company_npwp', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'site_header_image', 'bsb_stamp_image', 'bsb_staff_nicknames'
+        'bsb_company_name', 'bsb_company_tax_name', 'bsb_company_npwp', 'bsb_company_address', 'bsb_company_email', 'bsb_company_phone', 'bsb_company_payment_info', 'site_logo_dashboard', 'site_header_image', 'bsb_stamp_image', 'bsb_staff_nicknames',
+        'bsb_pdf_template_surat_jalan', 'bsb_pdf_template_invoice', 'bsb_pdf_template_quotation', 'bsb_pdf_template_receipt'
       ]).then(({ data }) => {
         if (data && data.length > 0) {
           const getVal = (key: string, def: string) => data.find(d => d.content_key === key)?.content_value || def;
@@ -234,6 +246,21 @@ export default function DashboardApp() {
               setStaffNicknames(JSON.parse(dbNicknames));
             } catch (e) {}
           }
+
+          const templateTypes = ['surat_jalan', 'invoice', 'quotation', 'receipt'] as const;
+          const loadedTemplates: Record<string, PDFTemplateLayout> = {
+            surat_jalan: defaultTemplate('surat_jalan'),
+            invoice: defaultTemplate('invoice'),
+            quotation: defaultTemplate('quotation'),
+            receipt: defaultTemplate('receipt'),
+          };
+          templateTypes.forEach(t => {
+            const raw = getVal(`bsb_pdf_template_${t}`, '');
+            if (raw) {
+              try { loadedTemplates[t] = JSON.parse(raw); } catch (e) {}
+            }
+          });
+          setPdfTemplates(loadedTemplates);
         }
       });
 
@@ -1024,8 +1051,70 @@ export default function DashboardApp() {
                       </div>
                     </form>
 
-                  </div>
               </div>
+
+              {/* PDF Template Layout Editor with Gridstack */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 mt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
+                    <Layers className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-slate-900 dark:text-white font-semibold">Edit Layout PDF</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Atur posisi header, judul, tabel, stempel, dan lainnya dengan drag & drop</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mb-4">
+                  {(['surat_jalan', 'invoice', 'quotation', 'receipt'] as const).map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setPdfTemplateType(type)}
+                      className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                        pdfTemplateType === type
+                          ? 'bg-violet-600 text-white shadow-md shadow-violet-500/25'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {type === 'surat_jalan' ? 'Surat Jalan' : type === 'invoice' ? 'Invoice' : type === 'quotation' ? 'Quotation' : 'Kuitansi'}
+                    </button>
+                  ))}
+                </div>
+
+                <PDFTemplateEditor
+                  template={pdfTemplates[pdfTemplateType]}
+                  onChange={(updated) => {
+                    setPdfTemplates(prev => ({
+                      ...prev,
+                      [pdfTemplateType]: updated,
+                    }));
+                  }}
+                />
+
+                <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const key = `bsb_pdf_template_${pdfTemplateType}`;
+                        await supabase.from('site_content').upsert({
+                          content_key: key,
+                          content_value: JSON.stringify(pdfTemplates[pdfTemplateType]),
+                        }, { onConflict: 'content_key' });
+                        setSaveSuccess(`Layout PDF ${pdfTemplateType} berhasil disimpan!`);
+                        setTimeout(() => setSaveSuccess(''), 3000);
+                      } catch (err) {
+                        setSaveSuccess('Gagal menyimpan layout: ' + (err as Error).message);
+                        setTimeout(() => setSaveSuccess(''), 5000);
+                      }
+                    }}
+                    className="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-violet-500/25"
+                  >
+                    Simpan Layout PDF
+                  </button>
+                </div>
+              </div>
+            </div>
             )}
 
             {/* === JOBS LIST TAB === */}
