@@ -8,8 +8,10 @@ import type { PDFTemplateLayout, PDFElementPosition } from '../lib/pdf-template'
 
 const COLUMNS = 42;
 const CELL_MM = 5;
+const CELL_HEIGHT = 10;
 const CANVAS_W = 840;
 const CANVAS_H = 1188;
+const MAX_ROW = 60;
 
 interface PDFTemplateEditorProps {
   template: PDFTemplateLayout;
@@ -35,56 +37,15 @@ function fromGrid(x: number, y: number, w: number, h: number): PDFElementPositio
   return { x: x * CELL_MM, y: y * CELL_MM, width: w * CELL_MM, height: h * CELL_MM };
 }
 
-function createWidgetEl(key: string, label: string, color: string, gs: ReturnType<typeof toGrid>) {
-  const widgetEl = document.createElement('div');
-  widgetEl.className = 'grid-stack-item';
-  widgetEl.setAttribute('gs-id', key);
-  widgetEl.setAttribute('gs-x', String(gs.x));
-  widgetEl.setAttribute('gs-y', String(gs.y));
-  widgetEl.setAttribute('gs-w', String(gs.w));
-  widgetEl.setAttribute('gs-h', String(gs.h));
-  widgetEl.style.position = 'relative';
-
-  const content = document.createElement('div');
-  content.className = 'grid-stack-item-content';
-  content.setAttribute('gs-id', key);
-  content.style.cssText = `background:${color};border:2px solid rgba(0,0,0,0.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#374151;cursor:move;overflow:hidden;text-align:center;padding:4px 8px;line-height:1.2;user-select:none;height:100%;box-sizing:border-box;`;
-  content.innerHTML = `<span style="pointer-events:none;">${label}</span>`;
-
-  const delBtn = document.createElement('button');
-  delBtn.className = 'gs-delete-btn';
-  delBtn.setAttribute('data-gs-delete', key);
-  delBtn.title = 'Hapus widget';
-  delBtn.style.cssText = `position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border:none;border-radius:3px;width:20px;height:20px;font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:20;opacity:0;transition:opacity 0.15s;`;
-  delBtn.textContent = '✕';
-  delBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-  });
-
-  widgetEl.appendChild(content);
-  widgetEl.appendChild(delBtn);
-  return widgetEl;
-}
-
-function renderWidgets(grid: any, tpl: PDFTemplateLayout) {
-  elementKeys.forEach((key) => {
-    const el = (tpl as any)[key] as PDFElementPosition & { enabled?: boolean };
-    if (!el.enabled) return;
-
-    const gs = toGrid(el);
-    const label = ELEMENT_LABELS[key] || key;
-    const color = ELEMENT_COLORS[key] || '#f3f4f6';
-    const widgetEl = createWidgetEl(key as string, label, color, gs);
-    grid.makeWidget(widgetEl);
-  });
+function widgetKey(el: HTMLElement): string | null {
+  return el.getAttribute('data-gs-key') || el.closest('[data-gs-key]')?.getAttribute('data-gs-key') || null;
 }
 
 export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<any>(null);
   const initialRender = useRef(true);
+  const deleteHandlerRef = useRef<((e: Event) => void) | null>(null);
 
   const syncTemplate = useCallback(() => {
     const grid = gridRef.current;
@@ -93,15 +54,20 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
 
     elementKeys.forEach((key) => {
       const widget = grid.getGridItems?.()?.find(
-        (el: HTMLElement) => el.getAttribute('data-gs-id') === key
+        (el: HTMLElement) => el.getAttribute('data-gs-key') === key
       );
       if (widget) {
         const gsX = parseInt(widget.getAttribute('gs-x') || '0');
         const gsY = parseInt(widget.getAttribute('gs-y') || '0');
         const gsW = parseInt(widget.getAttribute('gs-w') || '2');
         const gsH = parseInt(widget.getAttribute('gs-h') || '1');
+        // clamp to grid
+        const cx = Math.max(0, Math.min(gsX, COLUMNS - gsW));
+        const cy = Math.max(0, Math.min(gsY, MAX_ROW - gsH));
+        if (cx !== gsX) widget.setAttribute('gs-x', String(cx));
+        if (cy !== gsY) widget.setAttribute('gs-y', String(cy));
         const el = updated[key] as PDFElementPosition & { enabled?: boolean; fontSize?: number };
-        const np = fromGrid(gsX, gsY, gsW, gsH);
+        const np = fromGrid(cx, cy, gsW, gsH);
         el.x = np.x; el.y = np.y; el.width = np.width; el.height = np.height;
       }
     });
@@ -109,8 +75,95 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
     onChange(updated as PDFTemplateLayout);
   }, [template, onChange]);
 
+  const doDelete = useCallback((key: string) => {
+    if (!gridRef.current) return;
+    const widget = gridRef.current.getGridItems?.()?.find(
+      (el: HTMLElement) => el.getAttribute('data-gs-key') === key
+    );
+    if (!widget) return;
+    gridRef.current.removeWidget(widget, true);
+    const updated = { ...template } as any;
+    if (updated[key]) (updated[key] as any).enabled = false;
+    onChange(updated as PDFTemplateLayout);
+  }, [template, onChange]);
+
+  const makeWidget = useCallback((key: string, gs: ReturnType<typeof toGrid>) => {
+    if (!gridRef.current) return;
+    const label = ELEMENT_LABELS[key] || key;
+    const color = ELEMENT_COLORS[key] || '#f3f4f6';
+
+    const div = document.createElement('div');
+    div.className = 'grid-stack-item';
+    div.setAttribute('gs-id', key);
+    div.setAttribute('data-gs-key', key);
+    div.setAttribute('gs-x', String(gs.x));
+    div.setAttribute('gs-y', String(gs.y));
+    div.setAttribute('gs-w', String(gs.w));
+    div.setAttribute('gs-h', String(gs.h));
+    div.setAttribute('gs-no-resize', 'false');
+    div.setAttribute('gs-no-move', 'false');
+    div.style.overflow = 'visible';
+    if (key === 'stamp') div.style.zIndex = '99';
+
+    div.innerHTML = `
+      <div class="grid-stack-item-content gs-content" style="
+        background:${color};
+        border:2px solid rgba(0,0,0,0.12);
+        border-radius:5px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:12px;
+        font-weight:600;
+        color:#1f2937;
+        cursor:move;
+        overflow:hidden;
+        text-align:center;
+        padding:4px 24px 4px 8px;
+        line-height:1.3;
+        user-select:none;
+        height:100%;
+        box-sizing:border-box;
+        position:relative;
+      ">
+        <span>${label}</span>
+        <button class="gs-del" data-gs-key="${key}" title="Hapus" style="
+          position:absolute;
+          top:2px;
+          right:2px;
+          background:#ef4444;
+          color:#fff;
+          border:none;
+          border-radius:3px;
+          width:18px;
+          height:18px;
+          font-size:12px;
+          line-height:1;
+          cursor:pointer;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          padding:0;
+          z-index:20;
+          opacity:0;
+          transition:opacity 0.15s;
+          pointer-events:auto;
+        ">✕</button>
+      </div>
+    `;
+
+    return gridRef.current.makeWidget(div);
+  }, []);
+
   const buildGrid = useCallback((tpl: PDFTemplateLayout) => {
     if (!containerRef.current) return;
+
+    // remove old listener
+    if (deleteHandlerRef.current) {
+      containerRef.current.removeEventListener('click', deleteHandlerRef.current);
+      deleteHandlerRef.current = null;
+    }
+
     if (gridRef.current) {
       gridRef.current.destroy(false);
       gridRef.current = null;
@@ -119,62 +172,54 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
 
     const grid = GridStack.init({
       column: COLUMNS,
-      cellHeight: Math.round(CANVAS_H / 60),
-      margin: 0,
+      cellHeight: CELL_HEIGHT,
+      margin: 4,
       float: false,
       animate: false,
       minRow: 1,
-      maxRow: 60,
+      maxRow: MAX_ROW,
       resizable: { handles: 'e,se,s,sw,w' },
-      draggable: { handle: '.grid-stack-item-content' },
+      draggable: { handle: '.gs-content' },
     } as any, containerRef.current);
 
     gridRef.current = grid;
-    renderWidgets(grid, tpl);
+
+    elementKeys.forEach((key) => {
+      const el = (tpl as any)[key] as PDFElementPosition & { enabled?: boolean };
+      if (!el.enabled) return;
+      const gs = toGrid(el);
+      makeWidget(key as string, gs);
+    });
+
     grid.on('change', () => syncTemplate());
 
-    // Delete handler via event delegation
-    const handleDelete = (e: Event) => {
-      const btn = (e.target as HTMLElement).closest('.gs-delete-btn') as HTMLElement;
-      if (!btn || !gridRef.current) return;
+    // single delegation handler
+    const handler = (e: Event) => {
+      const del = (e.target as HTMLElement).closest('.gs-del') as HTMLElement | null;
+      if (!del) return;
       e.preventDefault();
       e.stopPropagation();
-      const key = btn.getAttribute('data-gs-delete');
-      if (!key) return;
-
-      const widget = gridRef.current.getGridItems?.()?.find(
-        (el: HTMLElement) => el.getAttribute('data-gs-id') === key
-      );
-      if (widget) {
-        gridRef.current.removeWidget(widget, false);
-        const updated = { ...template } as any;
-        if (updated[key]) (updated[key] as any).enabled = false;
-        onChange(updated as PDFTemplateLayout);
-      }
+      e.stopImmediatePropagation();
+      const key = del.getAttribute('data-gs-key');
+      if (key) doDelete(key);
     };
-    containerRef.current.addEventListener('click', handleDelete);
-
-    return () => containerRef.current?.removeEventListener('click', handleDelete);
-  }, [syncTemplate, onChange, template]);
+    deleteHandlerRef.current = handler;
+    containerRef.current.addEventListener('click', handler);
+  }, [syncTemplate, doDelete, makeWidget]);
 
   useEffect(() => {
-    if (initialRender.current) {
-      initialRender.current = false;
-      const cleanup = buildGrid(template);
-      return () => cleanup?.();
-    }
-
-    // On template change (reset), rebuild
-    if (containerRef.current) {
+    initialRender.current = false;
+    buildGrid(template);
+    return () => {
+      if (deleteHandlerRef.current && containerRef.current) {
+        containerRef.current.removeEventListener('click', deleteHandlerRef.current);
+      }
       if (gridRef.current) {
         gridRef.current.destroy(false);
         gridRef.current = null;
       }
-      containerRef.current.innerHTML = '';
-      const cleanup = buildGrid(template);
-      return () => cleanup?.();
-    }
-  }, [template]);
+    };
+  }, [template, buildGrid]);
 
   const toggleElement = (key: string) => {
     if (!gridRef.current) return;
@@ -192,17 +237,10 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
         el.width = defEl.width || 30;
         el.height = defEl.height || 10;
       }
-
       const gs = toGrid(el);
-      const label = ELEMENT_LABELS[key] || key;
-      const color = ELEMENT_COLORS[key] || '#f3f4f6';
-      const widgetEl = createWidgetEl(key, label, color, gs);
-      gridRef.current.makeWidget(widgetEl);
+      makeWidget(key, gs);
     } else {
-      const widget = gridRef.current.getGridItems?.()?.find(
-        (el: HTMLElement) => el.getAttribute('data-gs-id') === key
-      );
-      if (widget) gridRef.current.removeWidget(widget, false);
+      doDelete(key);
     }
 
     onChange(updated as PDFTemplateLayout);
@@ -229,23 +267,15 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
                   : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
               }`}
             >
-              <span
-                className="w-3 h-3 rounded-full shrink-0"
-                style={{ background: el.enabled ? ELEMENT_COLORS[key] : '#e5e7eb' }}
-              />
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ background: el.enabled ? ELEMENT_COLORS[key] : '#e5e7eb' }} />
               {ELEMENT_LABELS[key]}
             </button>
           );
         })}
-        <button
-          onClick={resetTemplate}
-          className="w-full mt-3 px-3 py-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-500/20 transition border border-transparent hover:border-red-200 dark:hover:border-red-500/20"
-        >
+        <button onClick={resetTemplate} className="w-full mt-3 px-3 py-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-500/20 transition">
           ↺ Reset Layout
         </button>
-        <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
-          Klik elemen untuk toggle. Drag widget di canvas. Resize dari sudut. Klik ✕ untuk hapus.
-        </p>
+        <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">Klik elemen untuk toggle. Drag widget di canvas. Resize dari sudut. Klik ✕ untuk hapus.</p>
       </div>
 
       <div className="flex-1 min-w-0">
@@ -254,18 +284,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
             <span className="text-xs font-bold text-slate-500 uppercase">A4 Canvas — 210mm × 297mm</span>
             <span className="text-xs text-slate-400">Drag geser · Resize sudut · ✕ hapus</span>
           </div>
-          <div
-            ref={containerRef}
-            className="grid-stack mx-auto"
-            style={{
-              width: `${CANVAS_W}px`,
-              minHeight: `${CANVAS_H}px`,
-              background: '#fff',
-              border: '2px solid #d1d5db',
-              borderRadius: '4px',
-              position: 'relative',
-            }}
-          />
+          <div ref={containerRef} className="grid-stack mx-auto" style={{ width: `${CANVAS_W}px`, minHeight: `${CANVAS_H}px`, background: '#fff', border: '2px solid #d1d5db', borderRadius: '4px', position: 'relative', overflow: 'hidden' }} />
         </div>
       </div>
     </div>
