@@ -89,7 +89,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
       column: COLUMNS,
       cellHeight: CELL_PX,
       margin: MARGIN,
-      float: false,
+      float: true,
       animate: false,
       minRow: 1,
       maxRow: 60,
