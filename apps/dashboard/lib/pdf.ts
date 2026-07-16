@@ -353,7 +353,8 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   if (job.pph_umkm_enabled) { pphAmount = job.total_rental_fee * 0.005; totalTagihan = job.total_rental_fee - pphAmount; }
 
   // ── TOTALS ──
-  const totBox = tmpl?.totals?.enabled ? tmpl.totals : { x: 130, y: finalY + 5, width: 66, height: 30 };
+  const totBox = (tmpl && tmpl.totals?.enabled === false) ? null : (tmpl?.totals?.enabled ? tmpl.totals : { x: 130, y: finalY + 5, width: 66, height: 30 });
+  if (totBox) {
   let ty = totBox.y;
   const drawTR = (label: string, amount: number, y: number, prefix?: string) => {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
@@ -371,9 +372,10 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   doc.text('Rp.', totBox.x + 36, ty + 2);
   doc.setFont('helvetica', 'normal');
   doc.text(new Intl.NumberFormat('id-ID').format(totalTagihan), totBox.x + totBox.width, ty + 2, { align: 'right' });
+  }
 
   // ── NOTES ──
-  if (!tmpl || tmpl.notes?.enabled) {
+  if (!tmpl || tmpl.notes?.enabled !== false) {
     const b = tmpl?.notes?.enabled ? tmpl.notes : { x: 14, y: finalY + 15, width: 110, height: 40 };
     const bw = b.width - 4;
     let ny = b.y;
@@ -388,7 +390,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   }
 
   // ── TERBILANG ──
-  if (!tmpl || tmpl.terbilang?.enabled) {
+  if (!tmpl || tmpl.terbilang?.enabled !== false) {
     const b = tmpl?.terbilang?.enabled ? tmpl.terbilang : { x: 14, y: 0, width: 120, height: 10 };
     const ty2 = b.y > 0 ? b.y : finalY + 45;
     const tbText = `( ${terbilang(totalTagihan)} Rupiah )`;
@@ -399,7 +401,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
   }
 
   // ── SIGNATURES + STAMP ──
-  if (!tmpl || tmpl.signatures?.enabled) {
+  if (!tmpl || tmpl.signatures?.enabled !== false) {
     const b = tmpl?.signatures?.enabled ? tmpl.signatures : { x: 14, y: 0, width: 182, height: 30 };
     const sy = b.y > 0 ? b.y : finalY + 55;
     const currentDateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
