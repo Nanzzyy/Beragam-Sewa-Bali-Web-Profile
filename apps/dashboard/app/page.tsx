@@ -1096,21 +1096,51 @@ export default function DashboardApp() {
                     type="button"
                     onClick={async () => {
                       try {
-                        const key = `bsb_pdf_template_${pdfTemplateType}`;
-                        await supabase.from('site_content').upsert({
-                          content_key: key,
-                          content_value: JSON.stringify(pdfTemplates[pdfTemplateType]),
-                        }, { onConflict: 'content_key' });
-                        setSaveSuccess(`Layout PDF ${pdfTemplateType} berhasil disimpan!`);
+                        const current = pdfTemplates[pdfTemplateType];
+                        const types: PDFTemplateLayout['documentType'][] = ['surat_jalan', 'invoice', 'quotation', 'receipt'];
+                        const ops = types.map(t => {
+                          const clone = { ...current, documentType: t };
+                          return supabase.from('site_content').upsert({
+                            content_key: `bsb_pdf_template_${t}`,
+                            content_value: JSON.stringify(clone),
+                          }, { onConflict: 'content_key' });
+                        });
+                        await Promise.all(ops);
+                        const newAll: Record<string, PDFTemplateLayout> = {};
+                        types.forEach(t => { newAll[t] = { ...current, documentType: t }; });
+                        setPdfTemplates(newAll);
+                        setSaveSuccess('Layout diterapkan ke semua jenis dokumen!');
                         setTimeout(() => setSaveSuccess(''), 3000);
                       } catch (err) {
-                        setSaveSuccess('Gagal menyimpan layout: ' + (err as Error).message);
+                        setSaveSuccess('Gagal: ' + (err as Error).message);
+                        setTimeout(() => setSaveSuccess(''), 5000);
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition hover:bg-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Terapkan ke Semua
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const key = `bsb_pdf_template_${pdfTemplateType}`;
+                        const current = pdfTemplates[pdfTemplateType];
+                        const res = await supabase.from('site_content').upsert({
+                          content_key: key,
+                          content_value: JSON.stringify(current),
+                        }, { onConflict: 'content_key' });
+                        if (res.error) throw res.error;
+                        setSaveSuccess(`Layout ${pdfTemplateType} berhasil disimpan!`);
+                        setTimeout(() => setSaveSuccess(''), 3000);
+                      } catch (err) {
+                        setSaveSuccess('Gagal menyimpan: ' + (err as Error).message);
                         setTimeout(() => setSaveSuccess(''), 5000);
                       }
                     }}
                     className="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-violet-500/25"
                   >
-                    Simpan Layout PDF
+                    Simpan Layout
                   </button>
                 </div>
               </div>
