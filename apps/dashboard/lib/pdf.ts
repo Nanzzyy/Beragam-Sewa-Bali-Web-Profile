@@ -330,20 +330,22 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
       item.sub_rent_cost > 0 ? new Intl.NumberFormat('id-ID').format(item.sub_rent_cost * item.quantity * (item.days || 1)) : '-'];
   });
 
-  const tBox = tmpl?.itemsTable?.enabled ? tmpl.itemsTable : { x: 14, y: 68, width: 182, height: 40 };
-  autoTable(doc, {
-    startY: tBox.y,
-    margin: { left: tBox.x, right: 210 - tBox.x - tBox.width },
-    head: [['No', 'Description', 'Qty', 'Unit', 'Day', 'Unit Price (Rp)', 'Jumlah (Rp)']],
-    body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
-    columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 13, halign: 'right' }, 3: { cellWidth: 13 }, 4: { cellWidth: 10, halign: 'right' }, 5: { cellWidth: 28, halign: 'right' }, 6: { cellWidth: 28, halign: 'right' } },
-    tableWidth: tBox.width,
-    didParseCell: (data) => { if (data.section === 'body' && data.column.index === 1) { const t = data.cell.raw as string; if (t?.startsWith('[PAKET]')) data.cell.styles.fontStyle = 'bold'; } },
-  });
-
-  let finalY = (doc as any).lastAutoTable?.finalY || 100;
+  let finalY = 68;
+  if (!tmpl || tmpl.itemsTable?.enabled !== false) {
+    const tBox = tmpl?.itemsTable?.enabled ? tmpl.itemsTable : { x: 14, y: 68, width: 182, height: 40 };
+    autoTable(doc, {
+      startY: tBox.y,
+      margin: { left: tBox.x, right: 210 - tBox.x - tBox.width },
+      head: [['No', 'Description', 'Qty', 'Unit', 'Day', 'Unit Price (Rp)', 'Jumlah (Rp)']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 13, halign: 'right' }, 3: { cellWidth: 13 }, 4: { cellWidth: 10, halign: 'right' }, 5: { cellWidth: 28, halign: 'right' }, 6: { cellWidth: 28, halign: 'right' } },
+      tableWidth: tBox.width,
+      didParseCell: (data) => { if (data.section === 'body' && data.column.index === 1) { const t = data.cell.raw as string; if (t?.startsWith('[PAKET]')) data.cell.styles.fontStyle = 'bold'; } },
+    });
+    finalY = (doc as any).lastAutoTable?.finalY || 100;
+  }
   if (finalY + 100 > pageH) { doc.addPage(); finalY = 20; }
 
   let totalTagihan = job.total_rental_fee;
