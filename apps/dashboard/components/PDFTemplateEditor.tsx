@@ -37,9 +37,9 @@ function fromGrid(x: number, y: number, w: number, h: number): PDFElementPositio
 
 function buildWidgetHTML(key: string, label: string, color: string) {
   return `
+    <button class="gs-delete-btn" data-gs-delete="${key}" title="Hapus widget" style="position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border:none;border-radius:3px;width:20px;height:20px;font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:20;opacity:0;transition:opacity 0.15s;">✕</button>
     <div class="grid-stack-item-content" style="background:${color};border:2px solid rgba(0,0,0,0.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#374151;cursor:move;overflow:hidden;text-align:center;padding:4px 8px;line-height:1.2;user-select:none;position:relative;">
       <span style="pointer-events:none;">${label}</span>
-      <button class="gs-delete-btn" data-gs-delete="${key}" title="Hapus widget" style="position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border:none;border-radius:3px;width:18px;height:18px;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:10;">✕</button>
     </div>
   `;
 }
@@ -116,7 +116,9 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
     const handleDelete = (e: MouseEvent) => {
       const btn = (e.target as HTMLElement).closest('.gs-delete-btn') as HTMLElement;
       if (!btn || !gridRef.current) return;
+      e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
       const key = btn.getAttribute('data-gs-delete');
       if (!key) return;
       const widget = gridRef.current.getGridItems?.()?.find(
