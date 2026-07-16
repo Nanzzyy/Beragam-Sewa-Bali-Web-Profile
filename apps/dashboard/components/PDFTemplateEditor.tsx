@@ -103,7 +103,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
         </div>
       `;
 
-      grid.addWidget(widgetEl);
+      grid.makeWidget(widgetEl);
     });
 
     grid.on('change', () => {
@@ -154,7 +154,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
         </div>
       `;
 
-      gridRef.current.addWidget(widgetEl);
+      gridRef.current.makeWidget(widgetEl);
     } else {
       const widget = gridRef.current.getGridItems?.()?.find(
         (el: HTMLElement) => el.getAttribute('data-gs-id') === key
@@ -215,7 +215,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
             </div>
           `;
 
-          grid.addWidget(widgetEl);
+          grid.makeWidget(widgetEl);
         });
 
         grid.on('change', () => syncTemplate());
