@@ -158,13 +158,8 @@ input[type="number"] { -moz-appearance: textfield; }
   z-index: 10;
 }
 
-.grid-stack > .grid-stack-item:hover .gs-delete-btn,
-.grid-stack > .grid-stack-item .gs-delete-btn:hover {
+.grid-stack > .grid-stack-item:hover .gs-delete-btn {
   opacity: 1 !important;
-}
-
-.gs-delete-btn {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .grid-stack > .grid-stack-item.ui-draggable-dragging {
   box-shadow: 0 6px 20px rgba(0,0,0,0.3);
