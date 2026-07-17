@@ -11,8 +11,10 @@ const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: 
 const PackageModal = dynamic(() => import('../components/PackageModal'), { ssr: false });
 const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
 const SupplierItemsModal = dynamic(() => import('../components/SupplierItemsModal'), { ssr: false });
+const MonthCalendar = dynamic(() => import('../components/MonthCalendar'), { ssr: false });
 import PDFTemplateEditor from '../components/PDFTemplateEditor';
 import { defaultTemplate, type PDFTemplateLayout } from '../lib/pdf-template';
+import { downloadCatalogTemplate, importPackages } from '../lib/excel';
 import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie, History } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useTheme } from 'next-themes';
@@ -179,6 +181,24 @@ export default function DashboardApp() {
   // Package Modal State
   const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [packageModalData, setPackageModalData] = useState<{ id?: string; name: string; description: string; base_price: string; items: { item_id: string; qty: number }[] } | null>(null);
+  const [scheduleView, setScheduleView] = useState<'gantt' | 'calendar'>('gantt');
+  const pkgImportRef = useRef<HTMLInputElement>(null);
+
+  const handlePkgImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { packagesInserted, itemsInserted, errors } = await importPackages(file);
+      const msg = `${packagesInserted} paket + ${itemsInserted} barang diimpor.`;
+      if (errors.length) toast.error(`${msg} ${errors.length} baris gagal.`);
+      else toast.success(msg);
+      if (packagesInserted || itemsInserted) loadData(true);
+    } catch (err: any) {
+      toast.error('Gagal impor: ' + err.message);
+    } finally {
+      if (pkgImportRef.current) pkgImportRef.current.value = '';
+    }
+  };
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Confirm Modal State
@@ -1238,11 +1258,19 @@ export default function DashboardApp() {
             {/* === SCHEDULE TAB === */}
             {tab === 'schedule' && (
               <div className="animate-fade-in space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Schedule Timeline</h1>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Visualisasi jadwal setup, event, dan bongkar</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Schedule Timeline</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Visualisasi jadwal setup, event, dan bongkar</p>
+                  </div>
+                  <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 self-start">
+                    <button onClick={() => setScheduleView('gantt')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition ${scheduleView === 'gantt' ? 'bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>Gantt</button>
+                    <button onClick={() => setScheduleView('calendar')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition ${scheduleView === 'calendar' ? 'bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>Kalender</button>
+                  </div>
                 </div>
-                <GanttScheduler jobs={jobs} onJobClick={(id) => setViewingJobId(id)} />
+                {scheduleView === 'gantt'
+                  ? <GanttScheduler jobs={jobs} onJobClick={(id) => setViewingJobId(id)} />
+                  : <MonthCalendar jobs={jobs} onJobClick={(id) => setViewingJobId(id)} />}
               </div>
             )}
 
@@ -1401,12 +1429,23 @@ export default function DashboardApp() {
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Daftar paket alat dan barang</p>
                   </div>
                   {canModify && (
-                    <button onClick={() => {
-                      setPackageModalData({ name: '', description: '', base_price: '', items: [] });
-                      setPackageModalOpen(true);
-                    }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 w-full sm:w-auto justify-center">
-                      <Plus className="w-4 h-4" /> Tambah Paket
-                    </button>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <input ref={pkgImportRef} type="file" accept=".xlsx" onChange={handlePkgImport} className="hidden" />
+                      <button onClick={() => downloadCatalogTemplate()} title="Unduh template Excel"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition text-sm justify-center">
+                        <FileSpreadsheet className="w-4 h-4" /> Template
+                      </button>
+                      <button onClick={() => pkgImportRef.current?.click()} title="Impor paket dari Excel"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-sm justify-center">
+                        <FileSpreadsheet className="w-4 h-4" /> Import
+                      </button>
+                      <button onClick={() => {
+                        setPackageModalData({ name: '', description: '', base_price: '', items: [] });
+                        setPackageModalOpen(true);
+                      }} className="flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 justify-center">
+                        <Plus className="w-4 h-4" /> Tambah Paket
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-4">

@@ -6,6 +6,7 @@ import { JOB_STATUS_CONFIG } from '../lib/supabase';
 import { createJob, updateJob } from '../lib/jobs';
 import { X, Calendar } from 'lucide-react';
 import DatePicker from 'react-datepicker';
+import { format } from 'date-fns';
 
 interface JobFormModalProps {
   job: Job | null;
@@ -31,7 +32,7 @@ const DatePickerField = ({ label, required, value, onChange, placeholder }: { la
       <div className="relative">
         <DatePicker 
           selected={dateObj} 
-          onChange={(date: Date | null) => onChange(date ? date.toISOString().split('T')[0] : '')}
+          onChange={(date: Date | null) => onChange(date ? format(date, 'yyyy-MM-dd') : '')}
           dateFormat="dd MMMM yyyy"
           placeholderText={placeholder || "Pilih tanggal"}
           className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-sm shadow-sm"

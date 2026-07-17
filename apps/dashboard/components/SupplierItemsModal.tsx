@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, Search, Plus, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Search, Plus, Edit, Trash2, FileSpreadsheet, Download } from 'lucide-react';
 import { supabase, formatRupiah } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
+import { downloadCatalogTemplate, importSupplierItems } from '../lib/excel';
 
 interface SupplierItemsModalProps {
   isOpen: boolean;
@@ -20,6 +21,22 @@ export default function SupplierItemsModal({ isOpen, supplier, onClose }: Suppli
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !supplier) return;
+    try {
+      const { inserted, skipped } = await importSupplierItems(file, supplier.id);
+      toast.success(`${inserted} barang diimpor${skipped ? `, ${skipped} dilewati` : ''}.`);
+      fetchSupplierItems();
+    } catch (err: any) {
+      toast.error('Gagal impor: ' + err.message);
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
+  };
 
   const fetchSupplierItems = async () => {
     if (!supplier) return;
@@ -157,9 +174,20 @@ export default function SupplierItemsModal({ isOpen, supplier, onClose }: Suppli
               <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari barang..."
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-1.5 text-xs text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
             </div>
-            <button onClick={() => handleOpenForm()} className="w-full sm:w-auto flex items-center gap-1.5 px-3 py-2 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-xs shadow-md shadow-red-500/20 justify-center">
-              <Plus className="w-3.5 h-3.5" /> Tambah Barang Supplier
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input ref={importInputRef} type="file" accept=".xlsx" onChange={handleImportFile} className="hidden" />
+              <button onClick={() => downloadCatalogTemplate()} title="Unduh template Excel"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition text-xs">
+                <Download className="w-3.5 h-3.5" /> Template
+              </button>
+              <button onClick={() => importInputRef.current?.click()} title="Impor barang dari Excel"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-xs">
+                <FileSpreadsheet className="w-3.5 h-3.5" /> Import
+              </button>
+              <button onClick={() => handleOpenForm()} className="flex-1 sm:flex-none flex items-center gap-1.5 px-3 py-2 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-xs shadow-md shadow-red-500/20 justify-center">
+                <Plus className="w-3.5 h-3.5" /> Tambah
+              </button>
+            </div>
           </div>
         )}
 

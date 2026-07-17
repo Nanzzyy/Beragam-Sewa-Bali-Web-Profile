@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Job, JobItem, JobStaff, JobProof, JobStatus, AppRole } from '../lib/supabase';
 import { JOB_STATUS_CONFIG, formatRupiah, formatDate } from '../lib/supabase';
 import { fetchJobById, fetchJobItems, fetchJobStaff, fetchJobProofs, uploadProofPhoto, addJobProof, updateJobStatus } from '../lib/jobs';
@@ -29,12 +29,63 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
   // Lists of all available items and staff for the dropdowns
   const [availableItems, setAvailableItems] = useState<{ id: string; name: string; available?: number; total?: number }[]>([]);
+  const [availableSupplierItems, setAvailableSupplierItems] = useState<{ id: string; name: string; price: number; supplier_id: string; supplier_name: string }[]>([]);
   const [availablePackages, setAvailablePackages] = useState<{ id: string; name: string; base_price: number }[]>([]);
   const [availableStaff, setAvailableStaff] = useState<{ id: string; email: string; nickname?: string }[]>([]);
 
   // Add item form states
-  const [addMode, setAddMode] = useState<'item'|'package'>('item');
+  const [addMode, setAddMode] = useState<'item'|'supplier'|'package'>('item');
   const [itemDays, setItemDays] = useState('1');
+
+  // Items/packages combobox states (search by name)
+  const targetIdRef = useRef<HTMLInputElement>(null);
+  const [itemQuery, setItemQuery] = useState('');
+  const [itemOpen, setItemOpen] = useState(false);
+  const [itemPickedId, setItemPickedId] = useState('');
+
+  // Satu daftar opsi adaptif sesuai mode aktif (item internal / supplier / paket)
+  const itemOptions = useMemo(() => {
+    if (addMode === 'item') return availableItems.map(i => ({ id: i.id, name: i.name, label: `${i.name} (Stok: ${i.available ?? 0}/${i.total ?? 0})`, disabled: (i.available ?? 0) === 0, price: 0 }));
+    if (addMode === 'supplier') return availableSupplierItems.map(si => ({ id: si.id, name: si.name, label: `${si.name} — ${si.supplier_name}${si.price ? ` (${formatRupiah(si.price)})` : ''}`, disabled: false, price: si.price }));
+    return availablePackages.map(p => ({ id: p.id, name: p.name, label: p.name, disabled: false, price: 0 }));
+  }, [addMode, availableItems, availableSupplierItems, availablePackages]);
+
+  const itemFiltered = itemQuery.trim()
+    ? itemOptions.filter(o => o.name.toLowerCase().includes(itemQuery.trim().toLowerCase()))
+    : itemOptions;
+
+  const pickItem = (o: { id: string; label: string; price?: number }) => {
+    setItemPickedId(o.id);
+    setItemQuery(o.label);
+    setItemOpen(false);
+    if (targetIdRef.current) targetIdRef.current.value = o.id;
+    // barang supplier: prefill harga dari master
+    if (addMode === 'supplier') setItemPrice(o.price ? String(o.price) : '');
+  };
+
+  // Reset pencarian setiap kali ganti mode (daftar sumber beda)
+  useEffect(() => {
+    setItemQuery(''); setItemPickedId(''); setItemOpen(false);
+    if (targetIdRef.current) targetIdRef.current.value = '';
+  }, [addMode]);
+
+  // Staff combobox states (search by full_name / username)
+  const [staffQuery, setStaffQuery] = useState('');
+  const [staffOpen, setStaffOpen] = useState(false);
+  const [staffPicked, setStaffPicked] = useState<{ id: string; nickname: string } | null>(null);
+  const staffHiddenRef = useRef<HTMLInputElement>(null);
+
+  const pickStaff = (s: { id: string; nickname?: string; email: string }) => {
+    const nickname = s.nickname || s.email;
+    setStaffPicked({ id: s.id, nickname });
+    setStaffQuery(nickname);
+    setStaffOpen(false);
+    if (staffHiddenRef.current) staffHiddenRef.current.value = s.id;
+  };
+
+  const staffFiltered = staffQuery.trim()
+    ? availableStaff.filter(s => (s.nickname || s.email).toLowerCase().includes(staffQuery.trim().toLowerCase()))
+    : availableStaff;
 
   const canModify = userRole === 'owner' || userRole === 'staff';
 
@@ -54,12 +105,20 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
       // Fetch all items and employee profiles, plus active jobs for quantity calculation
       const { supabase: sbClient } = await import('../lib/supabase');
-      const [iRes, pRes, sRes, jobsRes] = await Promise.all([
+      const [iRes, pRes, sRes, jobsRes, siRes, nickRes] = await Promise.all([
         sbClient.from('items').select('id, name, category, quantity').order('name'),
         sbClient.from('packages').select('*').order('name'),
         sbClient.from('profiles').select('id, email, full_name').order('email'),
-        sbClient.from('jobs').select('id').in('status', ['confirmed', 'on_going'])
+        sbClient.from('jobs').select('id').in('status', ['confirmed', 'on_going']),
+        sbClient.from('supplier_items').select('id, name, price, supplier_id, suppliers:supplier_id(name)').order('name'),
+        sbClient.from('site_content').select('content_value').eq('content_key', 'bsb_staff_nicknames').maybeSingle(),
       ]);
+
+      // email → nickname (sumber "username" yang sama dipakai page.tsx tab staff)
+      const nickMap: Record<string, string> = {};
+      if (nickRes.data?.content_value) {
+        try { Object.assign(nickMap, JSON.parse(nickRes.data.content_value)); } catch { /* ignore */ }
+      }
 
       let usedQuantities: Record<string, number> = {};
       if (jobsRes.data && jobsRes.data.length > 0) {
@@ -94,11 +153,22 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
         })));
       }
 
+      if (siRes.data) {
+        setAvailableSupplierItems(siRes.data.map((si: any) => ({
+          id: si.id,
+          name: si.name,
+          price: Number(si.price) || 0,
+          supplier_id: si.supplier_id,
+          supplier_name: (si.suppliers as any)?.name || 'Supplier'
+        })));
+      }
+
       if (sRes.data) {
         setAvailableStaff(sRes.data.map((staff: any) => ({
           id: staff.id,
           email: staff.email,
-          nickname: staff.full_name || staff.email
+          // "username": full_name → nickname map (bsb_staff_nicknames) → local-part email
+          nickname: staff.full_name || nickMap[staff.email] || (staff.email ? staff.email.split('@')[0] : 'Tanpa Nama')
         })));
       }
     } catch (e) {
@@ -405,6 +475,9 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     <button onClick={() => setAddMode('item')} className={`text-sm font-semibold transition ${addMode === 'item' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
                       Tambah Barang
                     </button>
+                    <button onClick={() => setAddMode('supplier')} className={`text-sm font-semibold transition ${addMode === 'supplier' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
+                      Barang Supplier
+                    </button>
                     <button onClick={() => setAddMode('package')} className={`text-sm font-semibold transition ${addMode === 'package' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
                       Tambah Paket
                     </button>
@@ -443,6 +516,13 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                          So we don't prompt them to update total_rental_fee automatically anymore.
                       */
 
+                      // Supplier items are stored as a snapshot using existing
+                      // job_items columns (no schema change): vendor = supplier,
+                      // name captured in item_name_custom, price in sub_rent_cost.
+                      const supplierSnap = addMode === 'supplier'
+                        ? availableSupplierItems.find(s => s.id === target.target_id.value)
+                        : null;
+
                       const payload = {
                         job_id: job.id,
                         quantity: qty,
@@ -452,13 +532,14 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                         is_package: addMode === 'package',
                         package_id: addMode === 'package' ? target.target_id.value : null,
                         item_id: addMode === 'item' ? target.target_id.value : null,
-                        item_name_custom: null,
-                        source_vendor_id: null
+                        item_name_custom: supplierSnap?.name || null,
+                        source_vendor_id: supplierSnap?.supplier_id || null
                       };
 
                       await import('../lib/jobs').then(m => m.addJobItem(payload as any));
-                      
-                      target.target_id.value = '';
+
+                      if (targetIdRef.current) targetIdRef.current.value = '';
+                      setItemQuery(''); setItemPickedId(''); setItemOpen(false);
                       target.quantity.value = '1';
                       setItemPrice('');
                       setItemDays('1');
@@ -468,18 +549,46 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     }
                     setUploading(false);
                   }} className="flex flex-col sm:flex-row gap-2">
-                    <select name="target_id" required className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
-                      <option value="">-- Pilih {addMode === 'package' ? 'Paket' : 'Barang'} --</option>
-                      {addMode === 'item' ? availableItems.map(item => (
-                        <option key={item.id} value={item.id} disabled={item.available === 0}>
-                          {item.name} (Stok: {item.available}/{item.total})
-                        </option>
-                      )) : availablePackages.map(pkg => (
-                        <option key={pkg.id} value={pkg.id}>
-                          {pkg.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative w-full sm:flex-1">
+                      <input type="hidden" name="target_id" ref={targetIdRef} />
+                      <input
+                        type="text"
+                        value={itemQuery}
+                        onFocus={() => setItemOpen(true)}
+                        onChange={(e) => {
+                          setItemQuery(e.target.value);
+                          setItemOpen(true);
+                          // invalidate pick bila user mengedit teks hasil
+                          if (itemPickedId) {
+                            const picked = itemOptions.find(o => o.id === itemPickedId);
+                            if (!picked || picked.label !== e.target.value) {
+                              setItemPickedId('');
+                              if (targetIdRef.current) targetIdRef.current.value = '';
+                            }
+                          }
+                        }}
+                        placeholder={`Cari ${addMode === 'package' ? 'paket' : addMode === 'supplier' ? 'barang supplier' : 'barang'} (ketik nama)...`}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white"
+                      />
+                      {itemOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setItemOpen(false)} />
+                          <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 max-h-72 overflow-y-auto">
+                            {itemFiltered.length === 0 ? (
+                              <div className="px-3 py-2 text-xs text-slate-500">Tidak ada hasil untuk "{itemQuery}".</div>
+                            ) : itemFiltered.map(o => (
+                              <div
+                                key={o.id}
+                                onClick={() => { if (!o.disabled) pickItem(o); }}
+                                className={`px-3 py-2 text-sm text-slate-800 dark:text-slate-200 ${o.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                              >
+                                {o.label}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                     
                     <div className="flex flex-col sm:w-32">
                       <input type="number" name="days" value={itemDays} onChange={e => setItemDays(e.target.value)} placeholder="Hari" min="1" step="0.5" required className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
@@ -573,18 +682,46 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     }));
                     target.profile_id.value = '';
                     target.role.value = '';
+                    setStaffQuery(''); setStaffPicked(null); setStaffOpen(false);
                     loadDetails();
                   } catch (err) {
                     toast.error((err as Error).message);
                   }
                   setUploading(false);
                 }} className="flex flex-col sm:flex-row gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <select name="profile_id" required className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
-                    <option value="">-- Pilih Karyawan --</option>
-                    {availableStaff.map(s => (
-                      <option key={s.id} value={s.id}>{s.nickname || s.email}</option>
-                    ))}
-                  </select>
+                  <div className="relative w-full sm:flex-1">
+                    <input type="hidden" name="profile_id" ref={staffHiddenRef} />
+                    <input
+                      type="text"
+                      value={staffQuery}
+                      onFocus={() => setStaffOpen(true)}
+                      onChange={(e) => {
+                        setStaffQuery(e.target.value);
+                        setStaffOpen(true);
+                        // invalidate prior pick when user edits the query
+                        if (staffPicked && e.target.value !== staffPicked.nickname) {
+                          setStaffPicked(null);
+                          if (staffHiddenRef.current) staffHiddenRef.current.value = '';
+                        }
+                      }}
+                      placeholder="Ketik nama karyawan (username)..."
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white"
+                    />
+                    {staffOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setStaffOpen(false)} />
+                        <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto">
+                          {staffFiltered.length === 0 ? (
+                            <div className="px-3 py-2 text-xs text-slate-500">Tidak ada karyawan cocok.</div>
+                          ) : staffFiltered.map(s => (
+                            <div key={s.id} onClick={() => pickStaff(s)} className="px-3 py-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-800 dark:text-slate-200">
+                              {s.nickname || s.email}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <input type="text" name="role" placeholder="Peran (ex: Supir)" required className="w-full sm:w-1/3 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
                   <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">Tambah</button>
                 </form>

@@ -390,3 +390,190 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     toast.error('Gagal membuat Excel: ' + error.message);
   }
 }
+
+// ============================================================
+//  CATALOG IMPORT — template download + parse + insert
+//  Items attach to a single supplier (per the SupplierItemsModal
+//  context). Packages span suppliers (supplier_name column).
+// ============================================================
+
+function styleHeaderRow(ws: ExcelJS.Worksheet) {
+  const row = ws.getRow(1);
+  row.height = 18;
+  row.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } };
+    cell.alignment = { vertical: 'middle' };
+  });
+}
+
+/** Download the catalog import template (Items, Packages, PackageItems, Petunjuk). */
+export async function downloadCatalogTemplate() {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Beragam Sewa Bali';
+
+  const items = wb.addWorksheet('Items');
+  items.columns = [
+    { header: 'name', key: 'name', width: 30 },
+    { header: 'price', key: 'price', width: 12 },
+    { header: 'description', key: 'description', width: 36 },
+  ];
+  items.addRow({ name: 'Tenda Sarnafil 3x3', price: 150000, description: 'Include pemasangan' });
+  styleHeaderRow(items);
+
+  const packages = wb.addWorksheet('Packages');
+  packages.columns = [
+    { header: 'supplier_name', key: 'supplier_name', width: 24 },
+    { header: 'name', key: 'name', width: 30 },
+    { header: 'base_price', key: 'base_price', width: 14 },
+    { header: 'description', key: 'description', width: 36 },
+  ];
+  packages.addRow({ supplier_name: 'CV Sumber Rejeki', name: 'Paket Pernikahan A', base_price: 5000000, description: 'Tenda + kursi + meja' });
+  styleHeaderRow(packages);
+
+  const pkgItems = wb.addWorksheet('PackageItems');
+  pkgItems.columns = [
+    { header: 'package_name', key: 'package_name', width: 30 },
+    { header: 'item_type', key: 'item_type', width: 14 },
+    { header: 'item_name', key: 'item_name', width: 30 },
+    { header: 'qty', key: 'qty', width: 8 },
+  ];
+  pkgItems.addRow({ package_name: 'Paket Pernikahan A', item_type: 'internal', item_name: 'Kursi Tiffany', qty: 100 });
+  pkgItems.addRow({ package_name: 'Paket Pernikahan A', item_type: 'supplier', item_name: 'Tenda Sarnafil 3x3', qty: 1 });
+  styleHeaderRow(pkgItems);
+
+  const info = wb.addWorksheet('Petunjuk');
+  info.getColumn(1).width = 100;
+  const lines = [
+    ['CARA PAKAI:'],
+    ['1. Sheet Items → daftar barang. Di-import dari modal Barang supplier; semua baris menempel ke supplier itu.'],
+    ['2. Sheet Packages → daftar paket. supplier_name opsional (kosong = paket internal perusahaan).'],
+    ['3. Sheet PackageItems → isi paket. item_type: "internal" (barang inventaris) atau "supplier" (barang supplier).'],
+    ['   item_name HARUS cocok persis dengan nama yang sudah ada di sistem.'],
+    ['Baris dengan "name" kosong diabaikan. Import hanya menambah data baru; tidak menghapus data lama.'],
+  ];
+  lines.forEach((l, i) => info.addRow(l).font = { bold: i === 0, size: 11 });
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  saveAs(blob, 'BSB_Catalog_Template.xlsx');
+  toast.success('Template katalog berhasil diunduh');
+}
+
+/** Read a worksheet into plain row objects keyed by lowercased header. */
+function readSheet(ws: ExcelJS.Worksheet | undefined): Record<string, any>[] {
+  if (!ws) return [];
+  const headerRow = ws.getRow(1);
+  const colIndex: Record<string, number> = {};
+  headerRow.eachCell((cell, colNumber) => {
+    const h = String(cell.value ?? '').trim().toLowerCase();
+    if (h) colIndex[h] = colNumber;
+  });
+  const rows: Record<string, any>[] = [];
+  for (let r = 2; r <= ws.rowCount; r++) {
+    const row = ws.getRow(r);
+    const obj: Record<string, any> = {};
+    let hasAny = false;
+    for (const [key, col] of Object.entries(colIndex)) {
+      const raw = row.getCell(col).value;
+      const v = raw && typeof raw === 'object' && 'text' in (raw as any) ? (raw as any).text : raw;
+      obj[key] = v === undefined || v === null ? '' : String(v).trim();
+      if (obj[key] !== '') hasAny = true;
+    }
+    if (hasAny) rows.push(obj);
+  }
+  return rows;
+}
+
+/** Parse an uploaded catalog workbook into raw row buckets. */
+export async function parseCatalogImport(file: File) {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(await file.arrayBuffer());
+  return {
+    items: readSheet(wb.getWorksheet('Items')),
+    packages: readSheet(wb.getWorksheet('Packages')),
+    packageItems: readSheet(wb.getWorksheet('PackageItems')),
+  };
+}
+
+/** Import Items sheet, attaching every row to the given supplier. */
+export async function importSupplierItems(file: File, supplierId: string): Promise<{ inserted: number; skipped: number }> {
+  const { items } = await parseCatalogImport(file);
+  const clean = items.filter(r => r.name);
+  const toInsert = clean.map(r => ({
+    supplier_id: supplierId,
+    name: r.name,
+    price: parseFloat(r.price) || 0,
+    description: r.description || null,
+  }));
+  let inserted = 0;
+  if (toInsert.length) {
+    const { data, error } = await supabase.from('supplier_items').insert(toInsert).select('id');
+    if (error) throw error;
+    inserted = data?.length || 0;
+  }
+  return { inserted, skipped: clean.length - inserted };
+}
+
+/** Import Packages + PackageItems, resolving supplier & item names. */
+export async function importPackages(file: File): Promise<{ packagesInserted: number; itemsInserted: number; errors: string[] }> {
+  const { packages, packageItems } = await parseCatalogImport(file);
+  const errors: string[] = [];
+
+  // Build name → id lookup maps
+  const [{ data: sups }, { data: internalItems }, { data: supItems }, { data: existingPkgs }] = await Promise.all([
+    supabase.from('suppliers').select('id, name').eq('is_deleted', false),
+    supabase.from('items').select('id, name'),
+    supabase.from('supplier_items').select('id, name'),
+    supabase.from('packages').select('id, name'),
+  ]);
+  const supMap = new Map((sups || []).map((s: any) => [s.name.toLowerCase(), s.id]));
+  const internalMap = new Map((internalItems || []).map((i: any) => [i.name.toLowerCase(), i.id]));
+  const supItemMap = new Map((supItems || []).map((i: any) => [i.name.toLowerCase(), i.id]));
+  const pkgMap = new Map((existingPkgs || []).map((p: any) => [p.name.toLowerCase(), p.id]));
+
+  let packagesInserted = 0;
+  let itemsInserted = 0;
+
+  // Insert packages
+  for (const p of packages.filter(r => r.name)) {
+    const payload: any = { name: p.name, description: p.description || null, base_price: parseFloat(p.base_price) || 0 };
+    if (p.supplier_name) {
+      const sid = supMap.get(p.supplier_name.toLowerCase());
+      if (!sid) { errors.push(`Supplier "${p.supplier_name}" tidak ditemukan (paket "${p.name}").`); continue; }
+      payload.supplier_id = sid;
+    }
+    const { data, error } = await supabase.from('packages').insert(payload).select('id').single();
+    if (error) { errors.push(`Gagal tambah paket "${p.name}": ${error.message}`); continue; }
+    pkgMap.set(p.name.toLowerCase(), data.id);
+    packagesInserted++;
+  }
+
+  // Insert package_items
+  const pendingItems: any[] = [];
+  for (const pi of packageItems.filter(r => r.package_name && r.item_name)) {
+    const pkgId = pkgMap.get(pi.package_name.toLowerCase());
+    if (!pkgId) { errors.push(`Paket "${pi.package_name}" tidak ditemukan untuk item "${pi.item_name}".`); continue; }
+    const isSupplier = String(pi.item_type).toLowerCase() === 'supplier';
+    const itemId = isSupplier
+      ? supItemMap.get(pi.item_name.toLowerCase())
+      : internalMap.get(pi.item_name.toLowerCase());
+    if (!itemId) {
+      errors.push(`${isSupplier ? 'Barang supplier' : 'Barang internal'} "${pi.item_name}" tidak ditemukan (paket "${pi.package_name}").`);
+      continue;
+    }
+    pendingItems.push({
+      package_id: pkgId,
+      qty: parseInt(pi.qty) || 1,
+      item_id: isSupplier ? null : itemId,
+      supplier_item_id: isSupplier ? itemId : null,
+    });
+  }
+  if (pendingItems.length) {
+    const { data, error } = await supabase.from('package_items').insert(pendingItems).select('id');
+    if (error) errors.push(`Gagal insert sebagian isi paket: ${error.message}`);
+    itemsInserted = data?.length || 0;
+  }
+
+  return { packagesInserted, itemsInserted, errors };
+}
