@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { fetchAccounts, fetchTransactionsWithEntries } from '../lib/accounting';
 import type { Account, Transaction, JournalEntryWithAccount } from '../lib/supabase';
 import { Loader2, Search, BookText } from 'lucide-react';
@@ -53,32 +53,30 @@ export default function LedgerByAccount({ userRole = 'guest', currentUserId = ''
     load();
   }, [userRole, currentUserId]);
 
-  if (loading) return (
-    <div className="p-12 flex flex-col items-center justify-center text-slate-400">
-      <Loader2 className="w-8 h-8 animate-spin mb-4" />
-      <p className="text-sm font-medium">Memuat Buku Besar...</p>
-    </div>
-  );
-
-  const selectedAccount = accounts.find(a => a.account_code === selectedCode);
+  const selectedAccount = useMemo(() => accounts.find(a => a.account_code === selectedCode), [accounts, selectedCode]);
   
   // Filter transactions that contain the selected account
-  let runningBalance = 0;
-  const ledgerEntries = transactions.flatMap(tx => {
-    const entriesForAccount = (tx.journal_entries as JournalEntryWithAccount[] || []).filter(je => je.account_code === selectedCode);
-    return entriesForAccount.map(je => {
-      if (selectedAccount?.normal_balance === 'Debet') {
-        runningBalance += je.debit - je.credit;
-      } else {
-        runningBalance += je.credit - je.debit;
-      }
-      return {
-        ...tx,
-        ...je,
-        runningBalance
-      };
+  const ledgerEntries = useMemo(() => {
+    let balance = 0;
+    const normalBalance = selectedAccount?.normal_balance;
+    return transactions.flatMap(tx => {
+      const entriesForAccount = (tx.journal_entries as JournalEntryWithAccount[] || []).filter(je => je.account_code === selectedCode);
+      return entriesForAccount.map(je => {
+        if (normalBalance === 'Debet') {
+          balance = balance + je.debit - je.credit;
+        } else {
+          balance = balance + je.credit - je.debit;
+        }
+        return {
+          ...tx,
+          ...je,
+          runningBalance: balance
+        };
+      });
     });
-  });
+  }, [transactions, selectedCode, selectedAccount?.normal_balance]);
+
+  const runningBalance = ledgerEntries.length > 0 ? ledgerEntries[ledgerEntries.length - 1].runningBalance : 0;
 
   // Filter by search query and date
   const filteredEntries = ledgerEntries.filter(entry => {
@@ -90,6 +88,13 @@ export default function LedgerByAccount({ userRole = 'guest', currentUserId = ''
   });
 
   const fmt = (num: number) => num === 0 ? '-' : `Rp${Math.abs(num).toLocaleString('id-ID')}`;
+
+  if (loading) return (
+    <div className="p-12 flex flex-col items-center justify-center text-slate-400">
+      <Loader2 className="w-8 h-8 animate-spin mb-4" />
+      <p className="text-sm font-medium">Memuat Buku Besar...</p>
+    </div>
+  );
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -104,8 +109,8 @@ export default function LedgerByAccount({ userRole = 'guest', currentUserId = ''
             onChange={(e) => setSelectedCode(e.target.value)}
             className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm"
           >
-            {accounts.map(acc => (
-              <option key={acc.account_code} value={acc.account_code}>
+            {accounts.map((acc, idx) => (
+              <option key={`${acc.account_code}-${idx}`} value={acc.account_code}>
                 {acc.account_code} - {acc.account_name}
               </option>
             ))}
@@ -156,7 +161,7 @@ export default function LedgerByAccount({ userRole = 'guest', currentUserId = ''
                 </td>
               </tr>
             ) : filteredEntries.map((entry, idx) => (
-              <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
+              <tr key={entry.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
                 <td className="px-5 py-3 whitespace-nowrap">{new Date(entry.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                 <td className="px-5 py-3 font-medium text-slate-900 dark:text-white">{entry.description}</td>
                 <td className="px-5 py-3 text-right font-mono text-slate-600 dark:text-slate-400">{fmt(entry.debit)}</td>
