@@ -556,6 +556,12 @@ export default function DashboardApp() {
       setPackagesList(dashboardData.packData);
       setSparepartsList(dashboardData.spareData);
       setDatabarangItems(dashboardData.iData);
+      // Group units by item_id — simple one-pass
+      const uMap: Record<string, any[]> = {};
+      for (const u of (dashboardData.unitsData || [])) {
+        (uMap[u.item_id] ||= []).push(u);
+      }
+      setDatabarangUnits(uMap);
       setStaffList(dashboardData.sData);
       if (userRole === 'owner' || userRole === 'accounting') setCashflowList(dashboardData.cfData);
       if (userRole === 'owner') {
