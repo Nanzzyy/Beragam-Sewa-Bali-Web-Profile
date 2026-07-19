@@ -561,69 +561,70 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                       toast.error((err as Error).message);
                     }
                     setUploading(false);
-                  }} className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative w-full sm:flex-1">
-                      <input type="hidden" name="target_id" ref={targetIdRef} />
-                      <input
-                        type="text"
-                        value={itemQuery}
-                        onFocus={() => setItemOpen(true)}
-                        onChange={(e) => {
-                          setItemQuery(e.target.value);
-                          setItemOpen(true);
-                          // invalidate pick bila user mengedit teks hasil
-                          if (itemPickedId) {
-                            const picked = itemOptions.find(o => o.id === itemPickedId);
-                            if (!picked || picked.label !== e.target.value) {
-                              setItemPickedId('');
-                              if (targetIdRef.current) targetIdRef.current.value = '';
+                  }} className="space-y-3">
+                    {/* Row 1: Search + Days + Qty */}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <input type="hidden" name="target_id" ref={targetIdRef} />
+                        <input
+                          type="text"
+                          value={itemQuery}
+                          onFocus={() => setItemOpen(true)}
+                          onChange={(e) => {
+                            setItemQuery(e.target.value);
+                            setItemOpen(true);
+                            if (itemPickedId) {
+                              const picked = itemOptions.find(o => o.id === itemPickedId);
+                              if (!picked || picked.label !== e.target.value) {
+                                setItemPickedId('');
+                                if (targetIdRef.current) targetIdRef.current.value = '';
+                              }
                             }
-                          }
-                        }}
-                        placeholder={`Cari ${addMode === 'package' ? 'paket' : addMode === 'supplier' ? 'barang supplier' : 'barang'} (ketik nama)...`}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white"
-                      />
-                      {itemOpen && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setItemOpen(false)} />
-                          <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 max-h-72 overflow-y-auto">
-                            {itemFiltered.length === 0 ? (
-                              <div className="px-3 py-2 text-xs text-slate-500">Tidak ada hasil untuk "{itemQuery}".</div>
-                            ) : itemFiltered.map(o => (
-                              <div
-                                key={o.id}
-                                onClick={() => { if (!o.disabled) pickItem(o); }}
-                                className={`px-3 py-2 text-sm text-slate-800 dark:text-slate-200 ${o.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                              >
-                                {o.label}
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-col sm:w-32">
-                      <input type="number" name="days" value={itemDays} onChange={e => setItemDays(e.target.value)} placeholder="Hari" min="1" step="0.5" required className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                      <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">Durasi Hari</span>
-                    </div>
-
-                    <div className="flex flex-col sm:w-40">
-                      <input type="number" name="rental_price" value={itemRentalPrice} onChange={e => setItemRentalPrice(e.target.value)} placeholder="Harga Sewa/unit" min="0" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                      {itemRentalPrice && <span className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 pl-1">{formatRupiah(parseInt(itemRentalPrice) || 0)} (Sewa)</span>}
+                          }}
+                          placeholder={`Cari ${addMode === 'package' ? 'paket' : addMode === 'supplier' ? 'barang supplier' : 'barang'}...`}
+                          className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white"
+                        />
+                        {itemOpen && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setItemOpen(false)} />
+                            <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 max-h-72 overflow-y-auto">
+                              {itemFiltered.length === 0 ? (
+                                <div className="px-3 py-2 text-xs text-slate-500">Tidak ada hasil untuk "{itemQuery}".</div>
+                              ) : itemFiltered.map(o => (
+                                <div
+                                  key={o.id}
+                                  onClick={() => { if (!o.disabled) pickItem(o); }}
+                                  className={`px-3 py-2 text-sm text-slate-800 dark:text-slate-200 ${o.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                                >
+                                  {o.label}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex gap-2 w-full sm:w-auto">
+                        <div className="flex-1 sm:w-20">
+                          <input type="number" name="days" value={itemDays} onChange={e => setItemDays(e.target.value)} placeholder="Hari" min="1" step="0.5" required className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                        </div>
+                        <div className="flex-1 sm:w-20">
+                          <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex flex-col sm:w-40">
-                      <input type="number" name="price" value={itemPrice} onChange={e => setItemPrice(e.target.value)} placeholder="Biaya Vendor (Opsional)" min="0" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                      {itemPrice && <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">{formatRupiah(parseInt(itemPrice) || 0)} (Vendor)</span>}
+                    {/* Row 2: Prices + Submit */}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1">
+                        <input type="number" name="rental_price" value={itemRentalPrice} onChange={e => setItemRentalPrice(e.target.value)} placeholder="Harga Sewa per unit/hari" min="0" className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                        {itemRentalPrice && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">{formatRupiah(parseInt(itemRentalPrice) || 0)} /unit/hari</span>}
+                      </div>
+                      <div className="flex-1">
+                        <input type="number" name="price" value={itemPrice} onChange={e => setItemPrice(e.target.value)} placeholder="Biaya Vendor/unit/hari (opsional)" min="0" className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                        {itemPrice && <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{formatRupiah(parseInt(itemPrice) || 0)} /unit/hari</span>}
+                      </div>
+                      <button type="submit" disabled={uploading} className="w-full sm:w-auto px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 whitespace-nowrap">Tambah</button>
                     </div>
-                    
-                    <div className="flex flex-col sm:w-24">
-                      <input type="number" name="quantity" placeholder="Qty" min="1" defaultValue="1" required className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                      <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">Kuantitas</span>
-                    </div>
-
-                    <button type="submit" disabled={uploading} className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 h-[38px]">Tambah</button>
                   </form>
                 </div>
               )}
