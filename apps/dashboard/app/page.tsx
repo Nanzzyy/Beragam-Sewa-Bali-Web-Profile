@@ -1106,7 +1106,7 @@ export default function DashboardApp() {
 
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Logo Perusahaan (.png / .jpg)</label>
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                           <input type="file" accept="image/*" onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1119,14 +1119,14 @@ export default function DashboardApp() {
                             }
                           }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
                           {compLogo && (
-                            <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
+                            <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
                           )}
                         </div>
                       </div>
                       
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Kop Surat / Header PDF Full Width (Opsional)</label>
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                           <input type="file" accept="image/*" onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1139,7 +1139,7 @@ export default function DashboardApp() {
                             }
                           }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
                           {compHeaderImg && (
-                            <img src={compHeaderImg} alt="Header Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
+                            <img src={compHeaderImg} alt="Header Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
                           )}
                         </div>
                         <p className="text-xs text-slate-500 mt-1">Jika diisi, gambar ini akan ditempatkan pada bagian paling atas PDF selebar kertas.</p>
@@ -1147,7 +1147,7 @@ export default function DashboardApp() {
 
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Gambar Stempel / Cap Perusahaan (Opsional)</label>
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                           <input type="file" accept="image/*" onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1160,7 +1160,7 @@ export default function DashboardApp() {
                             }
                           }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
                           {compStampImage && (
-                            <img src={compStampImage} alt="Stamp Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white" />
+                            <img src={compStampImage} alt="Stamp Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
                           )}
                         </div>
                         <p className="text-xs text-slate-500 mt-1">Stempel akan muncul di antara tanggal dan nama perusahaan pada PDF &amp; Excel yang digenerate.</p>
@@ -2085,7 +2085,7 @@ export default function DashboardApp() {
       {/* Sparepart Add/Edit Modal */}
       {sparepartModalOpen && sparepartModalData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-lg relative animate-slide-up">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-4 sm:p-8 w-full max-w-lg relative animate-slide-up">
             <button onClick={() => setSparepartModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -2145,7 +2145,7 @@ export default function DashboardApp() {
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">SKU / Kode</label>
                   <input type="text" name="sku" value={sparepartModalData.sku} onChange={e => setSparepartModalData({...sparepartModalData, sku: e.target.value.toUpperCase()})} required placeholder="SP-1234"
@@ -2221,7 +2221,7 @@ export default function DashboardApp() {
       {/* Sparepart Purchase Modal */}
       {sparepartPurchaseModalOpen && sparepartPurchaseTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-lg relative animate-slide-up">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-4 sm:p-8 w-full max-w-lg relative animate-slide-up">
             <button onClick={() => setSparepartPurchaseModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -2265,7 +2265,7 @@ export default function DashboardApp() {
                 <input type="date" name="purchase_date" required defaultValue={new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Jumlah <span className="text-red-500">*</span></label>
                   <input type="number" name="quantity" required min="1" defaultValue={1}
