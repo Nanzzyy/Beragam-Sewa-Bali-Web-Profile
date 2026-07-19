@@ -265,7 +265,6 @@ export default function DashboardApp() {
   const [databarangExpandedItem, setDatabarangExpandedItem] = useState<string | null>(null);
   const [databarangUnits, setDatabarangUnits] = useState<Record<string, any[]>>({});
   const [databarangServiceModal, setDatabarangServiceModal] = useState<{ unitId: string; unitCode: string } | null>(null);
-  const [databarangEditUnit, setDatabarangEditUnit] = useState<{ id: string; unit_code: string; status: string; notes: string } | null>(null);
   const [databarangServiceList, setDatabarangServiceList] = useState<Record<string, any[]>>({});
   const [databarangUnitFilter, setDatabarangUnitFilter] = useState('all');
 
@@ -1746,7 +1745,7 @@ export default function DashboardApp() {
 
                             {/* Expanded Units */}
                             {isExpanded && (
-                              <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 p-4">
+                              <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 p-4" data-item-id={item.id}>
                                 {canModify && units.length < (item.quantity || 0) && (
                                   <button onClick={async () => {
                                     const currentCount = units.length;
@@ -1774,58 +1773,64 @@ export default function DashboardApp() {
                                 {units.length === 0 ? (
                                   <p className="text-center text-slate-500 py-4 text-sm">Belum ada unit. Klik tombol di atas untuk generate.</p>
                                 ) : (
-                                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                                  <>
+                                    {/* Unit search */}
+                                    <input type="text" placeholder="Cari unit..." onChange={e => {
+                                      const q = e.target.value.toLowerCase();
+                                      const rows = document.querySelectorAll(`[data-item-id="${item.id}"] .unit-row`);
+                                      rows.forEach((row: any) => {
+                                        const code = row.querySelector('.unit-code')?.textContent?.toLowerCase() || '';
+                                        row.style.display = code.includes(q) ? '' : 'none';
+                                      });
+                                    }} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm mb-3 outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                                    <div className="space-y-1 max-h-80 overflow-y-auto">
                                     {units.map(unit => (
-                                      <div key={unit.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 gap-2">
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{unit.unit_code?.split('-').pop() || '?'}</span>
-                                          </div>
-                                          <div>
-                                            <div className="text-sm font-semibold text-slate-900 dark:text-white font-mono">{unit.unit_code}</div>
-                                            <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                                              <span className={`px-2 py-0.5 rounded-full font-medium text-[10px] ${
-                                                unit.status === 'ready' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
-                                                unit.status === 'rented' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
-                                                unit.status === 'damaged' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                                                unit.status === 'service' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
-                                                'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                              }`}>{unit.status}</span>
-                                              {unit.notes && <span className="text-slate-400">{unit.notes}</span>}
-                                            </div>
-                                          </div>
+                                      <div key={unit.id} className="unit-row flex items-center justify-between px-3 py-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition gap-2">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span className="unit-code text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 truncate">{unit.unit_code}</span>
+                                          <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                                            unit.status === 'ready' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
+                                            unit.status === 'rented' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                                            unit.status === 'damaged' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                                            unit.status === 'service' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                                            'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                          }`}>{unit.status}</span>
+                                          {unit.notes && <span className="text-[10px] text-slate-400 truncate hidden sm:inline">{unit.notes}</span>}
                                         </div>
-                                        <div className="flex items-center gap-1.5 justify-end">
+                                        <div className="flex items-center gap-0.5 shrink-0">
+                                          {/* Inline status quick-set */}
+                                          <select value={unit.status} onChange={async (e) => {
+                                            await supabase.from('item_units').update({ status: e.target.value, updated_at: new Date().toISOString() }).eq('id', unit.id);
+                                            loadData(true);
+                                          }} className="text-[10px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1 py-0.5 outline-none text-slate-600 dark:text-slate-400">
+                                            <option value="ready">Ready</option>
+                                            <option value="rented">Disewa</option>
+                                            <option value="damaged">Rusak</option>
+                                            <option value="service">Service</option>
+                                          </select>
                                           <button onClick={async () => {
                                             setDatabarangServiceModal({ unitId: unit.id, unitCode: unit.unit_code });
-                                            // Load service history
                                             const { data } = await supabase.from('unit_service_history')
                                               .select('*').eq('unit_id', unit.id).order('service_date', { ascending: false });
                                             setDatabarangServiceList(prev => ({ ...prev, [unit.id]: data || [] }));
-                                          }} className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Riwayat Service">
-                                            <ClipboardList className="w-4 h-4" />
+                                          }} className="p-1 text-slate-400 hover:text-blue-500 rounded transition" title="Riwayat Service">
+                                            <ClipboardList className="w-3.5 h-3.5" />
                                           </button>
                                           {canModify && (
-                                            <>
-                                              <button onClick={() => setDatabarangEditUnit({
-                                                id: unit.id, unit_code: unit.unit_code, status: unit.status, notes: unit.notes || ''
-                                              })} className="p-2 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Edit">
-                                                <Edit className="w-4 h-4" />
-                                              </button>
-                                              <button onClick={async () => {
-                                                const c = await showConfirm(`Hapus unit ${unit.unit_code}?`);
-                                                if (!c) return;
-                                                await supabase.from('item_units').delete().eq('id', unit.id);
-                                                loadData(true);
-                                              }} className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Hapus">
-                                                <Trash2 className="w-4 h-4" />
-                                              </button>
-                                            </>
+                                            <button onClick={async () => {
+                                              const c = await showConfirm(`Hapus unit ${unit.unit_code}?`);
+                                              if (!c) return;
+                                              await supabase.from('item_units').delete().eq('id', unit.id);
+                                              loadData(true);
+                                            }} className="p-1 text-slate-400 hover:text-red-500 rounded transition" title="Hapus">
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
                                           )}
                                         </div>
                                       </div>
                                     ))}
-                                  </div>
+                                    </div>
+                                  </>
                                 )}
                               </div>
                             )}
@@ -1937,49 +1942,6 @@ export default function DashboardApp() {
                   </div>
                 )}
 
-                {/* Edit Unit Modal */}
-                {databarangEditUnit && (
-                  <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 py-10 overflow-y-auto animate-fade-in" onClick={() => setDatabarangEditUnit(null)}>
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-4 sm:p-6 w-full max-w-md relative animate-slide-up my-auto" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => setDatabarangEditUnit(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
-                        <X className="w-5 h-5" />
-                      </button>
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Edit Unit: {databarangEditUnit.unit_code}</h3>
-                      <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        const t = e.target as typeof e.target & { status: { value: string }; notes: { value: string } };
-                        await supabase.from('item_units').update({
-                          status: t.status.value,
-                          notes: t.notes.value.trim() || null,
-                          updated_at: new Date().toISOString()
-                        }).eq('id', databarangEditUnit.id);
-                        toast.success('Unit updated');
-                        setDatabarangEditUnit(null);
-                        loadData(true);
-                      }} className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Status</label>
-                          <select name="status" defaultValue={databarangEditUnit.status}
-                            className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-red-600">
-                            <option value="ready">Ready</option>
-                            <option value="rented">Disewa</option>
-                            <option value="damaged">Rusak</option>
-                            <option value="service">Service</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Catatan</label>
-                          <input type="text" name="notes" defaultValue={databarangEditUnit.notes}
-                            className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-red-600" />
-                        </div>
-                        <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-                          <button type="button" onClick={() => setDatabarangEditUnit(null)} className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition">Batal</button>
-                          <button type="submit" className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition">Simpan</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
