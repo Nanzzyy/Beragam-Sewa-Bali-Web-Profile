@@ -26,6 +26,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   const [uploading, setUploading] = useState(false);
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [itemPrice, setItemPrice] = useState('');
+  const [itemRentalPrice, setItemRentalPrice] = useState('');
 
   // Lists of all available items and staff for the dropdowns
   const [availableItems, setAvailableItems] = useState<{ id: string; name: string; available?: number; total?: number }[]>([]);
@@ -493,6 +494,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     setUploading(true);
                     try {
                       const price = itemPrice ? parseFloat(itemPrice) : 0;
+                      const rentalPrice = itemRentalPrice ? parseFloat(itemRentalPrice) : 0;
                       const qty = parseInt(target.quantity.value) || 1;
                       
                       if (addMode === 'item') {
@@ -506,15 +508,13 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                       }
 
                       const days = parseFloat(itemDays) || 1;
-                      const newItemTotal = price * qty * days;
+                      const newItemTotal = rentalPrice * qty * days;
                       
-                      const currentItemsTotal = items.reduce((sum, item) => sum + (item.quantity * (item.sub_rent_cost || 0) * (item.days || 1)), 0);
-                      const newTotal = currentItemsTotal + newItemTotal;
-
-                      /* "sistem otomatisasi nilai projek dengan uang yang ada di pdf/excel di nonaktifkan"
-                         Wait, the user wants the auto project value integration DISABLED.
-                         So we don't prompt them to update total_rental_fee automatically anymore.
-                      */
+                      const currentRentalTotal = items.reduce((sum, item) => sum + ((item.rental_price || 0) * item.quantity * (item.days || 1)), 0);
+                      const newRentalTotal = currentRentalTotal + newItemTotal;
+                      
+                      const currentVendorTotal = items.reduce((sum, item) => sum + ((item.sub_rent_cost || 0) * item.quantity * (item.days || 1)), 0);
+                      const newVendorTotal = currentVendorTotal + (price * qty * days);
 
                       // Supplier items are stored as a snapshot using existing
                       // job_items columns (no schema change): vendor = supplier,
@@ -526,7 +526,8 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                       const payload = {
                         job_id: job.id,
                         quantity: qty,
-                        sub_rent_cost: price,
+                        sub_rent_cost: addMode === 'supplier' ? (supplierSnap?.price || price) : price,
+                        rental_price: rentalPrice,
                         days: days,
                         is_returned: false,
                         is_package: addMode === 'package',
@@ -538,10 +539,22 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
                       await import('../lib/jobs').then(m => m.addJobItem(payload as any));
 
+                      // Auto-update job totals
+                      const discountAmount = (job.discount || 0);
+                      const priceCut = (job.price_cut || 0);
+                      const finalRentalFee = Math.max(0, newRentalTotal - discountAmount - priceCut);
+                      const { supabase: sb } = await import('../lib/supabase');
+                      await sb.from('jobs').update({
+                        total_rental_fee: finalRentalFee,
+                        total_vendor_cost: newVendorTotal,
+                        updated_at: new Date().toISOString()
+                      }).eq('id', job.id);
+
                       if (targetIdRef.current) targetIdRef.current.value = '';
                       setItemQuery(''); setItemPickedId(''); setItemOpen(false);
                       target.quantity.value = '1';
                       setItemPrice('');
+                      setItemRentalPrice('');
                       setItemDays('1');
                       loadDetails();
                     } catch (err) {
@@ -596,8 +609,13 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                     </div>
 
                     <div className="flex flex-col sm:w-40">
-                      <input type="number" name="price" value={itemPrice} onChange={e => setItemPrice(e.target.value)} placeholder="Harga/unit (Opsional)" min="0" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                      {itemPrice && <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">{formatRupiah(parseInt(itemPrice) || 0)}</span>}
+                      <input type="number" name="rental_price" value={itemRentalPrice} onChange={e => setItemRentalPrice(e.target.value)} placeholder="Harga Sewa/unit" min="0" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                      {itemRentalPrice && <span className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 pl-1">{formatRupiah(parseInt(itemRentalPrice) || 0)} (Sewa)</span>}
+                    </div>
+
+                    <div className="flex flex-col sm:w-40">
+                      <input type="number" name="price" value={itemPrice} onChange={e => setItemPrice(e.target.value)} placeholder="Biaya Vendor (Opsional)" min="0" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                      {itemPrice && <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">{formatRupiah(parseInt(itemPrice) || 0)} (Vendor)</span>}
                     </div>
                     
                     <div className="flex flex-col sm:w-24">
@@ -631,8 +649,10 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                             </ul>
                           )}
                           <div className="text-xs text-slate-500 font-medium mt-1">
-                            Qty: {item.quantity} • Hari: {item.days || 1} {item.sub_rent_cost > 0 && `• Harga: ${formatRupiah(item.sub_rent_cost)}/hari`}
-                            {item.vendor_name && ` • Vendor: ${item.vendor_name}`}
+                            Qty: {item.quantity} • Hari: {item.days || 1}
+                            {item.rental_price > 0 && <span className="text-emerald-600 dark:text-emerald-400"> • Sewa: {formatRupiah(item.rental_price)}/hari</span>}
+                            {item.sub_rent_cost > 0 && <span className="text-amber-600 dark:text-amber-400"> • Vendor: {formatRupiah(item.sub_rent_cost)}/hari</span>}
+                            {item.vendor_name && ` • ${item.vendor_name}`}
                           </div>
                         </div>
                       </div>
@@ -644,10 +664,22 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                           <button onClick={async () => {
                             if (!await showConfirm('Hapus barang ini?')) return;
                             try {
-                              // "sistem otomatisasi nilai projek dengan uang yang ada di pdf/excel di nonaktifkan"
-                              // No need to ask to deduct job.total_rental_fee here anymore.
-
                               await import('../lib/jobs').then(m => m.removeJobItem(item.id));
+
+                              // Recalculate job totals after removal
+                              const remainingItems = items.filter(i => i.id !== item.id);
+                              const newRentalTotal = remainingItems.reduce((sum, i) => sum + ((i.rental_price || 0) * i.quantity * (i.days || 1)), 0);
+                              const newVendorTotal = remainingItems.reduce((sum, i) => sum + ((i.sub_rent_cost || 0) * i.quantity * (i.days || 1)), 0);
+                              const discountAmount = (job.discount || 0);
+                              const priceCut = (job.price_cut || 0);
+                              const finalRentalFee = Math.max(0, newRentalTotal - discountAmount - priceCut);
+                              const { supabase: sb } = await import('../lib/supabase');
+                              await sb.from('jobs').update({
+                                total_rental_fee: finalRentalFee,
+                                total_vendor_cost: newVendorTotal,
+                                updated_at: new Date().toISOString()
+                              }).eq('id', job.id);
+
                               loadDetails();
                             } catch (e) { toast.error((e as Error).message); }
                           }} className="text-red-500 hover:text-red-600 p-1">

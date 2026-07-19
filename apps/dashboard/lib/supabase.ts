@@ -30,6 +30,7 @@ export interface Job {
   total_vendor_cost: number;
   payment_method: string | null;
   discount?: number;
+  price_cut?: number;
   cashflow_tx_id: string | null;
   created_by: string;
   created_at: string;
@@ -76,6 +77,7 @@ export interface JobItem {
   quantity: number;
   source_vendor_id: string | null;
   sub_rent_cost: number;
+  rental_price: number;
   is_returned: boolean;
   days: number;
   is_package: boolean;

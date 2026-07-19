@@ -15,7 +15,7 @@ const MonthCalendar = dynamic(() => import('../components/MonthCalendar'), { ssr
 import PDFTemplateEditor from '../components/PDFTemplateEditor';
 import { defaultTemplate, type PDFTemplateLayout } from '../lib/pdf-template';
 import { downloadCatalogTemplate, importPackages } from '../lib/excel';
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie, History, Wrench, ShoppingCart, Calendar } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie, History, Wrench, ShoppingCart, Calendar, Boxes, ClipboardList } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useTheme } from 'next-themes';
 import { toast } from 'react-hot-toast';
@@ -100,7 +100,7 @@ function SparepartPurchaseHistory({ sparepartId, canModify, onUpdate }: { sparep
   );
 }
 
-type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'spareparts' | 'packages' | 'staff' | 'cashflow' | 'suppliers' | 'landing' | 'template';
+type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'spareparts' | 'packages' | 'staff' | 'cashflow' | 'suppliers' | 'landing' | 'template' | 'databarang';
 
 export default function DashboardApp() {
   const [tab, setTabState] = useState<Tab>('dashboard');
@@ -258,6 +258,16 @@ export default function DashboardApp() {
   const [showNewSparepartCategoryInput, setShowNewSparepartCategoryInput] = useState(false);
   const [newSparepartCategoryName, setNewSparepartCategoryName] = useState('');
   const [sparepartCategoryModalOpen, setSparepartCategoryModalOpen] = useState(false);
+
+  // Data Barang State
+  const [databarangItems, setDatabarangItems] = useState<any[]>([]);
+  const [databarangSearch, setDatabarangSearch] = useState('');
+  const [databarangExpandedItem, setDatabarangExpandedItem] = useState<string | null>(null);
+  const [databarangUnits, setDatabarangUnits] = useState<Record<string, any[]>>({});
+  const [databarangServiceModal, setDatabarangServiceModal] = useState<{ unitId: string; unitCode: string } | null>(null);
+  const [databarangEditUnit, setDatabarangEditUnit] = useState<{ id: string; unit_code: string; status: string; notes: string } | null>(null);
+  const [databarangServiceList, setDatabarangServiceList] = useState<Record<string, any[]>>({});
+  const [databarangUnitFilter, setDatabarangUnitFilter] = useState('all');
 
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [itemModalData, setItemModalData] = useState<{ id?: string; name: string; category: string; quantity: number; sku: string } | null>(null);
@@ -504,6 +514,7 @@ export default function DashboardApp() {
         supabase.from('site_content').select('content_value').eq('content_key', 'site_logo_dashboard').single(),
         supabase.from('packages').select('*, package_items(item_id, supplier_item_id, qty)').order('name'),
         supabase.from('spareparts').select('*').eq('is_deleted', false).order('name'),
+        supabase.from('item_units').select('*').order('unit_code'),
       ];
 
       // Conditionally add owner/accounting queries
@@ -527,11 +538,12 @@ export default function DashboardApp() {
       let idx = 6;
       const packData = results[idx++]?.data || [];
       const spareData = results[idx++]?.data || [];
+      const unitsData = results[idx++]?.data || [];
       const cfData = hasCashflow ? (results[idx++]?.data || []) : [];
       const supData = isOwner ? (results[idx++]?.data || []) : [];
       const landData = isOwner ? (results[idx++]?.data || []) : [];
 
-      return { jobsData, statsData, iData, sData, cfData, supData, landData, activeJobsData, siteLogo, packData, spareData };
+      return { jobsData, statsData, iData, sData, cfData, supData, landData, activeJobsData, siteLogo, packData, spareData, unitsData };
     }
   });
 
@@ -543,6 +555,14 @@ export default function DashboardApp() {
       setItemsList(dashboardData.iData);
       setPackagesList(dashboardData.packData);
       setSparepartsList(dashboardData.spareData);
+      setDatabarangItems(dashboardData.iData); // items for databarang
+      // Group units by item_id
+      const unitsByItem: Record<string, any[]> = {};
+      (dashboardData.unitsData || []).forEach((u: any) => {
+        if (!unitsByItem[u.item_id]) unitsByItem[u.item_id] = [];
+        unitsByItem[u.item_id].push(u);
+      });
+      setDatabarangUnits(unitsByItem);
       setStaffList(dashboardData.sData);
       if (userRole === 'owner' || userRole === 'accounting') setCashflowList(dashboardData.cfData);
       if (userRole === 'owner') {
@@ -807,6 +827,7 @@ export default function DashboardApp() {
           ) : <div className="pt-4 pb-2"><div className="w-4 h-px bg-slate-200 dark:bg-slate-800" /></div>}
           
           <SidebarItem icon={Package} label="Menu Barang" value="inventory" />
+          <SidebarItem icon={Boxes} label="Data Barang" value="databarang" />
           <SidebarItem icon={Wrench} label="Sparepart" value="spareparts" />
           <SidebarItem icon={Layers} label="Menu Paket" value="packages" />
           <SidebarItem icon={Users} label="Daftar Karyawan" value="staff" />
@@ -1643,6 +1664,314 @@ export default function DashboardApp() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* === DATA BARANG TAB === */}
+            {tab === 'databarang' && (
+              <div className="animate-fade-in space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Data Barang</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Lacak setiap unit barang, riwayat service, dan status</p>
+                  </div>
+                </div>
+
+                {/* Search + Filter */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-4">
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div className="relative w-full sm:max-w-sm">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input type="text" value={databarangSearch} onChange={e => setDatabarangSearch(e.target.value)} placeholder="Cari nama barang..."
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
+                    </div>
+                    <select value={databarangUnitFilter} onChange={e => setDatabarangUnitFilter(e.target.value)}
+                      className="w-full sm:w-40 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition">
+                      <option value="all">Semua Status</option>
+                      <option value="ready">Ready</option>
+                      <option value="rented">Disewa</option>
+                      <option value="damaged">Rusak</option>
+                      <option value="service">Service</option>
+                    </select>
+                  </div>
+
+                  {/* Item List with Expandable Units */}
+                  {databarangItems.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Boxes className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-500 dark:text-slate-400">Belum ada barang di database.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {databarangItems.filter(item => 
+                        item.name.toLowerCase().includes(databarangSearch.toLowerCase()) ||
+                        item.sku?.toLowerCase().includes(databarangSearch.toLowerCase())
+                      ).map(item => {
+                        const units = (databarangUnits[item.id] || []).filter(u => 
+                          databarangUnitFilter === 'all' || u.status === databarangUnitFilter
+                        );
+                        const isExpanded = databarangExpandedItem === item.id;
+                        return (
+                          <div key={item.id} className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
+                            {/* Item Header */}
+                            <button onClick={() => setDatabarangExpandedItem(isExpanded ? null : item.id)}
+                              className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition text-left">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
+                                  <Boxes className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
+                                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2 mt-0.5">
+                                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">SKU: {item.sku || '-'}</span>
+                                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Total Unit: {units.length}/{item.quantity || 0}</span>
+                                    <span className={`px-2 py-0.5 rounded font-medium ${
+                                      item.status === 'ready' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
+                                      item.status === 'rented' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                                      'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                    }`}>{item.status || 'ready'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <ChevronRight className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            </button>
+
+                            {/* Expanded Units */}
+                            {isExpanded && (
+                              <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 p-4">
+                                {canModify && units.length < (item.quantity || 0) && (
+                                  <button onClick={async () => {
+                                    const currentCount = units.length;
+                                    const targetCount = item.quantity || 0;
+                                    const toAdd = targetCount - currentCount;
+                                    if (toAdd <= 0) return;
+                                    const sku = item.sku || item.name.substring(0, 3).toUpperCase();
+                                    const newUnits = [];
+                                    for (let i = currentCount + 1; i <= targetCount; i++) {
+                                      newUnits.push({
+                                        item_id: item.id,
+                                        unit_code: `SD-${sku}-${i}`,
+                                        status: 'ready'
+                                      });
+                                    }
+                                    const { error } = await supabase.from('item_units').insert(newUnits);
+                                    if (error) { toast.error(error.message); return; }
+                                    toast.success(`${toAdd} unit baru ditambahkan`);
+                                    loadData(true);
+                                  }} className="mb-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition flex items-center gap-2">
+                                    <Plus className="w-4 h-4" /> Generate {item.quantity - units.length} Unit Baru
+                                  </button>
+                                )}
+
+                                {units.length === 0 ? (
+                                  <p className="text-center text-slate-500 py-4 text-sm">Belum ada unit. Klik tombol di atas untuk generate.</p>
+                                ) : (
+                                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                                    {units.map(unit => (
+                                      <div key={unit.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 gap-2">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{unit.unit_code?.split('-').pop() || '?'}</span>
+                                          </div>
+                                          <div>
+                                            <div className="text-sm font-semibold text-slate-900 dark:text-white font-mono">{unit.unit_code}</div>
+                                            <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                                              <span className={`px-2 py-0.5 rounded-full font-medium text-[10px] ${
+                                                unit.status === 'ready' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
+                                                unit.status === 'rented' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                                                unit.status === 'damaged' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                                                unit.status === 'service' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                                                'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                              }`}>{unit.status}</span>
+                                              {unit.notes && <span className="text-slate-400">{unit.notes}</span>}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 justify-end">
+                                          <button onClick={async () => {
+                                            setDatabarangServiceModal({ unitId: unit.id, unitCode: unit.unit_code });
+                                            // Load service history
+                                            const { data } = await supabase.from('unit_service_history')
+                                              .select('*').eq('unit_id', unit.id).order('service_date', { ascending: false });
+                                            setDatabarangServiceList(prev => ({ ...prev, [unit.id]: data || [] }));
+                                          }} className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Riwayat Service">
+                                            <ClipboardList className="w-4 h-4" />
+                                          </button>
+                                          {canModify && (
+                                            <>
+                                              <button onClick={() => setDatabarangEditUnit({
+                                                id: unit.id, unit_code: unit.unit_code, status: unit.status, notes: unit.notes || ''
+                                              })} className="p-2 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Edit">
+                                                <Edit className="w-4 h-4" />
+                                              </button>
+                                              <button onClick={async () => {
+                                                const c = await showConfirm(`Hapus unit ${unit.unit_code}?`);
+                                                if (!c) return;
+                                                await supabase.from('item_units').delete().eq('id', unit.id);
+                                                loadData(true);
+                                              }} className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Hapus">
+                                                <Trash2 className="w-4 h-4" />
+                                              </button>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Service History Modal */}
+                {databarangServiceModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-4 sm:p-8 w-full max-w-lg max-h-[85vh] overflow-y-auto relative animate-slide-up">
+                      <button onClick={() => setDatabarangServiceModal(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                        <X className="w-5 h-5" />
+                      </button>
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shadow-inner">
+                          <ClipboardList className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Riwayat Service</h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-mono">{databarangServiceModal.unitCode}</p>
+                        </div>
+                      </div>
+
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        const t = e.target as typeof e.target & {
+                          service_date: { value: string };
+                          description: { value: string };
+                          location: { value: string };
+                          cost: { value: string };
+                        };
+                        const { error } = await supabase.from('unit_service_history').insert({
+                          unit_id: databarangServiceModal.unitId,
+                          service_date: t.service_date.value,
+                          description: t.description.value.trim(),
+                          location: t.location.value.trim() || null,
+                          cost: parseInt(t.cost.value.replace(/[^0-9]/g, '')) || 0,
+                        });
+                        if (error) { toast.error(error.message); return; }
+                        toast.success('Service history added');
+                        const { data } = await supabase.from('unit_service_history')
+                          .select('*').eq('unit_id', databarangServiceModal.unitId).order('service_date', { ascending: false });
+                        setDatabarangServiceList(prev => ({ ...prev, [databarangServiceModal.unitId]: data || [] }));
+                        (e.target as HTMLFormElement).reset();
+                      }} className="space-y-4 mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tambah Service Baru</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-1">Tanggal Service *</label>
+                            <input type="date" name="service_date" required defaultValue={new Date().toISOString().split('T')[0]}
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-1">Biaya (Rp)</label>
+                            <input type="text" name="cost" placeholder="0" onChange={e => {
+                              const v = e.target.value.replace(/[^0-9]/g, '');
+                              e.target.value = v ? parseInt(v).toLocaleString('id-ID') : '';
+                            }} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Deskripsi</label>
+                          <input type="text" name="description" placeholder="Misal: Ganti oli, perbaikan mesin" required
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Lokasi (Opsional)</label>
+                          <input type="text" name="location" placeholder="Misal: Bengkel ABC"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                        </div>
+                        <button type="submit" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> Tambah Service
+                        </button>
+                      </form>
+
+                      {/* Service History List */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Riwayat</p>
+                        {(databarangServiceList[databarangServiceModal.unitId] || []).length === 0 ? (
+                          <p className="text-sm text-slate-500 text-center py-4">Belum ada riwayat service.</p>
+                        ) : (
+                          (databarangServiceList[databarangServiceModal.unitId] || []).map((svc: any) => (
+                            <div key={svc.id} className="flex items-start justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                              <div>
+                                <div className="text-sm font-semibold text-slate-900 dark:text-white">{svc.description}</div>
+                                <div className="text-xs text-slate-500 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                                  <span>{formatDate(svc.service_date)}</span>
+                                  {svc.location && <span>📍 {svc.location}</span>}
+                                  {svc.cost > 0 && <span className="text-amber-600 dark:text-amber-400 font-medium">{formatRupiah(svc.cost)}</span>}
+                                </div>
+                              </div>
+                              <button onClick={async () => {
+                                await supabase.from('unit_service_history').delete().eq('id', svc.id);
+                                const { data } = await supabase.from('unit_service_history')
+                                  .select('*').eq('unit_id', databarangServiceModal.unitId).order('service_date', { ascending: false });
+                                setDatabarangServiceList(prev => ({ ...prev, [databarangServiceModal.unitId]: data || [] }));
+                              }} className="text-red-400 hover:text-red-600 p-1 shrink-0">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Edit Unit Modal */}
+                {databarangEditUnit && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-4 sm:p-8 w-full max-w-md relative animate-slide-up">
+                      <button onClick={() => setDatabarangEditUnit(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                        <X className="w-5 h-5" />
+                      </button>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Edit Unit: {databarangEditUnit.unit_code}</h3>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        const t = e.target as typeof e.target & { status: { value: string }; notes: { value: string } };
+                        await supabase.from('item_units').update({
+                          status: t.status.value,
+                          notes: t.notes.value.trim() || null,
+                          updated_at: new Date().toISOString()
+                        }).eq('id', databarangEditUnit.id);
+                        toast.success('Unit updated');
+                        setDatabarangEditUnit(null);
+                        loadData(true);
+                      }} className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Status</label>
+                          <select name="status" defaultValue={databarangEditUnit.status}
+                            className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-red-600">
+                            <option value="ready">Ready</option>
+                            <option value="rented">Disewa</option>
+                            <option value="damaged">Rusak</option>
+                            <option value="service">Service</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Catatan</label>
+                          <input type="text" name="notes" defaultValue={databarangEditUnit.notes}
+                            className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-red-600" />
+                        </div>
+                        <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                          <button type="button" onClick={() => setDatabarangEditUnit(null)} className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition">Batal</button>
+                          <button type="submit" className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition">Simpan</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Job, JobStatus } from '../lib/supabase';
-import { JOB_STATUS_CONFIG } from '../lib/supabase';
+import { JOB_STATUS_CONFIG, formatRupiah } from '../lib/supabase';
 import { createJob, updateJob } from '../lib/jobs';
 import { X, Calendar } from 'lucide-react';
 import DatePicker from 'react-datepicker';
@@ -93,10 +93,10 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
   const [jobDate, setJobDate] = useState(job?.job_date || '');
   const [completionDate, setCompletionDate] = useState(job?.completion_date || '');
   const [status, setStatus] = useState<JobStatus>(job?.status || 'draft');
-  const formatCurrencyString = (num: number) => num ? 'Rp. ' + new Intl.NumberFormat('id-ID').format(num) : '';
-  const [totalRentalFee, setTotalRentalFee] = useState(formatCurrencyString(job?.total_rental_fee || 0));
+  const formatCurrencyString = (num: number) => num ? 'Rp. ' + new Intl.NumberFormat('id-ID').format(num) : 'Rp. 0';
   const [totalVendorCost, setTotalVendorCost] = useState(formatCurrencyString(job?.total_vendor_cost || 0));
   const [discount, setDiscount] = useState(formatCurrencyString(job?.discount || 0));
+  const [priceCut, setPriceCut] = useState(formatCurrencyString(job?.price_cut || 0));
   const [paymentMethod, setPaymentMethod] = useState(job?.payment_method || '1-101');
   const [pphUmkmEnabled, setPphUmkmEnabled] = useState(job?.pph_umkm_enabled || false);
 
@@ -155,11 +155,12 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
       let finalDiscount = 0;
       if (discount.includes('%')) {
         const percent = parseInt(discount.replace(/[^0-9]/g, ''), 10) || 0;
-        const rentalFee = parseInt(totalRentalFee.replace(/[^0-9]/g, ''), 10) || 0;
+        const rentalFee = parseInt(totalVendorCost.replace(/[^0-9]/g, ''), 10) || 0;
         finalDiscount = Math.round(rentalFee * (percent / 100));
       } else {
         finalDiscount = parseInt(discount.replace(/[^0-9]/g, ''), 10) || 0;
       }
+      const finalPriceCut = parseInt(priceCut.replace(/[^0-9]/g, ''), 10) || 0;
 
       const payload = {
         client_name: clientName.trim(),
@@ -173,9 +174,10 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
         job_date: jobDate,
         completion_date: completionDate,
         status,
-        total_rental_fee: parseInt(totalRentalFee.replace(/[^0-9]/g, ''), 10) || 0,
-        total_vendor_cost: parseInt(totalVendorCost.replace(/[^0-9]/g, ''), 10) || 0,
+        total_rental_fee: 0, // will be auto-calculated from job_items
+        total_vendor_cost: 0, // will be auto-calculated from job_items
         discount: finalDiscount,
+        price_cut: finalPriceCut,
         payment_method: paymentMethod,
         pph_umkm_enabled: pphUmkmEnabled,
       };
@@ -234,23 +236,37 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
           </div>
 
           {/* Financial */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <InputField label="Total Biaya Sewa (Rp)" required type="text" value={totalRentalFee} onChange={v => handleCurrencyChange(v, setTotalRentalFee)} placeholder="Rp. 0" />
-            <InputField label="Diskon (Nominal / %)" type="text" value={discount} onChange={handleDiscountChange} placeholder="Contoh: 10% atau 50000" />
-            <InputField label="Biaya Vendor (Opsional)" type="text" value={totalVendorCost} onChange={v => handleCurrencyChange(v, setTotalVendorCost)} placeholder="Rp. 0" />
-            <CustomSelect 
-              label="Akun Penerimaan (Cashflow)" 
-              required
-              value={paymentMethod} 
-              onChange={setPaymentMethod}
-              options={[
-                { value: '1-101', label: 'Kas Besar (1-101)' },
-                { value: '1-102', label: 'Bank BCA (1-102)' },
-                { value: '1-103', label: 'Bank Mandiri (1-103)' },
-                { value: '1-104', label: 'Kas Kecil (1-104)' },
-                { value: '1-105', label: 'Piutang Usaha (1-105)' },
-              ]}
-            />
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide">Informasi Keuangan</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Total Sewa (Auto dari Barang)</label>
+                <div className="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  {job ? formatRupiah(job.total_rental_fee) : 'Belum ada barang'}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Dihitung otomatis dari total harga sewa barang yang ditambahkan.</p>
+              </div>
+              <InputField label="Biaya Vendor Total (Opsional)" type="text" value={totalVendorCost} onChange={v => handleCurrencyChange(v, setTotalVendorCost)} placeholder="Rp. 0" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+              <InputField label="Diskon (Nominal / %)" type="text" value={discount} onChange={handleDiscountChange} placeholder="Contoh: 10% atau 50000" />
+              <InputField label="Potongan Tambahan (Rp)" type="text" value={priceCut} onChange={v => handleCurrencyChange(v, setPriceCut)} placeholder="Rp. 0" />
+            </div>
+            <div className="mt-2">
+              <CustomSelect 
+                label="Akun Penerimaan (Cashflow)" 
+                required
+                value={paymentMethod} 
+                onChange={setPaymentMethod}
+                options={[
+                  { value: '1-101', label: 'Kas Besar (1-101)' },
+                  { value: '1-102', label: 'Bank BCA (1-102)' },
+                  { value: '1-103', label: 'Bank Mandiri (1-103)' },
+                  { value: '1-104', label: 'Kas Kecil (1-104)' },
+                  { value: '1-105', label: 'Piutang Usaha (1-105)' },
+                ]}
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
