@@ -1,8 +1,10 @@
-'use client';
+"use client";
+import { showConfirm } from '../lib/confirm';
 
 import { useState, useEffect } from 'react';
 import { fetchAccounts, upsertAccount, deleteAccount } from '../lib/accounting';
 import type { Account } from '../lib/supabase';
+import { toast } from 'react-hot-toast';
 import { Loader2, Plus, Edit2, Trash2, Check, X, Search } from 'lucide-react';
 
 export default function ChartOfAccountsGrid() {
@@ -39,17 +41,17 @@ export default function ChartOfAccountsGrid() {
       setEditingCode(null);
       load();
     } catch (e) {
-      alert('Gagal menyimpan akun: ' + (e as Error).message);
+      toast.error('Gagal menyimpan akun: ' + (e as Error).message);
     }
   };
 
   const handleDelete = async (code: string) => {
-    if (!confirm(`Hapus akun ${code}? Pastikan tidak ada transaksi yang terhubung.`)) return;
+    if (!(await showConfirm(`Hapus akun ${code}? Pastikan tidak ada transaksi yang terhubung.`))) return;
     try {
       await deleteAccount(code);
       load();
     } catch (e) {
-      alert('Gagal menghapus akun: ' + (e as Error).message);
+      toast.error('Gagal menghapus akun: ' + (e as Error).message);
     }
   };
 

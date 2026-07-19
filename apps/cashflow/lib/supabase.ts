@@ -32,6 +32,25 @@ export interface FixedAsset {
   expense_account_code?: string;
   accum_account_code?: string;
   is_active: boolean;
+  item_id?: string | null;
+  item_name?: string;
+}
+
+export interface AssetService {
+  id: string;
+  fixed_asset_id: string;
+  service_date: string;
+  description: string;
+  cost: number;
+  technician?: string | null;
+  created_at?: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
 }
 
 export interface Transaction {

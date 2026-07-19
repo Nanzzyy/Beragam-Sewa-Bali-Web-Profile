@@ -15,12 +15,92 @@ const MonthCalendar = dynamic(() => import('../components/MonthCalendar'), { ssr
 import PDFTemplateEditor from '../components/PDFTemplateEditor';
 import { defaultTemplate, type PDFTemplateLayout } from '../lib/pdf-template';
 import { downloadCatalogTemplate, importPackages } from '../lib/excel';
-import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie, History } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Plus, Search, Trash2, LogOut, Moon, Sun, CalendarDays, TrendingUp, DollarSign, Users, Filter, Edit, Eye, ChevronRight, Activity, AlertCircle, Package, Layers, X, Globe, Wallet, Truck, Image, ExternalLink, Lock, Copy, FileSpreadsheet, Menu, CheckCircle2, PanelLeftClose, PanelLeftOpen, ChartPie, History, Wrench, ShoppingCart, Calendar } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useTheme } from 'next-themes';
 import { toast } from 'react-hot-toast';
 import { showConfirm } from '../lib/confirm';
-type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'packages' | 'staff' | 'cashflow' | 'suppliers' | 'landing' | 'template';
+import { showPrompt } from '../lib/prompt';
+
+// Sparepart Purchase History sub-component
+function SparepartPurchaseHistory({ sparepartId, canModify, onUpdate }: { sparepartId: string; canModify: boolean; onUpdate: () => void }) {
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from('sparepart_purchases')
+      .select('*')
+      .eq('sparepart_id', sparepartId)
+      .order('purchase_date', { ascending: false })
+      .then(({ data }) => {
+        setPurchases(data || []);
+        setLoading(false);
+      });
+  }, [sparepartId]);
+
+  const handleDelete = async (purchase: any) => {
+    if (!(await showConfirm('Hapus riwayat pembelian ini? Stok akan dikurangi.'))) return;
+    try {
+      await supabase.from('sparepart_purchases').delete().eq('id', purchase.id);
+      // Revert stock
+      const sp = await supabase.from('spareparts').select('quantity').eq('id', sparepartId).single();
+      if (sp.data) {
+        await supabase.from('spareparts').update({
+          quantity: Math.max(0, (sp.data.quantity || 0) - (purchase.quantity || 0)),
+          updated_at: new Date().toISOString(),
+        }).eq('id', sparepartId);
+      }
+      setPurchases(prev => prev.filter(p => p.id !== purchase.id));
+      toast.success('Riwayat dihapus, stok dikurangi');
+      onUpdate();
+    } catch (err) { toast.error((err as Error).message); }
+  };
+
+  const formatPrice = (n: number) => 'Rp ' + (n || 0).toLocaleString('id-ID');
+
+  if (loading) return <div className="text-center py-8 text-slate-400">Memuat...</div>;
+  if (purchases.length === 0) return <div className="text-center py-8 text-slate-400">Belum ada riwayat pembelian.</div>;
+
+  return (
+    <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+      <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+        <div className="col-span-3">Tanggal</div>
+        <div className="col-span-2 text-right">Qty</div>
+        <div className="col-span-3 text-right">Harga Satuan</div>
+        <div className="col-span-3 text-right">Total</div>
+        <div className="col-span-1"></div>
+      </div>
+      {purchases.map(p => (
+        <div key={p.id} className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+          <div className="col-span-3 text-sm font-medium text-slate-900 dark:text-white">
+            {new Date(p.purchase_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </div>
+          <div className="col-span-2 text-sm text-right font-bold text-slate-900 dark:text-white">{p.quantity}</div>
+          <div className="col-span-3 text-sm text-right text-slate-600 dark:text-slate-300">{formatPrice(Number(p.unit_price))}</div>
+          <div className="col-span-3 text-sm text-right font-bold text-emerald-600 dark:text-emerald-400">{formatPrice(Number(p.total_price))}</div>
+          <div className="col-span-1 text-right">
+            {canModify && (
+              <button onClick={() => handleDelete(p)} className="p-1 text-slate-400 hover:text-red-500 rounded transition" title="Hapus">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          {p.notes && (
+            <div className="col-span-12 text-xs text-slate-400 italic pl-1 -mt-1">{p.notes}</div>
+          )}
+        </div>
+      ))}
+      <div className="border-t border-slate-200 dark:border-slate-700 mt-2 pt-3 px-3 flex justify-between text-sm font-bold">
+        <span className="text-slate-500">Total Pembelian</span>
+        <span className="text-emerald-600 dark:text-emerald-400">
+          {formatPrice(purchases.reduce((s, p) => s + Number(p.total_price || 0), 0))}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+type Tab = 'dashboard' | 'jobs' | 'schedule' | 'inventory' | 'spareparts' | 'packages' | 'staff' | 'cashflow' | 'suppliers' | 'landing' | 'template';
 
 export default function DashboardApp() {
   const [tab, setTabState] = useState<Tab>('dashboard');
@@ -37,6 +117,8 @@ export default function DashboardApp() {
       console.warn(`Failed to save to localStorage (${key})`, e);
     }
   };
+
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -85,7 +167,6 @@ export default function DashboardApp() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
   // Inventories & Staff Lists
   const [itemsList, setItemsList] = useState<any[]>([]);
@@ -147,6 +228,36 @@ export default function DashboardApp() {
   const [suppliersList, setSuppliersList] = useState<any[]>([]);
   const [landingList, setLandingList] = useState<any[]>([]);
   const [packagesList, setPackagesList] = useState<any[]>([]);
+
+  // Spareparts State
+  const [sparepartsList, setSparepartsList] = useState<any[]>([]);
+  const [sparepartModalOpen, setSparepartModalOpen] = useState(false);
+  const [sparepartModalData, setSparepartModalData] = useState<{ id?: string; name: string; category: string; sku: string } | null>(null);
+  const [sparepartPurchaseModalOpen, setSparepartPurchaseModalOpen] = useState(false);
+  const [sparepartPurchaseTarget, setSparepartPurchaseTarget] = useState<any>(null);
+  const [sparepartHistoryOpen, setSparepartHistoryOpen] = useState(false);
+  const [sparepartHistoryTarget, setSparepartHistoryTarget] = useState<any>(null);
+  const [sparepartSearchQuery, setSparepartSearchQuery] = useState('');
+  const [selectedSparepartCategoryFilter, setSelectedSparepartCategoryFilter] = useState('all');
+
+  const [sparepartsCategoryListState, setSparepartsCategoryListState] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const saved = localStorage.getItem('bsb_custom_sparepart_categories');
+    if (saved) {
+      try { setSparepartsCategoryListState(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
+
+  const sparepartsCategoryList = Array.from(new Set([
+    'umum', 'mesin', 'kelistrikan', 'ban',
+    ...sparepartsCategoryListState,
+    ...(sparepartsList?.map(sp => sp.category?.toLowerCase()).filter(Boolean) || [])
+  ]));
+
+  const [showNewSparepartCategoryInput, setShowNewSparepartCategoryInput] = useState(false);
+  const [newSparepartCategoryName, setNewSparepartCategoryName] = useState('');
+  const [sparepartCategoryModalOpen, setSparepartCategoryModalOpen] = useState(false);
 
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [itemModalData, setItemModalData] = useState<{ id?: string; name: string; category: string; quantity: number; sku: string } | null>(null);
@@ -392,6 +503,7 @@ export default function DashboardApp() {
         supabase.from('jobs').select(`id, client_name, venue, job_items ( item_id, source_vendor_id, quantity, is_package, package_id ), job_staff ( profile_id )`).eq('status', 'on_going'),
         supabase.from('site_content').select('content_value').eq('content_key', 'site_logo_dashboard').single(),
         supabase.from('packages').select('*, package_items(item_id, supplier_item_id, qty)').order('name'),
+        supabase.from('spareparts').select('*').eq('is_deleted', false).order('name'),
       ];
 
       // Conditionally add owner/accounting queries
@@ -414,11 +526,12 @@ export default function DashboardApp() {
 
       let idx = 6;
       const packData = results[idx++]?.data || [];
+      const spareData = results[idx++]?.data || [];
       const cfData = hasCashflow ? (results[idx++]?.data || []) : [];
       const supData = isOwner ? (results[idx++]?.data || []) : [];
       const landData = isOwner ? (results[idx++]?.data || []) : [];
 
-      return { jobsData, statsData, iData, sData, cfData, supData, landData, activeJobsData, siteLogo, packData };
+      return { jobsData, statsData, iData, sData, cfData, supData, landData, activeJobsData, siteLogo, packData, spareData };
     }
   });
 
@@ -429,6 +542,7 @@ export default function DashboardApp() {
       setStats(dashboardData.statsData);
       setItemsList(dashboardData.iData);
       setPackagesList(dashboardData.packData);
+      setSparepartsList(dashboardData.spareData);
       setStaffList(dashboardData.sData);
       if (userRole === 'owner' || userRole === 'accounting') setCashflowList(dashboardData.cfData);
       if (userRole === 'owner') {
@@ -490,6 +604,8 @@ export default function DashboardApp() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cashflow' }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'spareparts' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sparepart_purchases' }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'section_images' }, invalidate)
       .subscribe();
 
@@ -691,6 +807,7 @@ export default function DashboardApp() {
           ) : <div className="pt-4 pb-2"><div className="w-4 h-px bg-slate-200 dark:bg-slate-800" /></div>}
           
           <SidebarItem icon={Package} label="Menu Barang" value="inventory" />
+          <SidebarItem icon={Wrench} label="Sparepart" value="spareparts" />
           <SidebarItem icon={Layers} label="Menu Paket" value="packages" />
           <SidebarItem icon={Users} label="Daftar Karyawan" value="staff" />
           {userRole === 'owner' && (
@@ -1419,6 +1536,116 @@ export default function DashboardApp() {
               </div>
             )}
 
+            {/* === SPAREPARTS TAB === */}
+            {tab === 'spareparts' && (
+              <div className="animate-fade-in space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Menu Sparepart</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola sparepart dan riwayat pembelian</p>
+                  </div>
+                  {canModify && (
+                    <div className="flex items-center gap-2 w-full sm:w-auto flex-col sm:flex-row">
+                      <button onClick={() => setSparepartCategoryModalOpen(true)} className="flex-1 w-full sm:w-auto flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition text-sm shadow-sm justify-center">
+                        <Filter className="w-4 h-4" /> Kelola Kategori
+                      </button>
+                      <button onClick={() => {
+                        setSparepartModalData({ name: '', category: 'umum', sku: `SP-${Math.floor(1000 + Math.random() * 9000)}` });
+                        setSparepartModalOpen(true);
+                      }} className="flex-1 w-full sm:w-auto flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-red-500/20 justify-center">
+                        <Plus className="w-4 h-4" /> Tambah Sparepart
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-4">
+                  <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                    <div className="relative w-full sm:max-w-sm">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input type="text" value={sparepartSearchQuery} onChange={e => setSparepartSearchQuery(e.target.value)} placeholder="Cari sparepart..."
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition" />
+                    </div>
+                    <select value={selectedSparepartCategoryFilter} onChange={(e) => setSelectedSparepartCategoryFilter(e.target.value)} className="w-full sm:w-48 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-red-600 transition">
+                      <option value="all">Semua Kategori</option>
+                      {sparepartsCategoryList.map(cat => (
+                        <option key={cat} value={cat} className="capitalize">{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {sparepartsList.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Wrench className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-500 dark:text-slate-400">Belum ada sparepart di database.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {sparepartsList.filter(sp => {
+                        const matchesSearch = sp.name.toLowerCase().includes(sparepartSearchQuery.toLowerCase()) ||
+                        sp.category?.toLowerCase().includes(sparepartSearchQuery.toLowerCase()) ||
+                        sp.sku?.toLowerCase().includes(sparepartSearchQuery.toLowerCase());
+                        const matchesCategory = selectedSparepartCategoryFilter === 'all' || sp.category?.toLowerCase() === selectedSparepartCategoryFilter;
+                        return matchesSearch && matchesCategory;
+                      }).map(sp => (
+                        <div key={sp.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition group gap-3 md:gap-0">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center shrink-0">
+                              <Wrench className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-slate-900 dark:text-white">{sp.name}</div>
+                              <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2 mt-1">
+                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">SKU: {sp.sku}</span>
+                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded capitalize">Kategori: {sp.category || '-'}</span>
+                                <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-bold">Stok: {sp.quantity || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-3 md:mt-0 justify-end w-full md:w-auto border-t md:border-0 border-slate-100 dark:border-slate-800 pt-3 md:pt-0">
+                            <button onClick={() => {
+                              setSparepartHistoryTarget(sp);
+                              setSparepartHistoryOpen(true);
+                            }} className="p-2 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Riwayat Beli">
+                              <History className="w-4 h-4" />
+                            </button>
+                            {canModify && (
+                              <>
+                                <button onClick={() => {
+                                  setSparepartPurchaseTarget(sp);
+                                  setSparepartPurchaseModalOpen(true);
+                                }} className="p-2 text-slate-400 hover:text-emerald-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Catat Pembelian">
+                                  <ShoppingCart className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => {
+                                  setSparepartModalData({ id: sp.id, name: sp.name, category: sp.category || 'umum', sku: sp.sku });
+                                  setSparepartModalOpen(true);
+                                }} className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Edit">
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => {
+                                  setConfirmModalConfig({
+                                    title: 'Hapus Sparepart',
+                                    message: `Hapus sparepart "${sp.name}" beserta riwayat pembeliannya?`,
+                                    onConfirm: async () => {
+                                      await supabase.from('spareparts').update({ is_deleted: true }).eq('id', sp.id);
+                                      loadData(true);
+                                      setConfirmModalOpen(false);
+                                    }
+                                  });
+                                  setConfirmModalOpen(true);
+                                }} className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Hapus">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             
             {/* === PACKAGES TAB === */}
             {tab === 'packages' && (
@@ -1855,6 +2082,333 @@ export default function DashboardApp() {
         />
       )}
 
+      {/* Sparepart Add/Edit Modal */}
+      {sparepartModalOpen && sparepartModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-lg relative animate-slide-up">
+            <button onClick={() => setSparepartModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shadow-inner">
+                <Wrench className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {sparepartModalData.id ? 'Edit Sparepart' : 'Tambah Sparepart Baru'}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Lengkapi informasi sparepart.</p>
+              </div>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const target = e.target as typeof e.target & { name: { value: string }; sku: { value: string }; category: { value: string } };
+              
+              let finalCategory = sparepartModalData.category || 'umum';
+              if (showNewSparepartCategoryInput && newSparepartCategoryName.trim()) {
+                finalCategory = newSparepartCategoryName.trim().toLowerCase();
+                if (!sparepartsCategoryList.includes(finalCategory)) {
+                  const updated = [...sparepartsCategoryListState, finalCategory];
+                  setSparepartsCategoryListState(updated);
+                  localStorage.setItem('bsb_custom_sparepart_categories', JSON.stringify(updated));
+                }
+              }
+
+              const payload = {
+                name: target.name.value.trim(),
+                sku: target.sku.value.trim() || `SP-${Date.now()}`,
+                category: finalCategory,
+              };
+              try {
+                if (sparepartModalData.id) {
+                  const { error } = await supabase.from('spareparts').update(payload).eq('id', sparepartModalData.id);
+                  if (error) throw error;
+                  toast.success('Sparepart berhasil diupdate');
+                } else {
+                  const { error } = await supabase.from('spareparts').insert({ ...payload, quantity: 0 });
+                  if (error) throw error;
+                  toast.success('Sparepart berhasil ditambahkan');
+                }
+                loadData(true);
+                setSparepartModalOpen(false);
+                setShowNewSparepartCategoryInput(false);
+                setNewSparepartCategoryName('');
+              } catch (err) { toast.error((err as Error).message); }
+            }} className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nama Sparepart <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Wrench className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input type="text" name="name" defaultValue={sparepartModalData.name} required placeholder="Contoh: Ban Genset 5kW"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">SKU / Kode</label>
+                  <input type="text" name="sku" value={sparepartModalData.sku} onChange={e => setSparepartModalData({...sparepartModalData, sku: e.target.value.toUpperCase()})} required placeholder="SP-1234"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Kategori</label>
+                    <button type="button" onClick={() => {
+                      setNewSparepartCategoryName('');
+                      setShowNewSparepartCategoryInput(!showNewSparepartCategoryInput);
+                    }} className="text-xs text-red-600 dark:text-red-400 font-bold hover:underline flex items-center gap-1">
+                      {showNewSparepartCategoryInput ? 'Batal Tambah' : <><Plus className="w-3.5 h-3.5" /> Kategori Baru</>}
+                    </button>
+                  </div>
+                  
+                  {showNewSparepartCategoryInput && (
+                    <div className="flex items-center gap-2 mb-3 bg-red-50 dark:bg-red-500/10 p-2 rounded-xl border border-red-100 dark:border-red-500/20">
+                      <input 
+                        type="text" 
+                        value={newSparepartCategoryName} 
+                        onChange={e => setNewSparepartCategoryName(e.target.value)} 
+                        placeholder="Ketik kategori..." 
+                        className="flex-1 px-3 py-2 text-sm rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-red-500 text-slate-900 dark:text-white"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          if (newSparepartCategoryName && newSparepartCategoryName.trim()) {
+                            const trimmed = newSparepartCategoryName.trim().toLowerCase();
+                            if (!sparepartsCategoryList.includes(trimmed)) {
+                              const updated = [...sparepartsCategoryListState, trimmed];
+                              setSparepartsCategoryListState(updated);
+                              localStorage.setItem('bsb_custom_sparepart_categories', JSON.stringify(updated));
+                            }
+                            setSparepartModalData({
+                              ...sparepartModalData, 
+                              category: trimmed,
+                            });
+                            setShowNewSparepartCategoryInput(false);
+                            setNewSparepartCategoryName('');
+                          }
+                        }}
+                        className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold transition-colors"
+                      >Simpan</button>
+                    </div>
+                  )}
+
+                  <select name="category" value={sparepartModalData.category} onChange={e => {
+                      setSparepartModalData({
+                        ...sparepartModalData, 
+                        category: e.target.value,
+                      });
+                    }}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium appearance-none">
+                    {sparepartsCategoryList.map(cat => (
+                      <option key={cat} value={cat} className="capitalize">{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end pt-6 border-t border-slate-100 dark:border-slate-800 mt-2">
+                <button type="button" onClick={() => { setSparepartModalOpen(false); setShowNewSparepartCategoryInput(false); }} className="px-6 py-2.5 text-sm font-bold rounded-xl text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Batal</button>
+                <button type="submit" onClick={() => setShowNewSparepartCategoryInput(false)} className="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-red-500/25 flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sparepart Purchase Modal */}
+      {sparepartPurchaseModalOpen && sparepartPurchaseTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-lg relative animate-slide-up">
+            <button onClick={() => setSparepartPurchaseModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shadow-inner">
+                <ShoppingCart className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Catat Pembelian</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{sparepartPurchaseTarget.name}</p>
+              </div>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const target = e.target as typeof e.target & {
+                purchase_date: { value: string }; quantity: { value: string }; unit_price: { value: string }; notes: { value: string };
+              };
+              const qty = parseInt(target.quantity.value) || 1;
+              const price = parseFloat(target.unit_price.value.replace(/[^0-9]/g, '')) || 0;
+              try {
+                const { error: purchaseErr } = await supabase.from('sparepart_purchases').insert({
+                  sparepart_id: sparepartPurchaseTarget.id,
+                  purchase_date: target.purchase_date.value,
+                  quantity: qty,
+                  unit_price: price,
+                  notes: target.notes.value.trim() || null,
+                });
+                if (purchaseErr) throw purchaseErr;
+                const { error: stockErr } = await supabase.from('spareparts').update({
+                  quantity: (sparepartPurchaseTarget.quantity || 0) + qty,
+                  updated_at: new Date().toISOString(),
+                }).eq('id', sparepartPurchaseTarget.id);
+                if (stockErr) throw stockErr;
+                toast.success(`+${qty} stok ditambahkan ke ${sparepartPurchaseTarget.name}`);
+                loadData(true);
+                setSparepartPurchaseModalOpen(false);
+              } catch (err) { toast.error((err as Error).message); }
+            }} className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Tanggal Beli <span className="text-red-500">*</span></label>
+                <input type="date" name="purchase_date" required defaultValue={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Jumlah <span className="text-red-500">*</span></label>
+                  <input type="number" name="quantity" required min="1" defaultValue={1}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Harga Satuan (Rp) <span className="text-red-500">*</span></label>
+                  <input type="text" name="unit_price" required placeholder="150.000"
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      e.target.value = value ? parseInt(value, 10).toLocaleString('id-ID') : '';
+                    }}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Catatan</label>
+                <input type="text" name="notes" placeholder="Opsional: Beli di toko X"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm font-medium" />
+              </div>
+              <div className="flex gap-3 justify-end pt-6 border-t border-slate-100 dark:border-slate-800 mt-2">
+                <button type="button" onClick={() => setSparepartPurchaseModalOpen(false)} className="px-6 py-2.5 text-sm font-bold rounded-xl text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Batal</button>
+                <button type="submit" className="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/25 flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4" /> Catat Pembelian
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sparepart Purchase History Modal */}
+      {sparepartHistoryOpen && sparepartHistoryTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-2xl relative animate-slide-up flex flex-col max-h-[90vh]">
+            <button onClick={() => setSparepartHistoryOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-4 mb-6 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shadow-inner">
+                <History className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Riwayat Pembelian</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{sparepartHistoryTarget.name} — Stok saat ini: <span className="font-bold text-emerald-600">{sparepartHistoryTarget.quantity || 0}</span></p>
+              </div>
+            </div>
+            <SparepartPurchaseHistory sparepartId={sparepartHistoryTarget.id} canModify={canModify} onUpdate={() => loadData(true)} />
+          </div>
+        </div>
+      )}
+
+      {/* Sparepart Category Manager Modal */}
+      {sparepartCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-8 w-full max-w-lg relative animate-slide-up flex flex-col max-h-[90vh]">
+            <button onClick={() => setSparepartCategoryModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-4 mb-6 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-inner">
+                <Filter className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Kelola Kategori Sparepart</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Tambah, ubah nama, atau hapus kategori</p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto mb-6 pr-2 space-y-3">
+              {sparepartsCategoryList.map(cat => (
+                <div key={cat} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl group">
+                  <span className="font-medium text-slate-900 dark:text-white capitalize">{cat}</span>
+                  <div className="flex gap-2">
+                    <button onClick={async () => {
+                      const newName = await showPrompt(`Ubah nama kategori "${cat}" menjadi:`, cat);
+                      if (newName && newName.trim() && newName.trim().toLowerCase() !== cat) {
+                        const trimmed = newName.trim().toLowerCase();
+                        try {
+                          await supabase.from('spareparts').update({ category: trimmed }).eq('category', cat);
+                          
+                          const updated = sparepartsCategoryListState.filter(c => c !== cat);
+                          if (!updated.includes(trimmed)) updated.push(trimmed);
+                          setSparepartsCategoryListState(updated);
+                          localStorage.setItem('bsb_custom_sparepart_categories', JSON.stringify(updated));
+                          
+                          loadData(true);
+                          toast.success(`Kategori berhasil diubah menjadi ${trimmed}`);
+                        } catch (err: any) {
+                          toast.error('Gagal mengubah kategori: ' + err.message);
+                        }
+                      }
+                    }} className="p-1.5 text-slate-400 hover:text-blue-500 bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={async () => {
+                      if (await showConfirm(`Yakin ingin menghapus kategori "${cat}"?\nBarang dengan kategori ini akan dipindah ke kategori "umum".`)) {
+                        try {
+                          await supabase.from('spareparts').update({ category: 'umum' }).eq('category', cat);
+                          
+                          const updated = sparepartsCategoryListState.filter(c => c !== cat);
+                          setSparepartsCategoryListState(updated);
+                          localStorage.setItem('bsb_custom_sparepart_categories', JSON.stringify(updated));
+                          
+                          loadData(true);
+                          toast.success('Kategori berhasil dihapus');
+                        } catch (err: any) {
+                          toast.error('Gagal menghapus kategori: ' + err.message);
+                        }
+                      }
+                    }} className="p-1.5 text-slate-400 hover:text-red-500 bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <form onSubmit={e => {
+                e.preventDefault();
+                const target = e.target as typeof e.target & { catName: { value: string } };
+                const name = target.catName.value.trim().toLowerCase();
+                if (name && !sparepartsCategoryList.includes(name)) {
+                  const updated = [...sparepartsCategoryListState, name];
+                  setSparepartsCategoryListState(updated);
+                  localStorage.setItem('bsb_custom_sparepart_categories', JSON.stringify(updated));
+                  target.catName.value = '';
+                  toast.success('Kategori baru ditambahkan');
+                }
+              }} className="flex gap-2">
+                <input type="text" name="catName" required placeholder="Tambah kategori baru..." 
+                  className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-red-500" />
+                <button type="submit" className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-sm font-bold transition flex items-center gap-1.5">
+                  <Plus className="w-4 h-4" /> Tambah
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Item Add/Edit Modal */}
       {itemModalOpen && itemModalData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
@@ -2038,7 +2592,7 @@ export default function DashboardApp() {
                   <span className="font-medium text-slate-900 dark:text-white capitalize">{cat}</span>
                   <div className="flex gap-2">
                     <button onClick={async () => {
-                      const newName = prompt(`Ubah nama kategori "${cat}" menjadi:`, cat);
+                      const newName = await showPrompt(`Ubah nama kategori "${cat}" menjadi:`, cat);
                       if (newName && newName.trim() && newName.trim().toLowerCase() !== cat) {
                         const trimmed = newName.trim().toLowerCase();
                         try {
@@ -2046,7 +2600,7 @@ export default function DashboardApp() {
                           await supabase.from('items').update({ category: trimmed }).eq('category', cat);
                           
                           // Update custom categories list
-                          let updated = customCategories.filter(c => c !== cat);
+                          const updated = customCategories.filter(c => c !== cat);
                           if (!updated.includes(trimmed)) updated.push(trimmed);
                           setCustomCategories(updated);
                           localStorage.setItem('bsb_custom_categories', JSON.stringify(updated));

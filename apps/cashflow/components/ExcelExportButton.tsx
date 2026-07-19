@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import React, { useState } from 'react';
 import ExcelJS from 'exceljs';
@@ -246,7 +247,7 @@ export default function ExcelExportButton({ trialBalance, userRole = 'guest', cu
       );
     } catch (err) {
       console.error('Export error:', err);
-      alert('Gagal mengekspor Excel. Silakan coba lagi.');
+      toast.error('Gagal mengekspor Excel. Silakan coba lagi.');
     } finally {
       setExporting(false);
     }

@@ -19,6 +19,8 @@ import {
   type Transaction,
   type JournalEntryWithAccount,
   type FixedAsset,
+  type AssetService,
+  type InventoryItem,
 } from './supabase';
 
 // ============================================================
@@ -481,12 +483,46 @@ export async function deleteAccount(accountCode: string): Promise<void> {
 export async function fetchFixedAssets(): Promise<FixedAsset[]> {
   const { data, error } = await supabase
     .from('fixed_assets')
-    .select('*')
+    .select('*, items:item_id ( name )')
     .eq('is_active', true)
     .order('purchase_date', { ascending: false });
 
   if (error) throw new AccountingError(error.message, 'FETCH_ASSETS_FAILED');
+  return (data || []).map((row) => {
+    const r = row as FixedAsset & { items?: { name?: string } | null };
+    return { ...r, item_name: r.items?.name };
+  });
+}
+
+/** Ambil daftar item inventaris milik perusahaan (dari dashboard) untuk dropdown link aktiva. */
+export async function fetchInventoryItems(): Promise<InventoryItem[]> {
+  const { data, error } = await supabase
+    .from('items')
+    .select('id, name, sku, category')
+    .eq('is_deleted', false)
+    .order('name');
+  if (error) throw new AccountingError(error.message, 'FETCH_INVENTORY_FAILED');
   return data || [];
+}
+
+export async function fetchAssetServices(fixedAssetId: string): Promise<AssetService[]> {
+  const { data, error } = await supabase
+    .from('fixed_asset_services')
+    .select('*')
+    .eq('fixed_asset_id', fixedAssetId)
+    .order('service_date', { ascending: false });
+  if (error) throw new AccountingError(error.message, 'FETCH_SERVICES_FAILED');
+  return data || [];
+}
+
+export async function addAssetService(payload: Omit<AssetService, 'id' | 'created_at'>): Promise<void> {
+  const { error } = await supabase.from('fixed_asset_services').insert(payload);
+  if (error) throw new AccountingError(error.message, 'ADD_SERVICE_FAILED');
+}
+
+export async function deleteAssetService(id: string): Promise<void> {
+  const { error } = await supabase.from('fixed_asset_services').delete().eq('id', id);
+  if (error) throw new AccountingError(error.message, 'DELETE_SERVICE_FAILED');
 }
 
 export async function upsertFixedAsset(asset: Omit<FixedAsset, 'id' | 'is_active'> & { id?: string }): Promise<void> {

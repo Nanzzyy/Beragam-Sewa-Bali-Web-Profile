@@ -1,4 +1,5 @@
-'use client';
+"use client";
+import { showConfirm } from '../lib/confirm';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Account, TrialBalanceRow, Transaction, JournalEntryWithAccount, JournalEntryInput } from '../lib/supabase';
@@ -309,7 +310,7 @@ export default function CashflowDashboard() {
   };
 
   const handleDeleteTx = async (id: string) => {
-    if (!confirm('Hapus transaksi ini beserta seluruh jurnal entri?')) return;
+    if (!(await showConfirm('Hapus transaksi ini beserta seluruh jurnal entri?'))) return;
     await deleteTransaction(id);
     await loadData();
   };

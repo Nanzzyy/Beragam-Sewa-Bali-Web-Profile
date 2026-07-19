@@ -120,7 +120,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
         try { Object.assign(nickMap, JSON.parse(nickRes.data.content_value)); } catch { /* ignore */ }
       }
 
-      let usedQuantities: Record<string, number> = {};
+      const usedQuantities: Record<string, number> = {};
       if (jobsRes.data && jobsRes.data.length > 0) {
         const jobIds = jobsRes.data.map(j => j.id);
         const { data: usedItems } = await sbClient.from('job_items')
@@ -794,15 +794,14 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                           <div className="text-xs text-slate-500 dark:text-slate-400">{formatDate(p.created_at)}</div>
                         </div>
                         {canModify && (
-                          <button 
+                          <button
                             onClick={async () => {
-                              if (confirm('Yakin ingin menghapus foto ini?')) {
+                              if (await showConfirm('Yakin ingin menghapus foto ini?')) {
                                 try {
                                   await import('../lib/jobs').then(m => m.deleteJobProof(p.id, p.photo_url));
-                                  loadDetails();
-                                } catch (e) {
-                                  toast.error('Gagal menghapus foto');
-                                }
+                                  setProofs(prev => prev.filter(x => x.id !== p.id));
+                                  toast.success('Foto dihapus');
+                                } catch (err: any) { toast.error(err.message); }
                               }
                             }}
                             className="p-1.5 text-white/50 hover:text-red-500 bg-black/20 hover:bg-black/50 rounded-lg transition-colors"

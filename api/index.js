@@ -1094,6 +1094,102 @@ app.get('/api/documents/:type/:jobId/pdf', async (req, res) => {
 
 
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SPAREPARTS ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/spareparts — list all
+app.get('/api/spareparts', requireAdmin, async (req, res) => {
+    try {
+        const r = await db.query(`
+            SELECT s.*, 
+                   COALESCE(json_agg(
+                     json_build_object('id', p.id, 'purchase_date', p.purchase_date, 'quantity', p.quantity, 'unit_price', p.unit_price, 'total_price', p.total_price, 'notes', p.notes)
+                     ORDER BY p.purchase_date DESC
+                   ) FILTER (WHERE p.id IS NOT NULL), '[]') AS purchases
+            FROM spareparts s
+            LEFT JOIN sparepart_purchases p ON p.sparepart_id = s.id
+            WHERE s.is_deleted = false
+            GROUP BY s.id
+            ORDER BY s.name
+        `);
+        res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/spareparts/:id
+app.get('/api/spareparts/:id', requireAdmin, async (req, res) => {
+    try {
+        const r = await db.query('SELECT * FROM spareparts WHERE id=$1', [req.params.id]);
+        if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });
+        const purchases = await db.query('SELECT * FROM sparepart_purchases WHERE sparepart_id=$1 ORDER BY purchase_date DESC', [req.params.id]);
+        res.json({ ...r.rows[0], purchases: purchases.rows });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/spareparts — create
+app.post('/api/spareparts', requireAdmin, async (req, res) => {
+    try {
+        const { name, sku, category, quantity } = req.body;
+        const r = await db.query(
+            'INSERT INTO spareparts(name, sku, category, quantity) VALUES($1,$2,$3,$4) RETURNING *',
+            [name, sku || `SP-${Date.now()}`, category || 'umum', quantity || 0]
+        );
+        res.json(r.rows[0]);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/spareparts/:id — update
+app.put('/api/spareparts/:id', requireAdmin, async (req, res) => {
+    try {
+        const { name, sku, category } = req.body;
+        await db.query(
+            'UPDATE spareparts SET name=$1, sku=$2, category=$3, updated_at=NOW() WHERE id=$4',
+            [name, sku, category || 'umum', req.params.id]
+        );
+        res.json({ message: 'Updated' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/spareparts/:id — soft delete
+app.delete('/api/spareparts/:id', requireAdmin, async (req, res) => {
+    try {
+        await db.query('UPDATE spareparts SET is_deleted=true WHERE id=$1', [req.params.id]);
+        res.json({ message: 'Deleted' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/spareparts/:id/purchases — add purchase + update stock
+app.post('/api/spareparts/:id/purchases', requireAdmin, async (req, res) => {
+    try {
+        const { purchase_date, quantity, unit_price, notes } = req.body;
+        const qty = parseInt(quantity) || 1;
+        const price = parseFloat(unit_price) || 0;
+        
+        const p = await db.query(
+            'INSERT INTO sparepart_purchases(sparepart_id, purchase_date, quantity, unit_price, notes) VALUES($1,$2,$3,$4,$5) RETURNING *',
+            [req.params.id, purchase_date, qty, price, notes || null]
+        );
+        
+        // Update sparepart stock
+        await db.query('UPDATE spareparts SET quantity = quantity + $1, updated_at=NOW() WHERE id=$2', [qty, req.params.id]);
+        
+        res.json(p.rows[0]);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/spareparts/:sparepartId/purchases/:id — delete purchase + revert stock
+app.delete('/api/spareparts/:sparepartId/purchases/:id', requireAdmin, async (req, res) => {
+    try {
+        const purchase = await db.query('SELECT quantity FROM sparepart_purchases WHERE id=$1', [req.params.id]);
+        if (purchase.rows[0]) {
+            await db.query('UPDATE spareparts SET quantity = GREATEST(0, quantity - $1), updated_at=NOW() WHERE id=$2', [purchase.rows[0].quantity, req.params.sparepartId]);
+        }
+        await db.query('DELETE FROM sparepart_purchases WHERE id=$1', [req.params.id]);
+        res.json({ message: 'Deleted' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Local Dev Fallbacks (matching vercel.json)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../home/index.html'));

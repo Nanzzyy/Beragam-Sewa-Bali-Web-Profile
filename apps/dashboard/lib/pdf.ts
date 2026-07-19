@@ -36,9 +36,9 @@ export async function getCompanyConfig() {
   try {
     const { data } = await supabase.from('site_content').select('*');
     if (data && data.length > 0) {
-      let logoUrl = data.find(d => d.content_key === 'site_logo_dashboard')?.content_value || null;
-      let headerUrl = data.find(d => d.content_key === 'site_header_image')?.content_value || null;
-      let stampUrl = data.find(d => d.content_key === 'bsb_stamp_image')?.content_value || null;
+      const logoUrl = data.find(d => d.content_key === 'site_logo_dashboard')?.content_value || null;
+      const headerUrl = data.find(d => d.content_key === 'site_header_image')?.content_value || null;
+      const stampUrl = data.find(d => d.content_key === 'bsb_stamp_image')?.content_value || null;
       let base64Logo = null;
       let base64Header = null;
       let base64Stamp = null;

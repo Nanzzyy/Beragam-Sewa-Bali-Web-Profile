@@ -1,22 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchFixedAssets, upsertFixedAsset, deleteFixedAsset } from '../lib/accounting';
-import type { FixedAsset } from '../lib/supabase';
-import { Loader2, Plus, Edit2, Trash2, Check, X, Search } from 'lucide-react';
+import { fetchFixedAssets, upsertFixedAsset, deleteFixedAsset, fetchInventoryItems } from '../lib/accounting';
+import type { FixedAsset, InventoryItem } from '../lib/supabase';
+import { Loader2, Plus, Edit2, Trash2, Check, X, Search, Wrench } from 'lucide-react';
+import ServiceHistoryModal from './ServiceHistoryModal';
+import { showConfirm } from '../lib/confirm';
+import { toast } from 'react-hot-toast';
 
 export default function FixedAssetsGrid() {
   const [assets, setAssets] = useState<FixedAsset[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<FixedAsset>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [serviceAsset, setServiceAsset] = useState<FixedAsset | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await fetchFixedAssets();
+      const [data, items] = await Promise.all([fetchFixedAssets(), fetchInventoryItems()]);
       setAssets(data);
+      setInventoryItems(items);
     } catch (e) {
       console.error(e);
     }
@@ -39,17 +45,17 @@ export default function FixedAssetsGrid() {
       setEditingId(null);
       load();
     } catch (e) {
-      alert('Gagal menyimpan aset: ' + (e as Error).message);
+      toast.error('Gagal menyimpan aset: ' + (e as Error).message);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(`Hapus aktiva tetap ini?`)) return;
+    if (!(await showConfirm(`Hapus aktiva tetap ini?`))) return;
     try {
       await deleteFixedAsset(id);
       load();
     } catch (e) {
-      alert('Gagal menghapus aset: ' + (e as Error).message);
+      toast.error('Gagal menghapus aset: ' + (e as Error).message);
     }
   };
 
@@ -93,9 +99,9 @@ export default function FixedAssetsGrid() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-sm">
+      <div className="overflow-x-auto overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-sm max-h-[calc(100vh-240px)]">
         <table className="w-full text-sm text-left text-slate-700 dark:text-slate-300 whitespace-nowrap">
-          <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-800/60">
+          <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-800/60 sticky top-0 z-10 shadow-sm">
             <tr>
               <th className="px-4 py-3">Kode / Nama Aset</th>
               <th className="px-4 py-3">Tgl Beli</th>
@@ -139,6 +145,25 @@ export default function FixedAssetsGrid() {
                   <td className="px-4 py-2.5">
                     {isEditing ? (
                       <div className="flex flex-col gap-1.5 w-32 md:w-40">
+                        <select
+                          value={editForm.item_id || ''}
+                          onChange={e => {
+                            const item = inventoryItems.find(i => i.id === e.target.value);
+                            setEditForm({
+                              ...editForm,
+                              item_id: e.target.value || null,
+                              asset_name: item ? item.name : editForm.asset_name,
+                              asset_code: item ? item.sku : editForm.asset_code,
+                            });
+                          }}
+                          className={`${inputCls} text-[10px]`}
+                          title="Ambil dari Inventaris Dashboard (opsional)"
+                        >
+                          <option value="">— Manual / dari Inventaris —</option>
+                          {inventoryItems.map(i => (
+                            <option key={i.id} value={i.id}>{i.name} ({i.sku})</option>
+                          ))}
+                        </select>
                         <input value={editForm.asset_code || ''} onChange={e => setEditForm({...editForm, asset_code: e.target.value})} className={`${inputCls} font-mono`} placeholder="Kode Aset" title="Kode Aset"/>
                         <input value={editForm.asset_name || ''} onChange={e => setEditForm({...editForm, asset_name: e.target.value})} className={`${inputCls} font-bold`} placeholder="Nama Aset" title="Nama Aset"/>
                       </div>
@@ -146,6 +171,11 @@ export default function FixedAssetsGrid() {
                       <div className="flex flex-col">
                         <span className="font-mono text-slate-500 dark:text-slate-400">{asset.asset_code}</span>
                         <span className="font-bold text-slate-900 dark:text-white text-xs">{asset.asset_name}</span>
+                        {asset.item_id && (
+                          <span className="inline-flex w-fit mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300" title={asset.item_name ? `Link: ${asset.item_name}` : 'Link inventaris'}>
+                            {asset.item_name || 'Dari Inventaris'}
+                          </span>
+                        )}
                       </div>
                     )}
                   </td>
@@ -202,6 +232,7 @@ export default function FixedAssetsGrid() {
                       </div>
                     ) : (
                       <div className="flex justify-end gap-2">
+                        <button onClick={() => setServiceAsset(asset)} className="p-1.5 text-slate-400 hover:text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:bg-emerald-500/10 rounded-md transition-colors" title="Riwayat Service"><Wrench className="w-4 h-4" /></button>
                         <button onClick={() => handleEdit(asset)} className="p-1.5 text-slate-400 hover:text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-500/10 rounded-md transition-colors" title="Edit"><Edit2 className="w-4 h-4" /></button>
                         <button onClick={() => handleDelete(asset.id)} className="p-1.5 text-slate-400 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:bg-rose-500/10 rounded-md transition-colors" title="Hapus"><Trash2 className="w-4 h-4" /></button>
                       </div>
@@ -213,6 +244,14 @@ export default function FixedAssetsGrid() {
           </tbody>
         </table>
       </div>
+
+      {serviceAsset && (
+        <ServiceHistoryModal
+          assetId={serviceAsset.id}
+          assetName={serviceAsset.asset_name}
+          onClose={() => setServiceAsset(null)}
+        />
+      )}
     </div>
   );
 }

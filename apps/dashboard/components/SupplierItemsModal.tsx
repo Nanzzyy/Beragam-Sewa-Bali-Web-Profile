@@ -4,6 +4,8 @@ import { supabase, formatRupiah } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 import { downloadCatalogTemplate, importSupplierItems } from '../lib/excel';
 
+import { showConfirm } from '../lib/confirm';
+
 interface SupplierItemsModalProps {
   isOpen: boolean;
   supplier: { id: string; name: string } | null;
@@ -112,7 +114,7 @@ export default function SupplierItemsModal({ isOpen, supplier, onClose }: Suppli
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus barang supplier ini?')) return;
+    if (!(await showConfirm('Hapus barang supplier ini?'))) return;
     try {
       const { error } = await supabase
         .from('supplier_items')
