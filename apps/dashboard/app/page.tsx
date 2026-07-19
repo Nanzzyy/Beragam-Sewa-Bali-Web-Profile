@@ -500,8 +500,8 @@ export default function DashboardApp() {
   const { data: dashboardData, isLoading: queryLoading, isFetching } = useQuery({
     queryKey: ['dashboard', statusFilter, debouncedSearch, userRole],
     enabled: authReady,
-    staleTime: 30_000,   // Data stays fresh for 30s — prevents re-fetches on tab switch
-    gcTime: 5 * 60_000,  // Cache lives 5 minutes even after unmount
+    staleTime: 60_000,   // Data stays fresh for 60s — aggressive caching, realtime handles updates
+    gcTime: 10 * 60_000, // Cache lives 10 minutes
     refetchOnWindowFocus: false, // Don't refetch just because user alt-tabs
     queryFn: async () => {
       // Run ALL queries in parallel for maximum speed
@@ -555,14 +555,7 @@ export default function DashboardApp() {
       setItemsList(dashboardData.iData);
       setPackagesList(dashboardData.packData);
       setSparepartsList(dashboardData.spareData);
-      setDatabarangItems(dashboardData.iData); // items for databarang
-      // Group units by item_id
-      const unitsByItem: Record<string, any[]> = {};
-      (dashboardData.unitsData || []).forEach((u: any) => {
-        if (!unitsByItem[u.item_id]) unitsByItem[u.item_id] = [];
-        unitsByItem[u.item_id].push(u);
-      });
-      setDatabarangUnits(unitsByItem);
+      setDatabarangItems(dashboardData.iData);
       setStaffList(dashboardData.sData);
       if (userRole === 'owner' || userRole === 'accounting') setCashflowList(dashboardData.cfData);
       if (userRole === 'owner') {
@@ -612,24 +605,33 @@ export default function DashboardApp() {
     queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   }, [queryClient]);
 
-  // ======== SUPABASE REALTIME (no page refresh) ========
+  // ======== SUPABASE REALTIME (debounced — prevents rapid successive refetches) ========
+  const invalidateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!authReady) return;
 
-    const invalidate = () => queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    const debouncedInvalidate = () => {
+      if (invalidateTimer.current) clearTimeout(invalidateTimer.current);
+      invalidateTimer.current = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      }, 500); // 500ms cooldown — coalesce rapid changes
+    };
 
     const channel = supabase.channel('dashboard-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cashflow' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'spareparts' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sparepart_purchases' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'section_images' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, debouncedInvalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, debouncedInvalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, debouncedInvalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cashflow' }, debouncedInvalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers' }, debouncedInvalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'spareparts' }, debouncedInvalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sparepart_purchases' }, debouncedInvalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'section_images' }, debouncedInvalidate)
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (invalidateTimer.current) clearTimeout(invalidateTimer.current);
+      supabase.removeChannel(channel);
+    };
   }, [authReady, queryClient]);
 
   // ======== HANDLERS ========
