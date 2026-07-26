@@ -325,9 +325,10 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
       }
       name = pi;
     }
+    const rentalPrice = item.rental_price || item.sub_rent_cost || 0;
     return [i + 1, name, String(item.quantity), item.is_package ? 'pkg' : 'unit', String(item.days || 1),
-      item.sub_rent_cost > 0 ? new Intl.NumberFormat('id-ID').format(item.sub_rent_cost) : '-',
-      item.sub_rent_cost > 0 ? new Intl.NumberFormat('id-ID').format(item.sub_rent_cost * item.quantity * (item.days || 1)) : '-'];
+      rentalPrice > 0 ? new Intl.NumberFormat('id-ID').format(rentalPrice) : '-',
+      rentalPrice > 0 ? new Intl.NumberFormat('id-ID').format(rentalPrice * item.quantity * (item.days || 1)) : '-'];
   });
 
   let finalY = 68;

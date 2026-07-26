@@ -244,7 +244,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
 
       const qty = item.quantity || 0;
       const days = item.days || 1;
-      const price = item.sub_rent_cost || 0;
+      const price = item.rental_price || item.sub_rent_cost || 0;
       const total = qty * days * price;
       subtotal += total;
 

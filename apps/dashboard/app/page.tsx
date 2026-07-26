@@ -604,6 +604,18 @@ export default function DashboardApp() {
     }
   };
 
+  const updateSparepartStock = async (spId: string, newQuantity: number) => {
+    if (newQuantity < 0) return;
+    try {
+      const { error } = await supabase.from('spareparts').update({ quantity: newQuantity, updated_at: new Date().toISOString() }).eq('id', spId);
+      if (error) throw error;
+      setSparepartsList(prev => prev.map(sp => sp.id === spId ? { ...sp, quantity: newQuantity } : sp));
+      toast.success('Stok sparepart diperbarui');
+    } catch (err: any) {
+      toast.error('Gagal: ' + err.message);
+    }
+  };
+
   // Backward compatibility for components expecting loadData
   const loadData = useCallback((silent = false) => {
     if (!silent) setLoading(true);
@@ -1524,8 +1536,15 @@ export default function DashboardApp() {
                                 )}
                               </div>
                               {itemActiveJobs.length > 0 && (
-                                <div className="text-xs text-red-600 dark:text-red-400 mt-1.5 flex items-center gap-1">
-                                  <Activity className="w-3 h-3" /> Job Aktif: {itemActiveJobs.map(j => j.client_name).join(', ')}
+                                <div className="text-xs text-red-600 dark:text-red-400 mt-1.5 flex items-center gap-1 flex-wrap">
+                                  <Activity className="w-3 h-3" /> Dipesan:{' '}
+                                  {itemActiveJobs.map((j, idx) => (
+                                    <span key={j.id} className="inline-flex items-center gap-1">
+                                      <span className="font-medium">{j.client_name}</span>
+                                      <span className="text-slate-400">({formatDate(j.setup_date)} - {formatDate(j.completion_date)})</span>
+                                      {idx < itemActiveJobs.length - 1 && <span>, </span>}
+                                    </span>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -1624,7 +1643,18 @@ export default function DashboardApp() {
                               <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2 mt-1">
                                 <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">SKU: {sp.sku}</span>
                                 <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded capitalize">Kategori: {sp.category || '-'}</span>
-                                <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-bold">Stok: {sp.quantity || 0}</span>
+                                <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded flex items-center gap-2">
+                                  Stok:{' '}
+                                  {canModify ? (
+                                    <span className="flex items-center gap-1 bg-white dark:bg-slate-700 px-1 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-600">
+                                      <button onClick={() => updateSparepartStock(sp.id, (sp.quantity || 0) - 1)} className="w-4 h-4 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 transition font-mono leading-none">-</button>
+                                      <span className="font-bold min-w-[1.25rem] text-center">{sp.quantity || 0}</span>
+                                      <button onClick={() => updateSparepartStock(sp.id, (sp.quantity || 0) + 1)} className="w-4 h-4 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 transition font-mono leading-none">+</button>
+                                    </span>
+                                  ) : (
+                                    <span className="font-bold">{sp.quantity || 0}</span>
+                                  )}
+                                </span>
                               </div>
                             </div>
                           </div>

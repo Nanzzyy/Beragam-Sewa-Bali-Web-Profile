@@ -110,7 +110,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
         sbClient.from('items').select('id, name, category, quantity').order('name'),
         sbClient.from('packages').select('*').order('name'),
         sbClient.from('profiles').select('id, email, full_name').order('email'),
-        sbClient.from('jobs').select('id').in('status', ['confirmed', 'on_going']),
+        sbClient.from('jobs').select('id, setup_date, completion_date').in('status', ['confirmed', 'on_going']),
         sbClient.from('supplier_items').select('id, name, price, supplier_id, suppliers:supplier_id(name)').order('name'),
         sbClient.from('site_content').select('content_value').eq('content_key', 'bsb_staff_nicknames').maybeSingle(),
       ]);
@@ -123,7 +123,16 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
       const usedQuantities: Record<string, number> = {};
       if (jobsRes.data && jobsRes.data.length > 0) {
-        const jobIds = jobsRes.data.map(j => j.id);
+        // Filter to jobs that overlap with current job's date range
+        const currentSetup = jobData.setup_date;
+        const currentComplete = jobData.completion_date;
+        const overlapping = jobsRes.data.filter(j => {
+          // Exclude current job itself
+          if (j.id === jobId) return false;
+          // Overlap: j.setup_date <= current.completion AND j.completion >= current.setup
+          return j.setup_date <= currentComplete && j.completion_date >= currentSetup;
+        });
+        const jobIds = overlapping.map(j => j.id);
         const { data: usedItems } = await sbClient.from('job_items')
           .select('item_id, quantity')
           .in('job_id', jobIds)
@@ -471,7 +480,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
           {activeTab === 'items' && (
             <div className="space-y-4 animate-fade-in">
               {canModify && (
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-4">
+                <div className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-4 shadow-md">
                   <div className="flex items-center gap-4 mb-3 border-b border-slate-200 dark:border-slate-700 pb-3">
                     <button onClick={() => setAddMode('item')} className={`text-sm font-semibold transition ${addMode === 'item' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
                       Tambah Barang
@@ -628,7 +637,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                   </form>
                 </div>
               )}
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                 {items.length === 0 ? (
                   <p className="text-center text-slate-500 py-4 text-sm">Belum ada barang yang ditambahkan.</p>
                 ) : (
