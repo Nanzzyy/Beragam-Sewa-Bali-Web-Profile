@@ -110,7 +110,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
         sbClient.from('items').select('id, name, category, quantity').order('name'),
         sbClient.from('packages').select('*').order('name'),
         sbClient.from('profiles').select('id, email, full_name').order('email'),
-        sbClient.from('jobs').select('id, setup_date, completion_date').in('status', ['confirmed', 'on_going']),
+        sbClient.from('jobs').select('id, setup_date, completion_date').in('status', ['draft', 'negotiation', 'confirmed', 'on_going', 'pending_payment']),
         sbClient.from('supplier_items').select('id, name, price, supplier_id, suppliers:supplier_id(name)').order('name'),
         sbClient.from('site_content').select('content_value').eq('content_key', 'bsb_staff_nicknames').maybeSingle(),
       ]);

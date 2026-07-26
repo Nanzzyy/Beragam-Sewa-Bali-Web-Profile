@@ -509,7 +509,7 @@ export default function DashboardApp() {
         fetchDashboardStats(),
         supabase.from('items').select('*').order('name'),
         supabase.from('profiles').select('*').order('email'),
-        supabase.from('jobs').select(`id, client_name, venue, job_items ( item_id, source_vendor_id, quantity, is_package, package_id ), job_staff ( profile_id )`).eq('status', 'on_going'),
+        supabase.from('jobs').select(`id, client_name, venue, setup_date, completion_date, job_items ( item_id, source_vendor_id, quantity, is_package, package_id ), job_staff ( profile_id )`).in('status', ['draft', 'negotiation', 'confirmed', 'on_going', 'pending_payment']),
         supabase.from('site_content').select('content_value').eq('content_key', 'site_logo_dashboard').single(),
         supabase.from('packages').select('*, package_items(item_id, supplier_item_id, qty)').order('name'),
         supabase.from('spareparts').select('*').eq('is_deleted', false).order('name'),
@@ -1873,7 +1873,7 @@ export default function DashboardApp() {
 
                 {/* Service History Modal */}
                 {databarangServiceModal && (
-                  <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 py-10 overflow-y-auto animate-fade-in" onClick={() => setDatabarangServiceModal(null)}>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in" onClick={() => setDatabarangServiceModal(null)}>
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-4 sm:p-6 w-full max-w-lg relative animate-slide-up my-auto max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                       <button onClick={() => setDatabarangServiceModal(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
                         <X className="w-5 h-5" />
