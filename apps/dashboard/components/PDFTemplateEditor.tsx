@@ -60,6 +60,11 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
   const gridRef = useRef<any>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
 
+  // ── Preview: proportional A4 render ──
+  const PREVIEW_W = 210; // mm-scaled pixels
+  const PREVIEW_H = 297;
+  const previewEls = elementKeys.filter(key => ((template as any)[key] as any)?.enabled);
+
   const emitChange = useCallback((grid: any) => {
     const updated = { ...template } as Record<string, any>;
     elementKeys.forEach((key) => {
@@ -185,6 +190,43 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
           </div>
           <div className="overflow-auto rounded border border-slate-200 dark:border-slate-700" style={{ maxHeight: '70vh' }}>
             <div ref={containerRef} className="grid-stack mx-auto" style={{ width: `${CANVAS_W}px`, height: `${CANVAS_H}px`, background: '#fff', position: 'relative' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Realtime Preview Panel ── */}
+      <div className="w-64 shrink-0">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm sticky top-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-500 uppercase">Preview</span>
+            <span className="text-[10px] text-slate-400">Real-time</span>
+          </div>
+          <div className="border border-slate-200 dark:border-slate-600 rounded-lg overflow-hidden bg-white" 
+            style={{ width: PREVIEW_W, height: PREVIEW_H, transform: 'scale(0.88)', transformOrigin: 'top left', marginBottom: `-${PREVIEW_H * 0.12}px` }}>
+            {previewEls.map(key => {
+              const el = (template as any)[key] as PDFElementPosition & { enabled?: boolean; fontSize?: number };
+              const color = ELEMENT_COLORS[key] || '#e5e7eb';
+              const label = ELEMENT_LABELS[key] || key;
+              return (
+                <div key={key} style={{
+                  position: 'absolute',
+                  left: el.x, top: el.y, width: el.width, height: el.height,
+                  background: color, border: '1px solid rgba(0,0,0,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: Math.min(9, (el.fontSize || 8)), fontWeight: 600,
+                  color: '#374151', overflow: 'hidden', textAlign: 'center',
+                  padding: '2px 4px', lineHeight: 1.2, boxSizing: 'border-box',
+                  zIndex: key === 'stamp' ? 10 : 1,
+                }}>
+                  {label}
+                </div>
+              );
+            })}
+            {previewEls.length === 0 && (
+              <div className="flex items-center justify-center h-full text-xs text-slate-400 italic">
+                Belum ada elemen aktif
+              </div>
+            )}
           </div>
         </div>
       </div>

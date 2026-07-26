@@ -54,7 +54,7 @@ export function defaultTemplate(type: PDFTemplateLayout['documentType']): PDFTem
     totals: { x: 125, y: 202, width: 75, height: 35, enabled: true },
     notes: { x: 5, y: 202, width: 115, height: 35, enabled: true },
     terbilang: { x: 5, y: 240, width: 200, height: 10, enabled: true },
-    signatures: { x: 5, y: 255, width: 200, height: 30, enabled: true },
+    signatures: { x: 5, y: 255, width: 200, height: 50, enabled: true },
     stamp: { x: 170, y: 258, width: 28, height: 20, enabled: false },
   };
 }

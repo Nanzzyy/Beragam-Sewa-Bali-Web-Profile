@@ -403,29 +403,33 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
 
   // ── SIGNATURES + STAMP ──
   if (!tmpl || tmpl.signatures?.enabled !== false) {
-    const b = tmpl?.signatures?.enabled ? tmpl.signatures : { x: 14, y: 0, width: 182, height: 30 };
+    const b = tmpl?.signatures?.enabled ? tmpl.signatures : { x: 14, y: 0, width: 182, height: 50 };
     const sy = b.y > 0 ? b.y : finalY + 55;
     const currentDateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    // 1. Date (top)
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
     doc.text(`Denpasar, ${currentDateStr}`, b.x + b.width, sy, { align: 'right' });
-    doc.setFont('helvetica', 'bold');
-    doc.text(config.tax_name || config.name, b.x + b.width, sy + 20, { align: 'right' });
+    // 2. Stamp (middle) — drawn inside signature block between date and company name
+    if (config.stamp) {
+      const stampW = 30; const stampH = 20;
+      const stampX = b.x + b.width - stampW;
+      const stampY = sy + 4;
+      try { doc.addImage(config.stamp, 'PNG', stampX, stampY, stampW, stampH); }
+      catch (e) { try { doc.addImage(config.stamp, 'JPEG', stampX, stampY, stampW, stampH); } catch (e2) {} }
+    }
+    // 3. Company name + NPWP (bottom)
+    const nameY = sy + (config.stamp ? 26 : 12);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+    doc.text(config.tax_name || config.name, b.x + b.width, nameY, { align: 'right' });
     if (config.npwp) {
-      doc.setFont('helvetica', 'normal');
-      doc.text(`NPWP: ${config.npwp}`, b.x + b.width, sy + 24, { align: 'right' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+      doc.text(`NPWP: ${config.npwp}`, b.x + b.width, nameY + 4, { align: 'right' });
     }
   }
 
-  // ── STAMP (drawn last, on top of everything) ──
-  if (tmpl?.stamp?.enabled && config.stamp) {
-    const s = tmpl.stamp;
-    drawImage(doc, config.stamp, s);
-  } else if (!tmpl && config.stamp) {
+  // ── LEGACY STAMP (only if no template) ──
+  if (!tmpl && config.stamp) {
     drawImage(doc, config.stamp, { x: 162, y: 0, width: 30, height: 20, enabled: true });
-    // re-draw at correct position
-    const tsy = finalY + 55;
-    try { doc.addImage(config.stamp, 'PNG', 162, tsy + 2, 30, 20); }
-    catch (e) { try { doc.addImage(config.stamp, 'JPEG', 162, tsy + 2, 30, 20); } catch (e2) {} }
   }
 
   const docTypeCapitalized = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
