@@ -124,6 +124,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
       const usedQuantities: Record<string, number> = {};
       if (jobsRes.data && jobsRes.data.length > 0) {
         // Filter to jobs that overlap with current job's date range
+        if (!jobData) return;
         const currentSetup = jobData.setup_date;
         const currentComplete = jobData.completion_date;
         const overlapping = jobsRes.data.filter(j => {
