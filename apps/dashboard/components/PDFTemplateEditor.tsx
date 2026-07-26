@@ -64,7 +64,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
 
   // ── PDF Preview: generate real sample PDF ──
   const [previewUrl, setPreviewUrl] = useState('');
-  const previewTimer = useRef<ReturnType<typeof setTimeout>>();
+  const previewTimer = useRef<NodeJS.Timeout | null>(null);
 
   const generatePreview = useCallback(() => {
     try {
