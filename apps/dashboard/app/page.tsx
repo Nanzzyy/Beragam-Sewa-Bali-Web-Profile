@@ -268,6 +268,16 @@ export default function DashboardApp() {
   const [databarangServiceList, setDatabarangServiceList] = useState<Record<string, any[]>>({});
   const [databarangUnitFilter, setDatabarangUnitFilter] = useState('all');
 
+  // Lock body scroll when service modal is open
+  useEffect(() => {
+    if (databarangServiceModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [databarangServiceModal]);
+
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [itemModalData, setItemModalData] = useState<{ id?: string; name: string; category: string; quantity: number; sku: string } | null>(null);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
