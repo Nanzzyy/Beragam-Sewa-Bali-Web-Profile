@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { GridStack } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
 import { defaultTemplate, ELEMENT_LABELS, ELEMENT_COLORS } from '../lib/pdf-template';
 import type { PDFTemplateLayout, PDFElementPosition } from '../lib/pdf-template';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const COLUMNS = 42;
 const CELL_PX = 20;
@@ -60,10 +62,160 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
   const gridRef = useRef<any>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // ── Preview: proportional A4 render ──
-  const PREVIEW_W = 210; // mm-scaled pixels
-  const PREVIEW_H = 297;
-  const previewEls = elementKeys.filter(key => ((template as any)[key] as any)?.enabled);
+  // ── PDF Preview: generate real sample PDF ──
+  const [previewUrl, setPreviewUrl] = useState('');
+  const previewTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const generatePreview = useCallback(() => {
+    try {
+      const doc = new jsPDF();
+      const tmpl = template;
+
+      // Draw image placeholders
+      const drawPlaceholder = (el: any, label: string) => {
+        if (!el || !el.enabled || el.width <= 0 || el.height <= 0) return;
+        doc.setDrawColor(200, 200, 200);
+        doc.setFillColor(250, 250, 250);
+        doc.rect(el.x, el.y, el.width, el.height, 'FD');
+        doc.setFontSize(Math.min(7, el.fontSize || 7));
+        doc.setTextColor(150, 150, 150);
+        doc.setFont('helvetica', 'italic');
+        doc.text(`[${label}]`, el.x + 2, el.y + el.height / 2 + 1);
+      };
+
+      drawPlaceholder(tmpl.headerImage as any, 'Header');
+      drawPlaceholder(tmpl.companyLogo as any, 'Logo');
+
+      if (tmpl.documentTitle.enabled) {
+        const t = tmpl.documentTitle;
+        doc.setFontSize(t.fontSize || 16);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SAMPLE INVOICE', t.x + 2, t.y + t.height / 2 + 2);
+      }
+
+      if (tmpl.companyInfo.enabled) {
+        const b = tmpl.companyInfo;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80, 80, 80);
+        doc.text('Beragam Sewa Bali', b.x + 2, b.y + 4);
+        doc.text('Jl. By Pass Ngurah Rai, Denpasar', b.x + 2, b.y + 9);
+      }
+
+      if (tmpl.clientInfo.enabled) {
+        const b = tmpl.clientInfo;
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text('CLIENT : PT Contoh Klien', b.x + 2, b.y + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.text('CONTACT : Budi Santoso', b.x + 2, b.y + 10);
+        doc.text('ADDRESS : Jl. Contoh No. 1, Denpasar', b.x + 2, b.y + 15);
+        doc.text('EVENT  : 12 Agustus 2026', b.x + 2, b.y + 20);
+      }
+
+      if (tmpl.officeInfo.enabled) {
+        const b = tmpl.officeInfo;
+        doc.setFontSize(7);
+        doc.setTextColor(80, 80, 80);
+        doc.setFont('helvetica', 'bold');
+        doc.text('OFFICE :', b.x + 2, b.y + 4);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Jl. By Pass Ngurah Rai, Denpasar', b.x + 2, b.y + 9);
+        doc.text('PHONE : 08123456789', b.x + 2, b.y + 14);
+        doc.text('EMAIL : info@beragamsewabali.com', b.x + 2, b.y + 19);
+        doc.text('BANK  : BCA 6110252194 an. Eka', b.x + 2, b.y + 24);
+      }
+
+      if (tmpl.itemsTable.enabled) {
+        const b = tmpl.itemsTable;
+        autoTable(doc, {
+          startY: b.y,
+          margin: { left: b.x, right: 210 - b.x - b.width },
+          head: [['No', 'Deskripsi', 'Qty', 'Unit', 'Hari', 'Harga (Rp)', 'Jumlah (Rp)']],
+          body: [
+            [1, 'Tenda Sarnafil 3x3', '2', 'unit', '3', '150.000', '900.000'],
+            [2, 'Kursi Tiffany', '100', 'unit', '3', '5.000', '1.500.000'],
+            [3, 'Meja Bundar', '10', 'unit', '3', '25.000', '750.000'],
+          ],
+          theme: 'grid',
+          headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+          tableWidth: b.width,
+          styles: { fontSize: 7 },
+        });
+      }
+
+      const tableEnd = (doc as any).lastAutoTable?.finalY || (tmpl.itemsTable.enabled ? tmpl.itemsTable.y + 40 : 100);
+
+      if (tmpl.totals.enabled) {
+        const b = tmpl.totals;
+        const ty = b.y > 0 ? b.y : tableEnd + 5;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Sub Total', b.x, ty);
+        doc.text(': Rp. 3.150.000', b.x + b.width, ty, { align: 'right' });
+        doc.setFontSize(9);
+        doc.text('GRAND TOTAL', b.x, ty + 8);
+        doc.text(': Rp. 3.150.000', b.x + b.width, ty + 8, { align: 'right' });
+      }
+
+      const totalsEnd = tmpl.totals.enabled ? (tmpl.totals.y || tableEnd) + 15 : tableEnd + 5;
+
+      if (tmpl.notes.enabled) {
+        const b = tmpl.notes;
+        const ny = b.y > 0 ? b.y : totalsEnd;
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        doc.text('NOTE : Termin Pembayaran :', b.x, ny);
+        doc.setFont('helvetica', 'normal');
+        doc.text('1. Tahap 1 = 50% dari total', b.x, ny + 5);
+        doc.text('2. Tahap 2 = 50% saat pelunasan', b.x, ny + 10);
+      }
+
+      const notesEnd = tmpl.notes.enabled ? (tmpl.notes.y || totalsEnd) + 18 : totalsEnd + 5;
+
+      if (tmpl.terbilang.enabled) {
+        const b = tmpl.terbilang;
+        const ty = b.y > 0 ? b.y : notesEnd;
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TERBILANG :', b.x, ty);
+        doc.setFont('helvetica', 'italic');
+        doc.text('( Tiga Juta Seratus Lima Puluh Ribu Rupiah )', b.x + 24, ty);
+      }
+
+      if (tmpl.signatures.enabled) {
+        const b = tmpl.signatures;
+        const sy = b.y > 0 ? b.y : notesEnd + 15;
+        doc.setFontSize(7);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Denpasar, 12 Agustus 2026', b.x + b.width, sy, { align: 'right' });
+        doc.setFont('helvetica', 'bold');
+        doc.text('Beragam Sewa Bali', b.x + b.width, sy + 12, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.text('NPWP: 12.345.678.9-012.345', b.x + b.width, sy + 16, { align: 'right' });
+      }
+
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+    } catch (e) {
+      // silent
+    }
+  }, [template]);
+
+  // Debounced preview regenerate
+  useEffect(() => {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(generatePreview, 400);
+    return () => { if (previewTimer.current) clearTimeout(previewTimer.current); };
+  }, [generatePreview]);
+
+  // Cleanup blob URL
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, []);
 
   const emitChange = useCallback((grid: any) => {
     const updated = { ...template } as Record<string, any>;
@@ -194,37 +346,19 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
         </div>
       </div>
 
-      {/* ── Realtime Preview Panel ── */}
-      <div className="w-64 shrink-0">
+      {/* ── Realtime PDF Preview ── */}
+      <div className="w-72 shrink-0">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm sticky top-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase">Preview</span>
-            <span className="text-[10px] text-slate-400">Real-time</span>
+            <span className="text-xs font-bold text-slate-500 uppercase">Preview PDF</span>
+            <span className="text-[10px] text-slate-400">Sample data · Auto-refresh</span>
           </div>
-          <div className="border border-slate-200 dark:border-slate-600 rounded-lg overflow-hidden bg-white" 
-            style={{ width: PREVIEW_W, height: PREVIEW_H, transform: 'scale(0.88)', transformOrigin: 'top left', marginBottom: `-${PREVIEW_H * 0.12}px` }}>
-            {previewEls.map(key => {
-              const el = (template as any)[key] as PDFElementPosition & { enabled?: boolean; fontSize?: number };
-              const color = ELEMENT_COLORS[key] || '#e5e7eb';
-              const label = ELEMENT_LABELS[key] || key;
-              return (
-                <div key={key} style={{
-                  position: 'absolute',
-                  left: el.x, top: el.y, width: el.width, height: el.height,
-                  background: color, border: '1px solid rgba(0,0,0,0.15)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: Math.min(9, (el.fontSize || 8)), fontWeight: 600,
-                  color: '#374151', overflow: 'hidden', textAlign: 'center',
-                  padding: '2px 4px', lineHeight: 1.2, boxSizing: 'border-box',
-                  zIndex: key === 'stamp' ? 10 : 1,
-                }}>
-                  {label}
-                </div>
-              );
-            })}
-            {previewEls.length === 0 && (
+          <div className="border border-slate-200 dark:border-slate-600 rounded-lg overflow-hidden bg-white" style={{ aspectRatio: '210/297' }}>
+            {previewUrl ? (
+              <iframe src={previewUrl} className="w-full h-full" title="PDF Preview" />
+            ) : (
               <div className="flex items-center justify-center h-full text-xs text-slate-400 italic">
-                Belum ada elemen aktif
+                Generating preview...
               </div>
             )}
           </div>
