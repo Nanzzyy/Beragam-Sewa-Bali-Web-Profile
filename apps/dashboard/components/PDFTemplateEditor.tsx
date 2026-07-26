@@ -148,7 +148,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
 
       const tableEnd = (doc as any).lastAutoTable?.finalY || (tmpl.itemsTable.enabled ? tmpl.itemsTable.y + 40 : 100);
 
-      if (tmpl.totals.enabled) {
+      if ((tmpl.totals as any)?.enabled) {
         const b = tmpl.totals;
         const ty = b.y > 0 ? b.y : tableEnd + 5;
         doc.setFontSize(8);
@@ -160,9 +160,9 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
         doc.text(': Rp. 3.150.000', b.x + b.width, ty + 8, { align: 'right' });
       }
 
-      const totalsEnd = tmpl.totals.enabled ? (tmpl.totals.y || tableEnd) + 15 : tableEnd + 5;
+      const totalsEnd = (tmpl.totals as any)?.enabled ? ((tmpl.totals as any).y || tableEnd) + 15 : tableEnd + 5;
 
-      if (tmpl.notes.enabled) {
+      if ((tmpl.notes as any)?.enabled) {
         const b = tmpl.notes;
         const ny = b.y > 0 ? b.y : totalsEnd;
         doc.setFontSize(7);
@@ -173,9 +173,9 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
         doc.text('2. Tahap 2 = 50% saat pelunasan', b.x, ny + 10);
       }
 
-      const notesEnd = tmpl.notes.enabled ? (tmpl.notes.y || totalsEnd) + 18 : totalsEnd + 5;
+      const notesEnd = (tmpl.notes as any)?.enabled ? ((tmpl.notes as any).y || totalsEnd) + 18 : totalsEnd + 5;
 
-      if (tmpl.terbilang.enabled) {
+      if ((tmpl.terbilang as any)?.enabled) {
         const b = tmpl.terbilang;
         const ty = b.y > 0 ? b.y : notesEnd;
         doc.setFontSize(7);
@@ -185,7 +185,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
         doc.text('( Tiga Juta Seratus Lima Puluh Ribu Rupiah )', b.x + 24, ty);
       }
 
-      if (tmpl.signatures.enabled) {
+      if ((tmpl.signatures as any)?.enabled) {
         const b = tmpl.signatures;
         const sy = b.y > 0 ? b.y : notesEnd + 15;
         doc.setFontSize(7);
