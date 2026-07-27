@@ -341,7 +341,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
             <span className="text-xs font-bold text-slate-500 uppercase">A4 — 210×297mm</span>
             <span className="text-xs text-slate-400">Scroll untuk lihat penuh · Drag/resize widget</span>
           </div>
-          <div className="overflow-auto rounded border border-slate-200 dark:border-slate-700" style={{ maxHeight: '70vh' }}>
+          <div className="overflow-auto rounded border border-slate-200 dark:border-slate-700" style={{ maxHeight: '70vh', maxWidth: '100%' }}>
             <div ref={containerRef} className="grid-stack mx-auto" style={{ width: `${CANVAS_W}px`, height: `${CANVAS_H}px`, background: '#fff', position: 'relative' }} />
           </div>
         </div>

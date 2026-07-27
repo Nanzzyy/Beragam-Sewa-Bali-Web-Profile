@@ -1167,7 +1167,7 @@ export default function DashboardApp() {
                               };
                               reader.readAsDataURL(file);
                             }
-                          }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
+                          }} className="w-full sm:w-auto text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400 truncate" />
                           {compLogo && (
                             <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
                           )}
@@ -1187,7 +1187,7 @@ export default function DashboardApp() {
                               };
                               reader.readAsDataURL(file);
                             }
-                          }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
+                          }} className="w-full sm:w-auto text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400 truncate" />
                           {compHeaderImg && (
                             <img src={compHeaderImg} alt="Header Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
                           )}
@@ -1208,7 +1208,7 @@ export default function DashboardApp() {
                               };
                               reader.readAsDataURL(file);
                             }
-                          }} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400" />
+                          }} className="w-full sm:w-auto text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400 truncate" />
                           {compStampImage && (
                             <img src={compStampImage} alt="Stamp Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
                           )}
@@ -3540,6 +3540,11 @@ function LandingPage({ onLoginClick }: { onLoginClick: () => void }) {
           <a href="https://beragamsewabali.com" target="_blank" rel="noreferrer" className="px-8 py-4 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-white font-semibold flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 transition">
             Kunjungi Website Utama
           </a>
+          <button onClick={() => { const w = window as any; if (w.__pwaInstall) w.__pwaInstall(); else alert('Buka di Chrome/Edge dan klik Install di address bar.'); }}
+            className="px-8 py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-red-500/25 transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Install App
+          </button>
         </div>
       </main>
 
