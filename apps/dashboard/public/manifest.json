@@ -1,8 +1,9 @@
 {
-  "name": "BSB Dashboard - Rental & Event Management",
+  "name": "BSB Dashboard - Beragam Sewa Bali",
   "short_name": "BSB Dashboard",
-  "description": "Beragam Sewa Bali — Manajemen Rental & Event Production",
+  "description": "Manajemen Rental & Event Production",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#dc2626",
