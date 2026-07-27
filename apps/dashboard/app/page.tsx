@@ -1156,40 +1156,46 @@ export default function DashboardApp() {
 
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Logo Perusahaan (.png / .jpg)</label>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                          <input type="file" accept="image/*" onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                const base64 = reader.result as string;
-                                setCompLogo(base64);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }} className="w-full sm:w-auto text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400 truncate" />
+                        <div className="flex flex-wrap items-center gap-3">
+                          <label className="cursor-pointer px-4 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 transition shrink-0">
+                            Pilih Gambar
+                            <input type="file" accept="image/*" hidden onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => { const base64 = reader.result as string; setCompLogo(base64); };
+                                reader.readAsDataURL(file);
+                              }
+                            }} />
+                          </label>
                           {compLogo && (
-                            <img src={compLogo} alt="Logo Preview" className="w-12 h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
+                            <div className="flex items-center gap-2">
+                              <img src={compLogo} alt="Logo Preview" className="w-10 h-10 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
+                              <button onClick={() => setCompLogo(null)} className="text-xs text-red-500 hover:text-red-700">✕ Hapus</button>
+                            </div>
                           )}
                         </div>
                       </div>
                       
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Kop Surat / Header PDF Full Width (Opsional)</label>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                          <input type="file" accept="image/*" onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                const base64 = reader.result as string;
-                                setCompHeaderImg(base64);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }} className="w-full sm:w-auto text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400 truncate" />
+                        <div className="flex flex-wrap items-center gap-3">
+                          <label className="cursor-pointer px-4 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 transition shrink-0">
+                            Pilih Gambar
+                            <input type="file" accept="image/*" hidden onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => { const base64 = reader.result as string; setCompHeaderImg(base64); };
+                                reader.readAsDataURL(file);
+                              }
+                            }} />
+                          </label>
                           {compHeaderImg && (
-                            <img src={compHeaderImg} alt="Header Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
+                            <div className="flex items-center gap-2">
+                              <img src={compHeaderImg} alt="Header Preview" className="h-10 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
+                              <button onClick={() => setCompHeaderImg(null)} className="text-xs text-red-500 hover:text-red-700">✕ Hapus</button>
+                            </div>
                           )}
                         </div>
                         <p className="text-xs text-slate-500 mt-1">Jika diisi, gambar ini akan ditempatkan pada bagian paling atas PDF selebar kertas.</p>
@@ -1197,20 +1203,23 @@ export default function DashboardApp() {
 
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Gambar Stempel / Cap Perusahaan (Opsional)</label>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                          <input type="file" accept="image/*" onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                const base64 = reader.result as string;
-                                setCompStampImage(base64);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }} className="w-full sm:w-auto text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 dark:file:bg-red-500/10 dark:file:text-red-400 truncate" />
+                        <div className="flex flex-wrap items-center gap-3">
+                          <label className="cursor-pointer px-4 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 transition shrink-0">
+                            Pilih Gambar
+                            <input type="file" accept="image/*" hidden onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => { const base64 = reader.result as string; setCompStampImage(base64); };
+                                reader.readAsDataURL(file);
+                              }
+                            }} />
+                          </label>
                           {compStampImage && (
-                            <img src={compStampImage} alt="Stamp Preview" className="h-12 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
+                            <div className="flex items-center gap-2">
+                              <img src={compStampImage} alt="Stamp Preview" className="h-10 object-contain rounded border border-slate-200 dark:border-slate-700 bg-white shrink-0" />
+                              <button onClick={() => setCompStampImage(null)} className="text-xs text-red-500 hover:text-red-700">✕ Hapus</button>
+                            </div>
                           )}
                         </div>
                         <p className="text-xs text-slate-500 mt-1">Stempel akan muncul di antara tanggal dan nama perusahaan pada PDF &amp; Excel yang digenerate.</p>
