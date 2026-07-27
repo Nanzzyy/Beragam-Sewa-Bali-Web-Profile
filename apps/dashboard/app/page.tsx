@@ -1881,107 +1881,6 @@ export default function DashboardApp() {
                   )}
                 </div>
 
-                {/* Service History Modal */}
-                {databarangServiceModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setDatabarangServiceModal(null)}>
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-4 sm:p-6 w-full max-w-lg relative animate-slide-up max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => setDatabarangServiceModal(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
-                        <X className="w-5 h-5" />
-                      </button>
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shadow-inner">
-                          <ClipboardList className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Riwayat Service</h3>
-                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-mono">{databarangServiceModal.unitCode}</p>
-                        </div>
-                      </div>
-
-                      <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        const t = e.target as typeof e.target & {
-                          service_date: { value: string };
-                          description: { value: string };
-                          location: { value: string };
-                          cost: { value: string };
-                        };
-                        const { error } = await supabase.from('unit_service_history').insert({
-                          unit_id: databarangServiceModal.unitId,
-                          service_date: t.service_date.value,
-                          description: t.description.value.trim(),
-                          location: t.location.value.trim() || null,
-                          cost: parseInt(t.cost.value.replace(/[^0-9]/g, '')) || 0,
-                        });
-                        if (error) { toast.error(error.message); return; }
-                        toast.success('Service history added');
-                        const { data } = await supabase.from('unit_service_history')
-                          .select('*').eq('unit_id', databarangServiceModal.unitId).order('service_date', { ascending: false });
-                        setDatabarangServiceList(prev => ({ ...prev, [databarangServiceModal.unitId]: data || [] }));
-                        (e.target as HTMLFormElement).reset();
-                      }} className="space-y-4 mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tambah Service Baru</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">Tanggal Service *</label>
-                            <input type="date" name="service_date" required defaultValue={new Date().toISOString().split('T')[0]}
-                              className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">Biaya (Rp)</label>
-                            <input type="text" name="cost" placeholder="0" onChange={e => {
-                              const v = e.target.value.replace(/[^0-9]/g, '');
-                              e.target.value = v ? parseInt(v).toLocaleString('id-ID') : '';
-                            }} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Deskripsi</label>
-                          <input type="text" name="description" placeholder="Misal: Ganti oli, perbaikan mesin" required
-                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Lokasi (Opsional)</label>
-                          <input type="text" name="location" placeholder="Misal: Bengkel ABC"
-                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
-                        </div>
-                        <button type="submit" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition flex items-center gap-2">
-                          <Plus className="w-4 h-4" /> Tambah Service
-                        </button>
-                      </form>
-
-                      {/* Service History List */}
-                      <div className="space-y-2">
-                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Riwayat</p>
-                        {(databarangServiceList[databarangServiceModal.unitId] || []).length === 0 ? (
-                          <p className="text-sm text-slate-500 text-center py-4">Belum ada riwayat service.</p>
-                        ) : (
-                          (databarangServiceList[databarangServiceModal.unitId] || []).map((svc: any) => (
-                            <div key={svc.id} className="flex items-start justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                              <div>
-                                <div className="text-sm font-semibold text-slate-900 dark:text-white">{svc.description}</div>
-                                <div className="text-xs text-slate-500 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                                  <span>{formatDate(svc.service_date)}</span>
-                                  {svc.location && <span>📍 {svc.location}</span>}
-                                  {svc.cost > 0 && <span className="text-amber-600 dark:text-amber-400 font-medium">{formatRupiah(svc.cost)}</span>}
-                                </div>
-                              </div>
-                              <button onClick={async () => {
-                                await supabase.from('unit_service_history').delete().eq('id', svc.id);
-                                const { data } = await supabase.from('unit_service_history')
-                                  .select('*').eq('unit_id', databarangServiceModal.unitId).order('service_date', { ascending: false });
-                                setDatabarangServiceList(prev => ({ ...prev, [databarangServiceModal.unitId]: data || [] }));
-                              }} className="text-red-400 hover:text-red-600 p-1 shrink-0">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
               </div>
             )}
 
@@ -2387,6 +2286,106 @@ export default function DashboardApp() {
       </main>
 
       {/* Modals */}
+      {/* Service History Modal */}
+      {databarangServiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setDatabarangServiceModal(null)}>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-4 sm:p-6 w-full max-w-lg relative animate-slide-up max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setDatabarangServiceModal(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shadow-inner">
+                <ClipboardList className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Riwayat Service</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-mono">{databarangServiceModal.unitCode}</p>
+              </div>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const t = e.target as typeof e.target & {
+                service_date: { value: string };
+                description: { value: string };
+                location: { value: string };
+                cost: { value: string };
+              };
+              const { error } = await supabase.from('unit_service_history').insert({
+                unit_id: databarangServiceModal.unitId,
+                service_date: t.service_date.value,
+                description: t.description.value.trim(),
+                location: t.location.value.trim() || null,
+                cost: parseInt(t.cost.value.replace(/[^0-9]/g, '')) || 0,
+              });
+              if (error) { toast.error(error.message); return; }
+              toast.success('Service history added');
+              const { data } = await supabase.from('unit_service_history')
+                .select('*').eq('unit_id', databarangServiceModal.unitId).order('service_date', { ascending: false });
+              setDatabarangServiceList(prev => ({ ...prev, [databarangServiceModal.unitId]: data || [] }));
+              (e.target as HTMLFormElement).reset();
+            }} className="space-y-4 mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tambah Service Baru</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Tanggal Service *</label>
+                  <input type="date" name="service_date" required defaultValue={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Biaya (Rp)</label>
+                  <input type="text" name="cost" placeholder="0" onChange={e => {
+                    const v = e.target.value.replace(/[^0-9]/g, '');
+                    e.target.value = v ? parseInt(v).toLocaleString('id-ID') : '';
+                  }} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Deskripsi</label>
+                <input type="text" name="description" placeholder="Misal: Ganti oli, perbaikan mesin" required
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Lokasi (Opsional)</label>
+                <input type="text" name="location" placeholder="Misal: Bengkel ABC"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white" />
+              </div>
+              <button type="submit" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Tambah Service
+              </button>
+            </form>
+
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Riwayat</p>
+              {(databarangServiceList[databarangServiceModal.unitId] || []).length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-4">Belum ada riwayat service.</p>
+              ) : (
+                (databarangServiceList[databarangServiceModal.unitId] || []).map((svc: any) => (
+                  <div key={svc.id} className="flex items-start justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">{svc.description}</div>
+                      <div className="text-xs text-slate-500 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                        <span>{formatDate(svc.service_date)}</span>
+                        {svc.location && <span>📍 {svc.location}</span>}
+                        {svc.cost > 0 && <span className="text-amber-600 dark:text-amber-400 font-medium">{formatRupiah(svc.cost)}</span>}
+                      </div>
+                    </div>
+                    <button onClick={async () => {
+                      await supabase.from('unit_service_history').delete().eq('id', svc.id);
+                      const { data } = await supabase.from('unit_service_history')
+                        .select('*').eq('unit_id', databarangServiceModal.unitId).order('service_date', { ascending: false });
+                      setDatabarangServiceList(prev => ({ ...prev, [databarangServiceModal.unitId]: data || [] }));
+                    }} className="text-red-400 hover:text-red-600 p-1 shrink-0">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <PackageModal
         isOpen={packageModalOpen}
         data={packageModalData}
