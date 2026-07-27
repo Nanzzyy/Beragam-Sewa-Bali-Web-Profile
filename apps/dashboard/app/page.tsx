@@ -519,7 +519,7 @@ export default function DashboardApp() {
         fetchDashboardStats(),
         supabase.from('items').select('*').order('name'),
         supabase.from('profiles').select('*').order('email'),
-        supabase.from('jobs').select(`id, client_name, venue, setup_date, completion_date, job_items ( item_id, source_vendor_id, quantity, is_package, package_id ), job_staff ( profile_id )`).in('status', ['draft', 'negotiation', 'confirmed', 'on_going', 'pending_payment']),
+        supabase.from('jobs').select(`id, client_name, venue, setup_date, completion_date, job_items ( item_id, source_vendor_id, quantity, is_package, package_id ), job_staff ( profile_id )`).in('status', ['draft', 'negotiation', 'confirmed', 'on_going']),
         supabase.from('site_content').select('content_value').eq('content_key', 'site_logo_dashboard').single(),
         supabase.from('packages').select('*, package_items(item_id, supplier_item_id, qty)').order('name'),
         supabase.from('spareparts').select('*').eq('is_deleted', false).order('name'),

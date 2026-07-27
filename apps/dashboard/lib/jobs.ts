@@ -391,7 +391,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
   const jobs = jobsData || [];
   const stats: DashboardStats = {
     totalJobs: jobs.length,
-    activeJobs: jobs.filter(j => j.status === 'confirmed' || j.status === 'on_going').length,
+    activeJobs: jobs.filter(j => ['draft', 'negotiation', 'confirmed', 'on_going'].includes(j.status)).length,
     completedJobs: jobs.filter(j => j.status === 'completed').length,
     totalRevenue: jobs.filter(j => j.status === 'completed').reduce((s, j) => s + Number(j.total_rental_fee), 0),
     totalVendorCost: jobs.filter(j => j.status === 'completed').reduce((s, j) => s + Number(j.total_vendor_cost), 0),
