@@ -1,0 +1,20 @@
+{
+  "packageName": "com.beragamsewabali.dashboard",
+  "name": "BSB Dashboard",
+  "display": "standalone",
+  "backgroundColor": "#0f172a",
+  "themeColor": "#dc2626",
+  "startUrl": "https://dashboard.beragamsewabali.com/",
+  "iconUrl": "https://dashboard.beragamsewabali.com/icon-512.png",
+  "maskableIconUrl": "https://dashboard.beragamsewabali.com/icon-192.png",
+  "shortName": "BSB Dashboard",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": { "enabled": false },
+    "playBilling": { "enabled": false }
+  },
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "bsb"
+  }
+}

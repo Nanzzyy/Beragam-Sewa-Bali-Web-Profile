@@ -3549,7 +3549,7 @@ function LandingPage({ onLoginClick }: { onLoginClick: () => void }) {
           <a href="https://beragamsewabali.com" target="_blank" rel="noreferrer" className="px-8 py-4 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-white font-semibold flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 transition">
             Kunjungi Website Utama
           </a>
-          <button onClick={() => { const w = window as any; if (w.__pwaInstall) w.__pwaInstall(); else alert('Buka di Chrome/Edge dan klik Install di address bar.'); }}
+          <button onClick={() => { const w = window as any; if (w.__pwaInstall) { w.__pwaInstall(); } else { w.__pwaFallback?.(); } }}
             className="px-8 py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-red-500/25 transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
             Install App
