@@ -1498,23 +1498,42 @@ export default function DashboardApp() {
                           }
                           return false;
                         }));
-                        const usedQuantity = itemActiveJobs.reduce((acc, job) => {
-                          const directItem = job.job_items.find((ji: any) => !ji.is_package && ji.item_id === item.id);
-                          let totalUsed = directItem ? directItem.quantity : 0;
-                          
-                          job.job_items.forEach((ji: any) => {
+                        const usedQuantity = Math.min(
+                          itemActiveJobs.reduce((acc, job) => {
+                            const directItem = job.job_items.find((ji: any) => !ji.is_package && ji.item_id === item.id);
+                            let totalUsed = directItem ? directItem.quantity : 0;
+                            
+                            job.job_items.forEach((ji: any) => {
+                              if (ji.is_package && ji.package_id) {
+                                const pkg = packagesList.find(p => p.id === ji.package_id);
+                                if (pkg) {
+                                  const packageItemMatch = pkg.package_items?.find((pi: any) => pi.item_id === item.id);
+                                  if (packageItemMatch) {
+                                    totalUsed += (ji.quantity || 1) * (packageItemMatch.qty || 1);
+                                  }
+                                }
+                              }
+                            });
+                            return acc + totalUsed;
+                          }, 0),
+                          item.quantity || 0
+                        );
+                        // Per-job quantity breakdown
+                        const jobQuantities = itemActiveJobs.map(job => {
+                          let qty = 0;
+                          const direct = job.job_items?.find((ji: any) => !ji.is_package && ji.item_id === item.id);
+                          if (direct) qty += direct.quantity || 0;
+                          job.job_items?.forEach((ji: any) => {
                             if (ji.is_package && ji.package_id) {
                               const pkg = packagesList.find(p => p.id === ji.package_id);
                               if (pkg) {
-                                const packageItemMatch = pkg.package_items?.find((pi: any) => pi.item_id === item.id);
-                                if (packageItemMatch) {
-                                  totalUsed += (ji.quantity || 1) * (packageItemMatch.qty || 1);
-                                }
+                                const pm = pkg.package_items?.find((pi: any) => pi.item_id === item.id);
+                                if (pm) qty += (ji.quantity || 1) * (pm.qty || 1);
                               }
                             }
                           });
-                          return acc + totalUsed;
-                        }, 0);
+                          return { ...job, qty };
+                        }).filter(j => j.qty > 0);
                         
                         return (
                         <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition group gap-3 md:gap-0">
@@ -1540,20 +1559,20 @@ export default function DashboardApp() {
                                 </span>
                                 {usedQuantity > 0 && (
                                   <>
-                                    <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded font-medium">Sedang Dipakai: {usedQuantity}</span>
-                                    <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">Sisa Tersedia: {Math.max(0, (item.quantity || 0) - usedQuantity)}</span>
+                                    <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded font-medium">Dipesan: {usedQuantity}</span>
+                                    <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">Ready: {Math.max(0, (item.quantity || 0) - usedQuantity)}</span>
                                   </>
                                 )}
                               </div>
-                              {itemActiveJobs.length > 0 && (
-                                <div className="text-xs text-red-600 dark:text-red-400 mt-1.5 flex items-center gap-1 flex-wrap">
-                                  <Activity className="w-3 h-3" /> Dipesan:{' '}
-                                  {itemActiveJobs.map((j, idx) => (
-                                    <span key={j.id} className="inline-flex items-center gap-1">
+                              {jobQuantities.length > 0 && (
+                                <div className="text-xs text-red-600 dark:text-red-400 mt-1.5 flex flex-col gap-0.5">
+                                  {jobQuantities.map((j, idx) => (
+                                    <div key={j.id} className="flex items-center gap-1">
+                                      <Activity className="w-3 h-3 shrink-0" />
                                       <span className="font-medium">{j.client_name}</span>
+                                      <span className="tabular-nums font-bold">×{j.qty}</span>
                                       <span className="text-slate-400">({formatDate(j.setup_date)} - {formatDate(j.completion_date)})</span>
-                                      {idx < itemActiveJobs.length - 1 && <span>, </span>}
-                                    </span>
+                                    </div>
                                   ))}
                                 </div>
                               )}
