@@ -64,6 +64,7 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
 
   // ── PDF Preview: generate real sample PDF ──
   const [previewUrl, setPreviewUrl] = useState('');
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const previewTimer = useRef<NodeJS.Timeout | null>(null);
 
   const generatePreview = useCallback(() => {
@@ -347,11 +348,16 @@ export default function PDFTemplateEditor({ template, onChange }: PDFTemplateEdi
       </div>
 
       {/* ── Realtime PDF Preview ── */}
-      <div className="w-72 shrink-0">
+      <div className={`shrink-0 transition-all duration-300 ${previewExpanded ? 'w-[500px]' : 'w-72'}`}>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm sticky top-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-slate-500 uppercase">Preview PDF</span>
-            <span className="text-[10px] text-slate-400">Sample data · Auto-refresh</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400">Sample data</span>
+              <button onClick={() => setPreviewExpanded(!previewExpanded)} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 transition">
+                {previewExpanded ? '◀ Kecilkan' : '▶ Besarkan'}
+              </button>
+            </div>
           </div>
           <div className="border border-slate-200 dark:border-slate-600 rounded-lg overflow-hidden bg-white" style={{ aspectRatio: '210/297' }}>
             {previewUrl ? (

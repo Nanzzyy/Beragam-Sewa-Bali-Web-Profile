@@ -289,12 +289,12 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
     const addrLines = doc.splitTextToSize(config.address, b.width - 4);
     doc.text(addrLines, b.x, oy, { maxWidth: b.width - 4 }); oy += addrLines.length * 4 + 1;
     doc.setFont('helvetica', 'bold');
-    doc.text('PHONE', b.x, oy); doc.setFont('helvetica', 'normal'); doc.text(config.phone, b.x + 25, oy); oy += 5;
+    doc.text('PHONE', b.x, oy); doc.setFont('helvetica', 'normal'); doc.text(config.phone, b.x + 25, oy, { maxWidth: b.width - 27 }); oy += 5;
     doc.setFont('helvetica', 'bold');
-    doc.text('EMAIL', b.x, oy); doc.setFont('helvetica', 'normal'); doc.text(config.email, b.x + 25, oy); oy += 5;
+    doc.text('EMAIL', b.x, oy); doc.setFont('helvetica', 'normal'); doc.text(config.email, b.x + 25, oy, { maxWidth: b.width - 27 }); oy += 5;
     if (config.npwp) {
       doc.setFont('helvetica', 'bold');
-      doc.text('NPWP', b.x, oy); doc.setFont('helvetica', 'normal'); doc.text(config.npwp, b.x + 25, oy); oy += 5;
+      doc.text('NPWP', b.x, oy); doc.setFont('helvetica', 'normal'); doc.text(config.npwp, b.x + 25, oy, { maxWidth: b.width - 27 }); oy += 5;
     }
     oy += 2;
     let bankName = 'BCA', bankNumber = '6110252194', bankOwner = 'an. Eka Sutrisna Putra';
@@ -308,8 +308,8 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
     }
     doc.setFont('helvetica', 'bold'); doc.text('BANK', b.x, oy); oy += 4;
     doc.setFont('helvetica', 'normal');
-    doc.text(bankName, b.x, oy); oy += 4;
-    doc.text(bankNumber, b.x, oy); oy += 4;
+    doc.text(bankName, b.x, oy, { maxWidth: b.width - 4 }); oy += 4;
+    doc.text(bankNumber, b.x, oy, { maxWidth: b.width - 4 }); oy += 4;
     const boLines = doc.splitTextToSize(bankOwner, b.width - 4);
     doc.text(boLines, b.x, oy, { maxWidth: b.width - 4 });
   }
