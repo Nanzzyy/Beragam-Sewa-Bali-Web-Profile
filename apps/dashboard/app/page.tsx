@@ -2116,18 +2116,7 @@ export default function DashboardApp() {
 
             {/* === SUPER ADMIN: CASHFLOW TAB === */}
             {tab === 'cashflow' && userRole === 'owner' && (
-              <div className="animate-fade-in h-full flex flex-col space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Aliran Kas (Cashflow Web App)</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Live preview & kontrol penuh aplikasi pembukuan utama.</p>
-                  </div>
-                  <a href="https://cashflow.beragamsewabali.com" target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition text-sm shadow-md shadow-emerald-500/20 w-full sm:w-auto justify-center">
-                    <ExternalLink className="w-4 h-4" /> Buka Tab Baru
-                  </a>
-                </div>
-
+              <div className="animate-fade-in h-full flex flex-col">
                 <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-[2rem] overflow-hidden min-h-[500px]">
                   <div className="flex items-center gap-4 px-6 py-3.5 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
                     <div className="flex items-center gap-1.5 shrink-0">
