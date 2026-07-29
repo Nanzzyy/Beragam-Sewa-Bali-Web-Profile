@@ -1,17 +1,53 @@
 {
+  "id": "/",
   "name": "BSB Dashboard - Beragam Sewa Bali",
   "short_name": "BSB Dashboard",
-  "description": "Manajemen Rental & Event Production",
+  "description": "Sistem manajemen rental & event production Beragam Sewa Bali. Kelola penyewaan, jadwal event, inventaris, dan keuangan dalam satu aplikasi.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#dc2626",
   "categories": ["business", "productivity"],
   "prefer_related_applications": false,
+  "lang": "id",
+  "dir": "ltr",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icon-48.png", "sizes": "48x48", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Buka dashboard utama",
+      "url": "/",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Download App",
+      "short_name": "Download",
+      "description": "Halaman download aplikasi",
+      "url": "/download",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "BSB Dashboard - Manajemen Rental & Event"
+    }
   ]
 }

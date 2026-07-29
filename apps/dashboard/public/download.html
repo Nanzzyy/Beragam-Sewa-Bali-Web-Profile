@@ -4,70 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Download BSB Dashboard App</title>
+<meta http-equiv="refresh" content="0;url=/download">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, sans-serif; background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .card { background: #1e293b; border-radius: 24px; padding: 40px; max-width: 480px; width: 100%; text-align: center; border: 1px solid #334155; }
-  h1 { font-size: 24px; margin-bottom: 8px; }
-  p { color: #94a3b8; font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
-  .btn { display: block; width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; border: none; margin-bottom: 12px; text-decoration: none; transition: transform 0.1s; }
-  .btn:active { transform: scale(0.98); }
-  .btn-primary { background: #dc2626; color: #fff; }
-  .btn-outline { background: transparent; color: #94a3b8; border: 2px solid #334155; }
-  .steps { text-align: left; background: #0f172a; border-radius: 12px; padding: 16px; margin-top: 24px; }
-  .steps h3 { font-size: 14px; margin-bottom: 12px; color: #94a3b8; }
-  .steps ol { font-size: 13px; color: #cbd5e1; padding-left: 20px; line-height: 1.8; }
-  .icon { font-size: 48px; margin-bottom: 16px; }
+  body { font-family: sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  a { color: #dc2626; }
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="icon">📱</div>
-  <h1>Download BSB Dashboard</h1>
-  <p>Install aplikasi di Android atau iPhone untuk akses cepat dashboard rental & event management.</p>
-  
-  <a href="https://www.pwabuilder.com/?url=https://dashboard.beragamsewabali.com/manifest.json" target="_blank" rel="noopener" class="btn btn-primary">
-    ⚡ Generate APK (PWABuilder)
-  </a>
-  
-  <button onclick="installPWA()" class="btn btn-outline">
-    📲 Install via Browser
-  </button>
-
-  <div class="steps">
-    <h3>📋 Cara Manual</h3>
-    <ol>
-      <li>Buka <b>dashboard.beragamsewabali.com</b> di <b>Chrome</b></li>
-      <li>Tunggu 10 detik sampai muncul popup install</li>
-      <li>Atau klik <b>⋮ → Add to Home Screen</b></li>
-      <li>Aplikasi akan muncul di home screen</li>
-    </ol>
-  </div>
-</div>
-
-<script>
-function installPWA() {
-  if (window.__pwaInstall) {
-    window.__pwaInstall();
-    setTimeout(() => {
-      if (window.__pwaInstall) {
-        alert('Install prompt tidak muncul. Gunakan cara manual di bawah.');
-      }
-    }, 1000);
-  } else {
-    alert('Buka halaman ini di Chrome Android, lalu klik ⋮ → "Add to Home Screen".');
-  }
-}
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js');
-}
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  window.__pwaInstall = () => { deferredPrompt.prompt(); deferredPrompt = null; };
-});
-</script>
+  <p>Redirecting... <a href="/download">Click here</a> if not redirected.</p>
 </body>
 </html>

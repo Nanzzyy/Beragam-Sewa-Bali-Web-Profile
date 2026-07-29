@@ -18,7 +18,18 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#0f172a" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="BSB Dashboard" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-TileColor" content="#0f172a" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="format-detection" content="telephone=no" />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icon-48.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icon-48.png" />
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
