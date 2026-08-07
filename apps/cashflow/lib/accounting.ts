@@ -466,9 +466,14 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
 // ACCOUNTS CRUD
 // ============================================================
 
-export async function upsertAccount(account: Account): Promise<void> {
-  const { error } = await supabase.from('accounts').upsert(account);
-  if (error) throw new AccountingError(error.message, 'UPSERT_ACCOUNT_FAILED');
+export async function createAccount(account: Account): Promise<void> {
+  const { error } = await supabase.from('accounts').insert(account);
+  if (error) throw new AccountingError(error.message, 'CREATE_ACCOUNT_FAILED');
+}
+
+export async function updateAccount(oldCode: string, account: Account): Promise<void> {
+  const { error } = await supabase.from('accounts').update(account).eq('account_code', oldCode);
+  if (error) throw new AccountingError(error.message, 'UPDATE_ACCOUNT_FAILED');
 }
 
 export async function deleteAccount(accountCode: string): Promise<void> {

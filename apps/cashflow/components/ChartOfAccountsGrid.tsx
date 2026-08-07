@@ -2,12 +2,14 @@
 import { showConfirm } from '../lib/confirm';
 
 import { useState, useEffect } from 'react';
-import { fetchAccounts, upsertAccount, deleteAccount } from '../lib/accounting';
+import { fetchAccounts, createAccount, updateAccount, deleteAccount } from '../lib/accounting';
 import type { Account } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 import { Loader2, Plus, Edit2, Trash2, Check, X, Search } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function ChartOfAccountsGrid() {
+  const queryClient = useQueryClient();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCode, setEditingCode] = useState<string | null>(null);
@@ -37,7 +39,12 @@ export default function ChartOfAccountsGrid() {
   const handleSave = async () => {
     if (!editForm.account_code || !editForm.account_name || !editForm.category || !editForm.normal_balance) return;
     try {
-      await upsertAccount(editForm as Account);
+      if (editingCode?.startsWith('NEW-')) {
+        await createAccount(editForm as Account);
+      } else {
+        await updateAccount(editingCode!, editForm as Account);
+      }
+      queryClient.invalidateQueries({ queryKey: ['cashflow_dashboard'] });
       setEditingCode(null);
       load();
     } catch (e) {
@@ -49,6 +56,7 @@ export default function ChartOfAccountsGrid() {
     if (!(await showConfirm(`Hapus akun ${code}? Pastikan tidak ada transaksi yang terhubung.`))) return;
     try {
       await deleteAccount(code);
+      queryClient.invalidateQueries({ queryKey: ['cashflow_dashboard'] });
       load();
     } catch (e) {
       toast.error('Gagal menghapus akun: ' + (e as Error).message);
