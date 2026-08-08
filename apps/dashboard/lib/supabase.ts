@@ -13,6 +13,19 @@ export type JobStatus = 'draft' | 'negotiation' | 'pending_payment' | 'confirmed
 export type ProofType = 'delivery' | 'return';
 export type AppRole = 'owner' | 'accounting' | 'staff' | 'guest';
 
+export interface JobEvent {
+  id: string;
+  job_id: string;
+  event_number: number;
+  setup_date: string;
+  event_date: string;
+  completion_date: string;
+  label?: string | null;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Job {
   id: string;
   client_name: string;
@@ -36,6 +49,7 @@ export interface Job {
   created_at: string;
   updated_at: string;
   pph_umkm_enabled: boolean;
+  events?: JobEvent[];
   job_staff?: any[];
 }
 
@@ -72,6 +86,7 @@ export interface PackageItem {
 export interface JobItem {
   id: string;
   job_id: string;
+  event_id?: string | null;
   item_id: string | null;
   item_name_custom: string | null;
   quantity: number;
@@ -129,6 +144,24 @@ export function formatDate(dateStr: string): string {
     month: 'long',
     year: 'numeric',
   });
+}
+
+/** Returns normalized multi-date events while supporting legacy single-date jobs. */
+export function getJobEvents(job: Pick<Job, 'id' | 'setup_date' | 'job_date' | 'completion_date' | 'events'>): JobEvent[] {
+  return job.events?.length ? job.events : [{
+    id: `legacy-event-${job.id}`,
+    job_id: job.id,
+    event_number: 1,
+    setup_date: job.setup_date,
+    event_date: job.job_date,
+    completion_date: job.completion_date,
+  }];
+}
+
+export function formatJobEventDates(job: Pick<Job, 'id' | 'setup_date' | 'job_date' | 'completion_date' | 'events'>): string {
+  return getJobEvents(job).map((event, index) =>
+    `Event ${index + 1}: Setup ${formatDate(event.setup_date)} · Event ${formatDate(event.event_date)} · Bongkar ${formatDate(event.completion_date)}`
+  ).join('\n');
 }
 
 export const JOB_STATUS_CONFIG: Record<JobStatus, { label: string; color: string; bg: string }> = {

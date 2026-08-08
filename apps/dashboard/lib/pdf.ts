@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Job, JobItem } from './supabase';
-import { formatRupiah, formatDate } from './supabase';
+import { formatJobEventDates } from './supabase';
 import { supabase } from './supabase';
 import { defaultTemplate, type PDFTemplateLayout } from './pdf-template';
 
@@ -150,7 +150,7 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
       const rows: [string, string][] = [
         ['Kepada:', job.client_name],
         ['Venue:', job.venue],
-        ['Tgl Setup:', formatDate(job.setup_date)],
+        ['Tgl Job:', formatJobEventDates(job)],
         ['Kontak:', job.client_phone || '-'],
       ];
       rows.forEach(([l, v], i) => {
@@ -200,7 +200,7 @@ export async function generateSuratJalan(job: Job, items: JobItem[]) {
     doc.setFont('helvetica', 'normal');
     doc.text(`Kepada: ${job.client_name}`, 14, 52 + yo);
     doc.text(`Venue: ${job.venue}`, 14, 58 + yo);
-    doc.text(`Tanggal Setup: ${formatDate(job.setup_date)}`, 14, 64 + yo);
+    doc.text(`Tanggal Job: ${formatJobEventDates(job)}`, 14, 64 + yo, { maxWidth: 180 });
     doc.text(`Kontak: ${job.client_phone || '-'}`, 14, 70 + yo);
     autoTable(doc, {
       startY: 95 + yo,
@@ -269,7 +269,7 @@ async function generateDocument(doc: jsPDF, type: 'INVOICE' | 'QUOTATION' | 'KUI
       ['EMAIL', job.client_email || '-'],
       ['PHONE', job.client_phone || '-'],
       ['PROJECT', (job.description || 'EVENT') + (job.venue ? ` / ${job.venue}` : '')],
-      ['TGL EVENT', (() => { const s = formatDate(job.job_date); const e = job.completion_date ? formatDate(job.completion_date) : ''; return e ? `${s} s/d ${e}` : s; })()],
+      ['TGL EVENT', formatJobEventDates(job)],
     ];
     rows.forEach(([l, v], i) => {
       doc.setFont('helvetica', 'bold'); doc.setFontSize(8);

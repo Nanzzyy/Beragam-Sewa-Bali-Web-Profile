@@ -5,7 +5,7 @@
  * Mirrors the pattern used in cashflow/lib/accounting.ts.
  */
 
-import { supabase, type Job, type JobItem, type JobStaff, type JobProof, type JobStatus, type Profile } from './supabase';
+import { supabase, type Job, type JobEvent, type JobItem, type JobStaff, type JobProof, type JobStatus, type Profile } from './supabase';
 
 // ============================================================
 // ERROR HANDLING
@@ -17,6 +17,8 @@ export class DashboardError extends Error {
     this.name = 'DashboardError';
   }
 }
+
+const isMissingJobEventsTable = (error: { code?: string } | null) => error?.code === '42P01' || error?.code === 'PGRST205';
 
 // ============================================================
 // JOBS CRUD
@@ -44,11 +46,22 @@ export async function fetchJobs(options?: {
 
   const { data, error } = await query;
   if (error) throw new DashboardError(error.message, 'FETCH_JOBS_FAILED');
-  return (data || []).map(j => ({
+  const jobs = (data || []).map(j => ({
     ...j,
     total_rental_fee: Number(j.total_rental_fee),
     total_vendor_cost: Number(j.total_vendor_cost),
   }));
+
+  if (jobs.length === 0) return jobs;
+  const { data: events, error: eventsError } = await supabase
+    .from('job_events')
+    .select('*')
+    .in('job_id', jobs.map(j => j.id))
+    .order('event_number');
+  if (eventsError && !isMissingJobEventsTable(eventsError)) {
+    throw new DashboardError(eventsError.message, 'FETCH_JOB_EVENTS_FAILED');
+  }
+  return jobs.map(job => ({ ...job, events: (events || []).filter(event => event.job_id === job.id) }));
 }
 
 export async function fetchJobById(id: string): Promise<Job | null> {
@@ -62,11 +75,21 @@ export async function fetchJobById(id: string): Promise<Job | null> {
     if (error.code === 'PGRST116') return null; // Not found
     throw new DashboardError(error.message, 'FETCH_JOB_FAILED');
   }
-  return data ? {
+  if (!data) return null;
+  const { data: events, error: eventsError } = await supabase
+    .from('job_events')
+    .select('*')
+    .eq('job_id', id)
+    .order('event_number');
+  if (eventsError && !isMissingJobEventsTable(eventsError)) {
+    throw new DashboardError(eventsError.message, 'FETCH_JOB_EVENTS_FAILED');
+  }
+  return {
     ...data,
     total_rental_fee: Number(data.total_rental_fee),
     total_vendor_cost: Number(data.total_vendor_cost),
-  } : null;
+    events: events || [],
+  };
 }
 
 export async function createJob(input: Omit<Job, 'id' | 'created_at' | 'updated_at' | 'cashflow_tx_id' | 'created_by'>): Promise<string> {
@@ -82,25 +105,6 @@ export async function createJob(input: Omit<Job, 'id' | 'created_at' | 'updated_
   if (error) throw new DashboardError(error.message, 'CREATE_JOB_FAILED');
   const jobId = data!.id;
 
-  // Auto-journal Cashflow
-  const ACTIVE_CASHFLOW_STATUSES = ['confirmed', 'on_going', 'completed'];
-  const amount = Number(input.total_rental_fee);
-  if (amount > 0 && ACTIVE_CASHFLOW_STATUSES.includes(input.status)) {
-      const { data: cfData } = await supabase.from('transactions').insert({
-        description: `Pembayaran Sewa Job: ${input.client_name}`,
-        date: input.job_date || new Date().toISOString(),
-        created_by: user.id
-      }).select('id').single();
-      
-      if (cfData) {
-        await supabase.from('journal_entries').insert([
-          { transaction_id: cfData.id, account_code: input.payment_method || '1-101', debit: amount, credit: 0 },
-          { transaction_id: cfData.id, account_code: '4-101', debit: 0, credit: amount }
-        ]);
-        await supabase.from('jobs').update({ cashflow_tx_id: cfData.id }).eq('id', jobId);
-      }
-  }
-
   return jobId;
 }
 
@@ -112,61 +116,6 @@ export async function updateJob(id: string, updates: Partial<Job>): Promise<void
 
   if (error) throw new DashboardError(error.message, 'UPDATE_JOB_FAILED');
 
-  // Sync Cashflow if fields changed
-  if ('total_rental_fee' in updates || 'client_name' in updates || 'venue' in updates || 'job_date' in updates || 'status' in updates) {
-    await syncJobCashflow(id);
-  }
-}
-
-export async function syncJobCashflow(jobId: string): Promise<void> {
-  const { data: job } = await supabase.from('jobs').select('*').eq('id', jobId).single();
-  if (!job) return;
-
-  const ACTIVE_CASHFLOW_STATUSES = ['confirmed', 'on_going', 'completed'];
-  const isActive = ACTIVE_CASHFLOW_STATUSES.includes(job.status);
-  let amount = Number(job.total_rental_fee);
-  if (job.pph_umkm_enabled) {
-    amount = amount * 0.995;
-  }
-  const paymentMethod = job.payment_method || '1-101'; // Default Kas Besar
-
-  if (isActive && amount > 0) {
-    if (job.cashflow_tx_id) {
-      // Update transaction header
-      await supabase.from('transactions').update({
-        description: `Pembayaran Sewa Job: ${job.client_name}`,
-        date: job.job_date || new Date().toISOString()
-      }).eq('id', job.cashflow_tx_id);
-      
-      // Update journal entries
-      await supabase.from('journal_entries').delete().eq('transaction_id', job.cashflow_tx_id);
-      await supabase.from('journal_entries').insert([
-        { transaction_id: job.cashflow_tx_id, account_code: paymentMethod, debit: amount, credit: 0 },
-        { transaction_id: job.cashflow_tx_id, account_code: '4-101', debit: 0, credit: amount }
-      ]);
-    } else {
-      // Insert new transaction
-      const { data: txData } = await supabase.from('transactions').insert({
-        description: `Pembayaran Sewa Job: ${job.client_name}`,
-        date: job.job_date || new Date().toISOString(),
-        created_by: job.created_by
-      }).select('id').single();
-      
-      if (txData) {
-        await supabase.from('journal_entries').insert([
-          { transaction_id: txData.id, account_code: paymentMethod, debit: amount, credit: 0 },
-          { transaction_id: txData.id, account_code: '4-101', debit: 0, credit: amount }
-        ]);
-        await supabase.from('jobs').update({ cashflow_tx_id: txData.id }).eq('id', jobId);
-      }
-    }
-  } else {
-    // If not active or amount is 0, delete the transaction if it exists
-    if (job.cashflow_tx_id) {
-      await supabase.from('transactions').delete().eq('id', job.cashflow_tx_id);
-      await supabase.from('jobs').update({ cashflow_tx_id: null }).eq('id', jobId);
-    }
-  }
 }
 
 export async function updateJobStatus(id: string, status: JobStatus): Promise<void> {
@@ -177,8 +126,6 @@ export async function updateJobStatus(id: string, status: JobStatus): Promise<vo
 
   if (error) throw new DashboardError(error.message, 'UPDATE_STATUS_FAILED');
   
-  await syncJobCashflow(id);
-
   // Sync Item Statuses
   const itemStatus = status === 'on_going' ? 'rented' : 'ready';
   
@@ -204,14 +151,34 @@ export async function updateJobStatus(id: string, status: JobStatus): Promise<vo
 }
 
 export async function deleteJob(id: string): Promise<void> {
-  const { data: job } = await supabase.from('jobs').select('cashflow_tx_id').eq('id', id).single();
-  
   const { error } = await supabase.from('jobs').delete().eq('id', id);
   if (error) throw new DashboardError(error.message, 'DELETE_JOB_FAILED');
+}
 
-  if (job?.cashflow_tx_id) {
-    await supabase.from('transactions').delete().eq('id', job.cashflow_tx_id);
+// ============================================================
+// MULTI-DATE JOB EVENTS
+// ============================================================
+
+export type JobEventInput = Omit<JobEvent, 'id' | 'job_id' | 'created_at' | 'updated_at'>;
+
+export async function saveJobEvents(jobId: string, events: JobEventInput[]): Promise<void> {
+  const { data: existing, error: fetchError } = await supabase.from('job_events').select('id, event_number').eq('job_id', jobId);
+  if (fetchError && !isMissingJobEventsTable(fetchError)) throw new DashboardError(fetchError.message, 'FETCH_JOB_EVENTS_FAILED');
+  if (events.length > 0) {
+    const payload = events.map((event, index) => {
+      const existingEvent = (existing || []).find(row => row.event_number === index + 1);
+      return {
+        ...(existingEvent?.id ? { id: existingEvent.id } : {}),
+        ...event,
+        job_id: jobId,
+        event_number: index + 1,
+      };
+    });
+    const { error } = await supabase.from('job_events').upsert(payload, { onConflict: 'job_id,event_number' });
+    if (error) throw new DashboardError(error.message, 'SAVE_JOB_EVENTS_FAILED');
   }
+  const { error: deleteError } = await supabase.from('job_events').delete().eq('job_id', jobId).gt('event_number', events.length);
+  if (deleteError && !isMissingJobEventsTable(deleteError)) throw new DashboardError(deleteError.message, 'DELETE_JOB_EVENTS_FAILED');
 }
 
 // ============================================================

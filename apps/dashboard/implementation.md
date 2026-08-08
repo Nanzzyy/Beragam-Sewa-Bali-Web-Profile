@@ -60,13 +60,15 @@ Sistem menggunakan hak akses berbasis peran (RBAC) dengan kebijakan Row Level Se
 
 ## 2. Perluasan Skema Database (Supabase PostgreSQL)
 
-Untuk menampung fitur *Job/Rental Management*, kru lapangan, integrasi vendor, foto bukti, dan integrasi otomatis dengan sistem jurnal keuangan, berikut adalah rancangan tabel tambahan yang wajib dieksekusi di Supabase SQL Editor. Lihat file `migration.sql` untuk SQL lengkap.
+Untuk menampung fitur *Job/Rental Management*, multi-tanggal event, kru lapangan, integrasi vendor, dan foto bukti, berikut adalah rancangan tabel tambahan yang wajib dieksekusi di Supabase SQL Editor. Lihat file `migration.sql` untuk SQL lengkap.
 
 ---
 
 ## 3. Alur Kerja (Workflow) & Integrasi Sistem Jurnal Keuangan
 
-Ketika status sebuah Job diubah menjadi `completed`, sistem secara otomatis akan membuat jurnal penyesuaian double-entry ke dalam tabel `transactions` dan `journal_entries` di modul Cashflow melalui trigger `tr_sync_completed_job`.
+Auto-recap job completed ke Cashflow sedang dinonaktifkan selama maintenance. Transaksi Cashflow tetap dikelola dari modul Cashflow secara manual sampai integrasi diaktifkan kembali.
+
+Satu Job dapat memiliki banyak `job_events` (masing-masing memiliki tanggal setup, event, dan bongkar). Item pada `job_items.event_id` mengikat alat ke event tertentu sehingga kebutuhan alat Event 1 dan event berikutnya dapat dicatat terpisah. Job lama tetap kompatibel melalui kolom tanggal legacy dan di-backfill menjadi Event 1.
 
 ```mermaid
 graph TD
@@ -79,9 +81,7 @@ graph TD
     G -->|Event Selesai & Bongkar| H[Upload Bukti Foto Kembali / Return]
     H --> I[Unduh Invoice PDF]
     I --> J{Ubah Status: Completed}
-    J -->|Trigger SQL Otomatis| K[Entri Jurnal Akuntansi Double-Entry]
-    K --> L[Debit: Kas/Piutang & Kredit: Pendapatan Sewa]
-    K --> M[Debit: Beban Vendor & Kredit: Hutang/Kas BCA]
+    J --> K[Cashflow dikelola manual selama maintenance]
 ```
 
 ---
@@ -96,8 +96,8 @@ Setiap job direpresentasikan dengan label warna berdasarkan status:
 *   **Completed**: `#10B981` (Emerald Green)
 *   **Cancelled**: `#EF4444` (Rose Red)
 
-### B. Widget Visualisasi Schedule Timeline (Gantt Chart)
-Dashboard menampilkan grafik batang horizontal interaktif untuk melacak jadwal (komponen `GanttScheduler`).
+### B. Kalender Multi-Event
+Dashboard menggunakan kalender bulanan sebagai mode schedule tunggal. Hover tanggal menampilkan seluruh job pada tanggal tersebut, venue, status, fase kegiatan, dan nomor event.
 
 ---
 
@@ -121,7 +121,7 @@ dashboard/
 │   ├── page.tsx             # Single-page dashboard (sidebar tabs)
 │   └── providers.tsx        # Theme provider (next-themes)
 ├── components/
-│   ├── GanttScheduler.tsx   # Timeline Gantt chart
+│   ├── MonthCalendar.tsx     # Kalender multi-job dan multi-event
 │   ├── JobDetailModal.tsx   # Detail job (info, barang, kru, bukti foto)
 │   └── JobFormModal.tsx     # Form create/edit job
 ├── lib/
@@ -138,7 +138,7 @@ dashboard/
 
 ## 7. Langkah Prioritas Pengembangan Selanjutnya
 1.  ✅ **Tech Stack Migration**: Migrasi dari Flutter ke Next.js (identik cashflow).
-2.  ✅ **Implementasi UI Dashboard**: Overview stats, job list, Gantt schedule.
+2.  ✅ **Implementasi UI Dashboard**: Overview stats, job list, calendar schedule.
 3.  ✅ **CRUD Job**: Create, read, update, delete jobs dengan modal forms.
 4.  ✅ **RBAC Client-side**: Sidebar menu & action buttons berdasarkan role.
 5.  ✅ **Photo Proof Upload**: Upload bukti kirim/kembali ke Supabase Storage.

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import type { Job, JobStatus } from '../lib/supabase';
+import type { Job, JobEvent, JobStatus } from '../lib/supabase';
 import { JOB_STATUS_CONFIG } from '../lib/supabase';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -14,6 +14,12 @@ const WEEKDAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 const toDateOnly = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const dateKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+const eventRows = (job: Job): JobEvent[] => job.events?.length ? job.events : [{
+  id: `legacy-${job.id}`, job_id: job.id, event_number: 1,
+  setup_date: job.setup_date, event_date: job.job_date, completion_date: job.completion_date,
+}];
+
+type CalendarEntry = { job: Job; phases: string[]; eventNumbers: number[] };
 
 /** Month-grid calendar view: jobs rendered as chips per date cell; hover a cell
  *  to see a popover listing all active jobs on that date. */
@@ -26,7 +32,7 @@ export default function MonthCalendar({ jobs, onJobClick }: Props) {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelClose = () => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } };
   const scheduleClose = () => {
-    closeTimer.current = setTimeout(() => setHoverDate(null), 140);
+    closeTimer.current = setTimeout(() => setHoverDate(null), 500);
   };
   useEffect(() => () => cancelClose(), []);
 
@@ -53,19 +59,35 @@ export default function MonthCalendar({ jobs, onJobClick }: Props) {
     const monthLabel = viewDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
     const last = new Date(year, month + 1, 0);
     const jobsThisMonth = activeJobs.filter(j => {
-      const s = new Date(j.setup_date).getTime();
-      const e = new Date(j.completion_date).getTime();
-      return s <= last.getTime() && e >= first.getTime();
+      return eventRows(j).some(event => new Date(event.setup_date).getTime() <= last.getTime() && new Date(event.completion_date).getTime() >= first.getTime());
     });
     return { cells, monthLabel, jobsThisMonth };
   }, [viewDate, activeJobs]);
 
-  const jobsOnDay = (date: Date) => {
+  const jobsOnDay = (date: Date): CalendarEntry[] => {
     const t = toDateOnly(date).getTime();
-    return activeJobs.filter(j => {
-      const s = toDateOnly(new Date(j.setup_date)).getTime();
-      const e = toDateOnly(new Date(j.completion_date)).getTime();
-      return t >= s && t <= e;
+    return activeJobs.flatMap(job => {
+      const matchingEvents = eventRows(job).filter(event => {
+        const s = toDateOnly(new Date(event.setup_date)).getTime();
+        const e = toDateOnly(new Date(event.completion_date)).getTime();
+        return t >= s && t <= e;
+      });
+      if (matchingEvents.length === 0) return [];
+      return [{
+        job,
+        phases: matchingEvents.flatMap(event => [
+          toDateOnly(new Date(event.setup_date)).getTime() === t ? 'Setup' : '',
+          toDateOnly(new Date(event.event_date)).getTime() === t ? 'Event' : '',
+          toDateOnly(new Date(event.completion_date)).getTime() === t ? 'Bongkar' : '',
+        ]).filter(Boolean).length > 0
+          ? matchingEvents.flatMap(event => [
+            toDateOnly(new Date(event.setup_date)).getTime() === t ? 'Setup' : '',
+            toDateOnly(new Date(event.event_date)).getTime() === t ? 'Event' : '',
+            toDateOnly(new Date(event.completion_date)).getTime() === t ? 'Bongkar' : '',
+          ]).filter(Boolean)
+          : ['Job aktif'],
+        eventNumbers: matchingEvents.map(event => event.event_number),
+      }];
     });
   };
 
@@ -121,17 +143,17 @@ export default function MonthCalendar({ jobs, onJobClick }: Props) {
                 {cell.date.getDate()}
               </div>
 
-              {dayJobs.slice(0, 2).map(j => {
-                const cfg = JOB_STATUS_CONFIG[j.status as JobStatus];
+              {dayJobs.slice(0, 3).map(entry => {
+                const cfg = JOB_STATUS_CONFIG[entry.job.status as JobStatus];
                 return (
                   <button
-                    key={j.id}
-                    onClick={() => onJobClick(j.id)}
+                    key={entry.job.id}
+                    onClick={() => onJobClick(entry.job.id)}
                     className="block w-full text-left text-[10px] font-medium truncate px-1.5 py-0.5 rounded mb-0.5 hover:opacity-80 transition"
                     style={{ background: cfg.bg, color: cfg.color }}
-                    title={j.client_name}
+                    title={`${entry.job.client_name} — ${entry.phases.join(', ')}`}
                   >
-                    {j.client_name}
+                    {entry.job.client_name}
                   </button>
                 );
               })}
@@ -149,12 +171,16 @@ export default function MonthCalendar({ jobs, onJobClick }: Props) {
                     {cell.date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </div>
                   <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {dayJobs.map(j => {
-                      const cfg = JOB_STATUS_CONFIG[j.status as JobStatus];
+                    {dayJobs.map(entry => {
+                      const cfg = JOB_STATUS_CONFIG[entry.job.status as JobStatus];
                       return (
-                        <button key={j.id} onClick={() => onJobClick(j.id)} className="w-full flex items-center gap-2 text-left p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                        <button key={entry.job.id} onClick={() => onJobClick(entry.job.id)} className="w-full flex items-start gap-2 text-left p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.color }} />
-                          <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">{j.client_name}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{entry.job.client_name}</span>
+                            <span className="block text-[10px] text-slate-500 dark:text-slate-400 truncate">{entry.job.venue}</span>
+                            <span className="block text-[10px] text-blue-600 dark:text-blue-400">{entry.phases.join(' · ')} · Event {entry.eventNumbers.join(', ')}</span>
+                          </span>
                           <span className="text-[10px] ml-auto px-1.5 py-0.5 rounded-full shrink-0" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
                         </button>
                       );

@@ -15,7 +15,7 @@ import dynamic from 'next/dynamic';
 
 const ExcelExportButton = dynamic(() => import('../components/ExcelExportButton'), { ssr: false });
 const DashboardChart = dynamic(() => import('../components/DashboardChart'), { ssr: false });
-import { LayoutDashboard, BookOpen, BookText, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud, Pencil, Search } from 'lucide-react';
+import { LayoutDashboard, BookOpen, BookText, ClipboardList, Settings, FileSpreadsheet, FolderOpen, Building2, LogOut, ArrowRight, ShieldCheck, BarChart3, Wallet, Trash2, Plus, Moon, Sun, DownloadCloud, Pencil, Search, AlertTriangle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 type Tab = 'dashboard' | 'ledger' | 'ledger-acc' | 'neraca' | 'adjusting' | 'worksheet' | 'accounts' | 'assets';
@@ -525,6 +525,13 @@ export default function CashflowDashboard() {
           </div>
         </div>
       </header>
+
+      <div className="max-w-6xl mx-auto px-4 mt-4">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <p className="text-xs font-medium">Auto-recap job selesai dari Dashboard ke Cashflow sedang dinonaktifkan sementara selama maintenance. Input jurnal di Cashflow tetap tersedia secara manual.</p>
+        </div>
+      </div>
 
       <nav className="max-w-6xl mx-auto px-4 mt-6 overflow-x-auto hide-scrollbar">
         <div className="flex gap-1 sm:gap-1.5 p-1 min-w-max border-b border-slate-200 dark:border-slate-800/60">

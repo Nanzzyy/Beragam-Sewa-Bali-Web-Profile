@@ -1,7 +1,7 @@
 const db = require('../db');
 
 async function run() {
-  console.log('Starting migration to set up Dashboard tables, enums, and triggers...');
+  console.log('Starting migration to set up Dashboard tables, enums, and multi-date events...');
   const client = await db.connect();
   try {
     await client.query('BEGIN');
@@ -48,6 +48,28 @@ async function run() {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.job_events (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          job_id UUID NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
+          event_number INT NOT NULL CHECK (event_number > 0),
+          setup_date DATE NOT NULL,
+          event_date DATE NOT NULL,
+          completion_date DATE NOT NULL,
+          label TEXT,
+          notes TEXT,
+          created_at TIMESTAMPTZ DEFAULT now(),
+          updated_at TIMESTAMPTZ DEFAULT now(),
+          CONSTRAINT job_events_dates_valid CHECK (setup_date <= event_date AND event_date <= completion_date),
+          CONSTRAINT job_events_job_number_unique UNIQUE (job_id, event_number)
+      );
+      CREATE INDEX IF NOT EXISTS idx_job_events_dates ON public.job_events(setup_date, event_date, completion_date);
+      INSERT INTO public.job_events (job_id, event_number, setup_date, event_date, completion_date)
+      SELECT j.id, 1, j.setup_date, j.job_date, j.completion_date
+      FROM public.jobs j
+      WHERE NOT EXISTS (SELECT 1 FROM public.job_events e WHERE e.job_id = j.id);
+    `);
+
     // 4. Create job_items table
     console.log('Creating public.job_items table...');
     await client.query(`
@@ -63,6 +85,8 @@ async function run() {
           created_at        TIMESTAMPTZ DEFAULT now()
       );
     `);
+    await client.query('ALTER TABLE public.job_items ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES public.job_events(id) ON DELETE SET NULL;');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_job_items_event_id ON public.job_items(event_id);');
 
     // 5. Create job_staff table
     console.log('Creating public.job_staff table...');
@@ -92,6 +116,7 @@ async function run() {
     // 7. Enable RLS
     console.log('Enabling Row Level Security (RLS) on new tables...');
     await client.query('ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;');
+    await client.query('ALTER TABLE public.job_events ENABLE ROW LEVEL SECURITY;');
     await client.query('ALTER TABLE public.job_items ENABLE ROW LEVEL SECURITY;');
     await client.query('ALTER TABLE public.job_staff ENABLE ROW LEVEL SECURITY;');
     await client.query('ALTER TABLE public.job_proofs ENABLE ROW LEVEL SECURITY;');
@@ -101,6 +126,8 @@ async function run() {
     // Drop existing policies if any
     await client.query('DROP POLICY IF EXISTS "Jobs readable by authorized roles" ON public.jobs;');
     await client.query('DROP POLICY IF EXISTS "Jobs modifiable by owner and staff" ON public.jobs;');
+    await client.query('DROP POLICY IF EXISTS "Job events readable by authorized roles" ON public.job_events;');
+    await client.query('DROP POLICY IF EXISTS "Job events modifiable by owner and staff" ON public.job_events;');
     await client.query('DROP POLICY IF EXISTS "Job items readable by authorized roles" ON public.job_items;');
     await client.query('DROP POLICY IF EXISTS "Job items modifiable by owner and staff" ON public.job_items;');
     await client.query('DROP POLICY IF EXISTS "Job staff readable by authorized roles" ON public.job_staff;');
@@ -124,6 +151,23 @@ async function run() {
       USING (
         public.get_user_role() IN ('owner', 'staff')
         OR (public.get_user_role() = 'guest' AND created_by = auth.uid())
+      );
+    `);
+    await client.query(`
+      CREATE POLICY "Job events readable by authorized roles"
+      ON public.job_events FOR SELECT TO authenticated
+      USING (EXISTS (SELECT 1 FROM public.jobs WHERE jobs.id = job_events.job_id));
+    `);
+    await client.query(`
+      CREATE POLICY "Job events modifiable by owner and staff"
+      ON public.job_events FOR ALL TO authenticated
+      USING (
+        public.get_user_role() IN ('owner', 'staff')
+        OR EXISTS (SELECT 1 FROM public.jobs WHERE jobs.id = job_events.job_id AND jobs.created_by = auth.uid() AND public.get_user_role() = 'guest')
+      )
+      WITH CHECK (
+        public.get_user_role() IN ('owner', 'staff')
+        OR EXISTS (SELECT 1 FROM public.jobs WHERE jobs.id = job_events.job_id AND jobs.created_by = auth.uid() AND public.get_user_role() = 'guest')
       );
     `);
 
@@ -197,7 +241,7 @@ async function run() {
     `);
 
     // 9. Sync triggers
-    console.log('Creating sync trigger sync_completed_job_to_cashflow...');
+    console.log('Disabling automatic completed-job Cashflow sync during maintenance...');
     await client.query(`
       CREATE OR REPLACE FUNCTION public.sync_completed_job_to_cashflow()
       RETURNS trigger AS $$
@@ -265,11 +309,6 @@ async function run() {
 
     // Drop and recreate trigger
     await client.query('DROP TRIGGER IF EXISTS tr_sync_completed_job ON public.jobs;');
-    await client.query(`
-      CREATE TRIGGER tr_sync_completed_job
-          BEFORE UPDATE ON public.jobs
-          FOR EACH ROW EXECUTE PROCEDURE public.sync_completed_job_to_cashflow();
-    `);
 
     await client.query('COMMIT');
     console.log('✅ Dashboard database migration completed successfully!');

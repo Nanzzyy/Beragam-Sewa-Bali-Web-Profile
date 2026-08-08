@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import type { Job, JobStatus } from '../lib/supabase';
+import type { Job, JobEvent, JobStatus } from '../lib/supabase';
 import { JOB_STATUS_CONFIG, formatRupiah } from '../lib/supabase';
-import { createJob, updateJob } from '../lib/jobs';
+import { createJob, saveJobEvents, updateJob } from '../lib/jobs';
 import { X, Calendar } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import { format } from 'date-fns';
@@ -89,9 +89,11 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
   const [clientAddress, setClientAddress] = useState(job?.client_address || '');
   const [description, setDescription] = useState(job?.description || '');
   const [venue, setVenue] = useState(job?.venue || '');
-  const [setupDate, setSetupDate] = useState(job?.setup_date || '');
-  const [jobDate, setJobDate] = useState(job?.job_date || '');
-  const [completionDate, setCompletionDate] = useState(job?.completion_date || '');
+  const [eventDates, setEventDates] = useState<JobEvent[]>(() => {
+    if (job?.events?.length) return job.events;
+    if (job) return [{ id: 'legacy-event-1', job_id: job.id, event_number: 1, setup_date: job.setup_date, event_date: job.job_date, completion_date: job.completion_date }];
+    return [{ id: 'new-event-1', job_id: '', event_number: 1, setup_date: '', event_date: '', completion_date: '' }];
+  });
   const [status, setStatus] = useState<JobStatus>(job?.status || 'draft');
   const formatCurrencyString = (num: number) => num ? 'Rp. ' + new Intl.NumberFormat('id-ID').format(num) : 'Rp. 0';
   const [totalVendorCost, setTotalVendorCost] = useState(formatCurrencyString(job?.total_vendor_cost || 0));
@@ -99,6 +101,34 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
   const [priceCut, setPriceCut] = useState(formatCurrencyString(job?.price_cut || 0));
   const [paymentMethod, setPaymentMethod] = useState(job?.payment_method || '1-101');
   const [pphUmkmEnabled, setPphUmkmEnabled] = useState(job?.pph_umkm_enabled || false);
+
+  useEffect(() => {
+    if (!job?.id || job.events?.length) return;
+    import('../lib/supabase').then(({ supabase }) => supabase.from('job_events').select('*').eq('job_id', job.id).order('event_number'))
+      .then(({ data }) => { if (data?.length) setEventDates(data); })
+      .catch(() => { /* Legacy jobs keep their three original dates. */ });
+  }, [job]);
+
+  const updateEventDate = (index: number, key: 'setup_date' | 'event_date' | 'completion_date', value: string) => {
+    setEventDates(prev => prev.map((event, i) => i === index ? { ...event, [key]: value } : event));
+  };
+
+  const addEventDate = () => {
+    const previous = eventDates[eventDates.length - 1];
+    setEventDates(prev => [...prev, {
+      id: `new-event-${Date.now()}`,
+      job_id: job?.id || '',
+      event_number: prev.length + 1,
+      setup_date: previous?.setup_date || '',
+      event_date: '',
+      completion_date: '',
+    }]);
+  };
+
+  const removeEventDate = (index: number) => {
+    if (eventDates.length <= 1) return;
+    setEventDates(prev => prev.filter((_, i) => i !== index).map((event, i) => ({ ...event, event_number: i + 1 })));
+  };
 
   const handleCurrencyChange = (val: string, setter: (v: string) => void) => {
     const numeric = val.replace(/[^0-9]/g, '');
@@ -137,16 +167,12 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
     e.preventDefault();
     setError('');
 
-    if (!clientName.trim() || !venue.trim() || !setupDate || !jobDate || !completionDate) {
+    if (!clientName.trim() || !venue.trim() || eventDates.some(event => !event.setup_date || !event.event_date || !event.completion_date)) {
       setError('Semua field bertanda * wajib diisi.');
       return;
     }
-    if (new Date(setupDate) > new Date(jobDate)) {
-      setError('Tanggal setup tidak boleh lebih besar dari tanggal event.');
-      return;
-    }
-    if (new Date(jobDate) > new Date(completionDate)) {
-      setError('Tanggal event tidak boleh lebih besar dari tanggal selesai.');
+    if (eventDates.some(event => new Date(event.setup_date) > new Date(event.event_date) || new Date(event.event_date) > new Date(event.completion_date))) {
+      setError('Pada setiap event, urutan tanggal harus Setup ≤ Event ≤ Bongkar.');
       return;
     }
 
@@ -162,6 +188,7 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
       }
       const finalPriceCut = parseInt(priceCut.replace(/[^0-9]/g, ''), 10) || 0;
 
+      const firstEvent = eventDates[0];
       const payload = {
         client_name: clientName.trim(),
         contact_person: contactPerson.trim() || null,
@@ -170,9 +197,9 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
         client_address: clientAddress.trim() || null,
         description: description.trim() || null,
         venue: venue.trim(),
-        setup_date: setupDate,
-        job_date: jobDate,
-        completion_date: completionDate,
+        setup_date: firstEvent.setup_date,
+        job_date: firstEvent.event_date,
+        completion_date: firstEvent.completion_date,
         status,
         total_rental_fee: 0, // will be auto-calculated from job_items
         total_vendor_cost: 0, // will be auto-calculated from job_items
@@ -182,11 +209,13 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
         pph_umkm_enabled: pphUmkmEnabled,
       };
 
+      let jobId = job?.id;
       if (isEdit && job) {
         await updateJob(job.id, payload);
       } else {
-        await createJob(payload);
+        jobId = await createJob(payload);
       }
+      if (jobId) await saveJobEvents(jobId, eventDates.map(({ id: _id, job_id: _jobId, ...event }) => event));
       onSaved();
     } catch (err) {
       setError((err as Error).message);
@@ -228,11 +257,28 @@ export default function JobFormModal({ job, onClose, onSaved }: JobFormModalProp
               className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-sm resize-none shadow-sm" />
           </div>
 
-          {/* Dates */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <DatePickerField label="Tanggal Setup" required value={setupDate} onChange={setSetupDate} />
-            <DatePickerField label="Tanggal Event" required value={jobDate} onChange={setJobDate} />
-            <DatePickerField label="Tanggal Selesai" required value={completionDate} onChange={setCompletionDate} />
+          {/* Multi-date events */}
+          <div className="space-y-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Tanggal Job</p>
+                <p className="text-xs text-slate-400 mt-1">Tambahkan rangkaian tanggal lain bila client/project yang sama memiliki beberapa event.</p>
+              </div>
+              <button type="button" onClick={addEventDate} className="shrink-0 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-lg hover:bg-red-100 transition">+ Tambah Event</button>
+            </div>
+            {eventDates.map((event, index) => (
+              <div key={event.id} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Event {index + 1}</span>
+                  {eventDates.length > 1 && <button type="button" onClick={() => removeEventDate(index)} className="text-xs text-red-500 hover:text-red-700">Hapus</button>}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <DatePickerField label="Tanggal Setup" required value={event.setup_date} onChange={value => updateEventDate(index, 'setup_date', value)} />
+                  <DatePickerField label="Tanggal Event" required value={event.event_date} onChange={value => updateEventDate(index, 'event_date', value)} />
+                  <DatePickerField label="Tanggal Bongkar" required value={event.completion_date} onChange={value => updateEventDate(index, 'completion_date', value)} />
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Financial */}

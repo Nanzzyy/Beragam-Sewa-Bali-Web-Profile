@@ -2,7 +2,7 @@ import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { Job, JobItem } from './supabase';
-import { formatDate, supabase } from './supabase';
+import { formatJobEventDates, supabase } from './supabase';
 
 function terbilang(angka: number): string {
   const huruf = [
@@ -173,10 +173,7 @@ export async function generateExcel(job: Job, items: any[], type: 'invoice' | 'q
     writeField(startRow++, 'PHONE', job.client_phone || '-', 'NPWP', config.npwp || '-');
     writeField(startRow++, 'PROJECT', projectName, 'BANK ACCOUNT', bankName);
 
-    const tglMulai = formatDate(job.job_date);
-    const tglSelesai = job.completion_date ? formatDate(job.completion_date) : '';
-    const eventDateRange = tglSelesai && tglSelesai !== '-' ? `${tglMulai} s/d ${tglSelesai}` : tglMulai;
-    writeField(startRow++, 'TGL EVENT', eventDateRange, '', bankNumber);
+    writeField(startRow++, 'TGL EVENT', formatJobEventDates(job), '', bankNumber);
     writeField(startRow++, '', '', '', bankOwner);
 
     // ══════════════════════════════════════════════

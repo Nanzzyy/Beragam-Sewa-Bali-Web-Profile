@@ -39,6 +39,32 @@ CREATE TABLE IF NOT EXISTS public.jobs (
     updated_at        TIMESTAMPTZ DEFAULT now()
 );
 
+-- Satu job dapat memiliki beberapa rangkaian tanggal/event yang berbeda.
+-- Kolom tanggal pada jobs tetap dipertahankan sebagai tanggal event pertama
+-- agar data dan integrasi lama tetap kompatibel.
+CREATE TABLE IF NOT EXISTS public.job_events (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    job_id          UUID NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
+    event_number    INT NOT NULL CHECK (event_number > 0),
+    setup_date      DATE NOT NULL,
+    event_date      DATE NOT NULL,
+    completion_date DATE NOT NULL,
+    label           TEXT,
+    notes           TEXT,
+    created_at      TIMESTAMPTZ DEFAULT now(),
+    updated_at      TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT job_events_dates_valid CHECK (setup_date <= event_date AND event_date <= completion_date),
+    CONSTRAINT job_events_job_number_unique UNIQUE (job_id, event_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_job_events_dates ON public.job_events(setup_date, event_date, completion_date);
+
+-- Backfill satu event untuk job lama.
+INSERT INTO public.job_events (job_id, event_number, setup_date, event_date, completion_date)
+SELECT j.id, 1, j.setup_date, j.job_date, j.completion_date
+FROM public.jobs j
+WHERE NOT EXISTS (SELECT 1 FROM public.job_events e WHERE e.job_id = j.id);
+
 -- Tabel Logistik Barang (Kombinasi Barang Internal & Sub-Sewa Vendor)
 CREATE TABLE IF NOT EXISTS public.job_items (
     id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -51,6 +77,11 @@ CREATE TABLE IF NOT EXISTS public.job_items (
     is_returned       BOOLEAN NOT NULL DEFAULT false,
     created_at        TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.job_items
+    ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES public.job_events(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_job_items_event_id ON public.job_items(event_id);
 
 -- Tabel Penugasan Kru / Karyawan pada Job
 CREATE TABLE IF NOT EXISTS public.job_staff (
@@ -75,6 +106,7 @@ CREATE TABLE IF NOT EXISTS public.job_proofs (
 -- 3. ROW LEVEL SECURITY (RLS) POLICIES
 -- ============================================================
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.job_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_staff ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_proofs ENABLE ROW LEVEL SECURITY;
@@ -95,6 +127,29 @@ ON public.jobs FOR ALL TO authenticated
 USING (
   public.get_user_role() IN ('owner', 'staff')
   OR (public.get_user_role() = 'guest' AND created_by = auth.uid())
+);
+
+DROP POLICY IF EXISTS "Job events readable by authorized roles" ON public.job_events;
+CREATE POLICY "Job events readable by authorized roles"
+ON public.job_events FOR SELECT TO authenticated
+USING (EXISTS (SELECT 1 FROM public.jobs WHERE jobs.id = job_events.job_id));
+
+DROP POLICY IF EXISTS "Job events modifiable by owner and staff" ON public.job_events;
+CREATE POLICY "Job events modifiable by owner and staff"
+ON public.job_events FOR ALL TO authenticated
+USING (
+  public.get_user_role() IN ('owner', 'staff')
+  OR EXISTS (
+    SELECT 1 FROM public.jobs
+    WHERE jobs.id = job_events.job_id AND jobs.created_by = auth.uid() AND public.get_user_role() = 'guest'
+  )
+)
+WITH CHECK (
+  public.get_user_role() IN ('owner', 'staff')
+  OR EXISTS (
+    SELECT 1 FROM public.jobs
+    WHERE jobs.id = job_events.job_id AND jobs.created_by = auth.uid() AND public.get_user_role() = 'guest'
+  )
 );
 
 -- Policy untuk Tabel Job Items
@@ -229,8 +284,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Drop and recreate trigger
+-- Auto-recap completed job ke Cashflow dinonaktifkan sementara selama maintenance.
+-- Fungsi lama dipertahankan untuk kompatibilitas, tetapi trigger-nya sengaja tidak dibuat.
 DROP TRIGGER IF EXISTS tr_sync_completed_job ON public.jobs;
-CREATE TRIGGER tr_sync_completed_job
-    BEFORE UPDATE ON public.jobs
-    FOR EACH ROW EXECUTE PROCEDURE public.sync_completed_job_to_cashflow();

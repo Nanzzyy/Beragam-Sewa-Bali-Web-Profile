@@ -9,7 +9,6 @@ import dynamic from 'next/dynamic';
 const JobDetailModal = dynamic(() => import('../components/JobDetailModal'), { ssr: false });
 const JobFormModal = dynamic(() => import('../components/JobFormModal'), { ssr: false });
 const PackageModal = dynamic(() => import('../components/PackageModal'), { ssr: false });
-const GanttScheduler = dynamic(() => import('../components/GanttScheduler'), { ssr: false });
 const SupplierItemsModal = dynamic(() => import('../components/SupplierItemsModal'), { ssr: false });
 const MonthCalendar = dynamic(() => import('../components/MonthCalendar'), { ssr: false });
 import PDFTemplateEditor from '../components/PDFTemplateEditor';
@@ -311,7 +310,6 @@ export default function DashboardApp() {
   // Package Modal State
   const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [packageModalData, setPackageModalData] = useState<{ id?: string; name: string; description: string; base_price: string; items: { item_id: string; qty: number }[] } | null>(null);
-  const [scheduleView, setScheduleView] = useState<'gantt' | 'calendar'>('gantt');
   const pkgImportRef = useRef<HTMLInputElement>(null);
 
   const handlePkgImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1436,17 +1434,11 @@ export default function DashboardApp() {
               <div className="animate-fade-in space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Schedule Timeline</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Visualisasi jadwal setup, event, dan bongkar</p>
-                  </div>
-                  <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 self-start">
-                    <button onClick={() => setScheduleView('gantt')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition ${scheduleView === 'gantt' ? 'bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>Gantt</button>
-                    <button onClick={() => setScheduleView('calendar')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition ${scheduleView === 'calendar' ? 'bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>Kalender</button>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Schedule Kalender</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Lihat seluruh setup, event, dan bongkar termasuk multi-tanggal dalam satu kalender.</p>
                   </div>
                 </div>
-                {scheduleView === 'gantt'
-                  ? <GanttScheduler jobs={jobs} onJobClick={(id) => setViewingJobId(id)} />
-                  : <MonthCalendar jobs={jobs} onJobClick={(id) => setViewingJobId(id)} />}
+                <MonthCalendar jobs={jobs} onJobClick={(id) => setViewingJobId(id)} />
               </div>
             )}
 
@@ -3563,14 +3555,14 @@ function LandingPage({ onLoginClick }: { onLoginClick: () => void }) {
             <CalendarDays className="w-6 h-6 text-red-500" />
           </div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Penjadwalan Interaktif</h3>
-          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">Visualisasi timeline event dan setup dengan Gantt chart cerdas. Hindari bentrok jadwal penyewaan secara efektif.</p>
+        <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">Kalender multi-event membantu melihat bentrok setup, event, dan bongkar secara lebih jelas.</p>
         </div>
         <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-8 bg-slate-900/50 border-slate-200 dark:border-slate-800 backdrop-blur-sm hover:border-blue-500/50 transition duration-300">
           <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 border border-blue-500/20">
             <Activity className="w-6 h-6 text-blue-400" />
           </div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Akuntansi Otomatis</h3>
-          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">Setiap penyewaan yang selesai akan terintegrasi langsung ke sistem jurnal double-entry Cashflow Beragam Sewa Bali.</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">Integrasi auto-recap job ke Cashflow sedang dinonaktifkan sementara selama maintenance.</p>
         </div>
         <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border p-8 bg-slate-900/50 border-slate-200 dark:border-slate-800 backdrop-blur-sm hover:border-amber-500/50 transition duration-300">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6 border border-amber-500/20">

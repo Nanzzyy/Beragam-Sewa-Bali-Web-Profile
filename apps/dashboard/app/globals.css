@@ -119,18 +119,6 @@ input[type="number"] { -moz-appearance: textfield; }
   letter-spacing: 0.025em;
 }
 
-/* Gantt chart bar */
-.gantt-bar {
-  border-radius: 6px;
-  height: 28px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-.gantt-bar:hover {
-  filter: brightness(1.15);
-  transform: scaleY(1.1);
-}
-
 /* Gridstack PDF Template Editor */
 .grid-stack > .grid-stack-item > .grid-stack-item-content {
   border-radius: 4px !important;

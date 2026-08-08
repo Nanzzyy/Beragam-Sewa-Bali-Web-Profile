@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Job, JobItem, JobStaff, JobProof, JobStatus, AppRole } from '../lib/supabase';
+import type { Job, JobEvent, JobItem, JobStaff, JobProof, JobStatus, AppRole } from '../lib/supabase';
 import { JOB_STATUS_CONFIG, formatRupiah, formatDate } from '../lib/supabase';
 import { fetchJobById, fetchJobItems, fetchJobStaff, fetchJobProofs, uploadProofPhoto, addJobProof, updateJobStatus } from '../lib/jobs';
 import { X, MapPin, Calendar, Phone, Mail, Package, Users, Camera, FileText, Upload, CheckCircle2, Truck, RotateCcw, FileSpreadsheet, Trash2 } from 'lucide-react';
@@ -37,6 +37,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   // Add item form states
   const [addMode, setAddMode] = useState<'item'|'supplier'|'package'>('item');
   const [itemDays, setItemDays] = useState('1');
+  const [selectedEventId, setSelectedEventId] = useState('');
 
   // Items/packages combobox states (search by name)
   const targetIdRef = useRef<HTMLInputElement>(null);
@@ -100,6 +101,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
         fetchJobProofs(jobId),
       ]);
       setJob(jobData);
+      setSelectedEventId(jobData?.events?.[0]?.id || '');
       setItems(itemsData);
       setStaff(staffData);
       setProofs(proofsData);
@@ -255,6 +257,10 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
   }
 
   const config = JOB_STATUS_CONFIG[job.status];
+  const eventRows: JobEvent[] = job.events?.length ? job.events : [{
+    id: 'legacy-event', job_id: job.id, event_number: 1,
+    setup_date: job.setup_date, event_date: job.job_date, completion_date: job.completion_date,
+  }];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
@@ -317,23 +323,16 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                 </div>
               )}
 
-              {/* Dates */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
-                  <Calendar className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-                  <div className="text-xs text-slate-500">Setup</div>
-                  <div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(job.setup_date)}</div>
-                </div>
-                <div className="bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
-                  <Calendar className="w-4 h-4 text-amber-400 mx-auto mb-1" />
-                  <div className="text-xs text-slate-500">Event</div>
-                  <div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(job.job_date)}</div>
-                </div>
-                <div className="bg-white dark:bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
-                  <Calendar className="w-4 h-4 text-red-500 mx-auto mb-1" />
-                  <div className="text-xs text-slate-500">Selesai</div>
-                  <div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(job.completion_date)}</div>
-                </div>
+              {/* Multi-date events */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Rangkaian Tanggal Job ({eventRows.length} event)</h4>
+                {eventRows.map((event, index) => (
+                  <div key={event.id} className="grid grid-cols-3 gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-3">
+                    <div><div className="text-[10px] text-blue-400 font-semibold uppercase">Event {index + 1} · Setup</div><div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(event.setup_date)}</div></div>
+                    <div><div className="text-[10px] text-amber-400 font-semibold uppercase">Event · Berlangsung</div><div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(event.event_date)}</div></div>
+                    <div><div className="text-[10px] text-red-500 font-semibold uppercase">Bongkar</div><div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(event.completion_date)}</div></div>
+                  </div>
+                ))}
               </div>
 
               {/* Financial */}
@@ -357,7 +356,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <div>
                   Pembayaran: <span className="text-slate-700 dark:text-slate-300 font-medium">{job.payment_method}</span>
-                  {job.cashflow_tx_id && <span className="ml-2 text-red-500">✓ Jurnal Tersinkron</span>}
+                  <span className="ml-2 text-amber-600 dark:text-amber-400">Auto-recap Cashflow nonaktif (maintenance)</span>
                 </div>
                 
                 {/* PDF Generation Buttons Dropdown */}
@@ -493,6 +492,17 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                       Tambah Paket
                     </button>
                   </div>
+                  {job.events && job.events.length > 0 && (
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Tanggal Event untuk Alat</label>
+                      <select value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm outline-none focus:border-red-500 text-slate-900 dark:text-white">
+                        {job.events.map((event: JobEvent, index: number) => (
+                          <option key={event.id} value={event.id}>Event {index + 1} — {new Date(event.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-400 mt-1">Alat yang ditambahkan akan tercatat khusus untuk event ini.</p>
+                    </div>
+                  )}
                   
                   <form onSubmit={async (e) => {
                     e.preventDefault();
@@ -535,6 +545,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
 
                       const payload = {
                         job_id: job.id,
+                        event_id: selectedEventId || null,
                         quantity: qty,
                         sub_rent_cost: addMode === 'supplier' ? (supplierSnap?.price || price) : price,
                         rental_price: rentalPrice,
@@ -664,6 +675,7 @@ export default function JobDetailModal({ jobId, userRole, onClose, onStatusChang
                             {item.rental_price > 0 && <span className="text-emerald-600 dark:text-emerald-400"> • Sewa: {formatRupiah(item.rental_price)}/hari</span>}
                             {item.sub_rent_cost > 0 && <span className="text-amber-600 dark:text-amber-400"> • Vendor: {formatRupiah(item.sub_rent_cost)}/hari</span>}
                             {item.vendor_name && ` • ${item.vendor_name}`}
+                            {item.event_id && job.events && <span className="text-blue-600 dark:text-blue-400"> • Event {(job.events.findIndex(event => event.id === item.event_id) + 1) || '-'}</span>}
                           </div>
                         </div>
                       </div>
